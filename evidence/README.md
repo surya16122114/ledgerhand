@@ -82,7 +82,7 @@ npm run capture-evidence  # in another
 ## What was scripted rather than performed by hand
 
 `evidence/screenshots/operator-console.png` and the replay in
-`replays/13-operator-console/` were produced by `scripts/capture-evidence.ts`, which
+`replays/15-operator-console/` were produced by `scripts/capture-evidence.ts`, which
 claims the intervention and then aborts it once the screenshot is taken.
 
 Being precise about what that stands in for: the console server, the intervention

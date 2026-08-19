@@ -239,7 +239,7 @@ The brief's Section 3, mapped to code and to the evidence that exercises it.
 | **3.3** business outcome vs recoverable vs hard failure | `src/replay/outcome.ts`, handlers in `src/artifact/product-profiles.ts` | `03`, `04`, `06`, `07`, `08`, `13`, `14` |
 | **3.4** allowlist, risky-action handling, redaction | `src/policy/{gate,allowlist,risk,redact,vault}.ts` | `10`, `11`, `12`; `tests/gate.test.ts` |
 | **3.5** structured log + richer signal on failure | `src/evidence/logger.ts` | `run.jsonl`, `screenshots/`, `snapshots/` in each run |
-| **3.6** detect stuck, route with context, transfer control, resume | `src/escalation/*`, `operator-console.html` | `evidence/screenshots/operator-console.png`, `12`, `13-operator-console` |
+| **3.6** detect stuck, route with context, transfer control, resume | `src/escalation/*`, `operator-console.html` | `evidence/screenshots/operator-console.png`, `12`, `15-operator-console` |
 | **3.7** heterogeneity and multi-tenant reuse | `src/surface/types.ts` seam, `src/surface/desktop/README.md`, `src/artifact/overlay.ts` | scenario `09` — one recording, two institutions |
 
 Stretch goals attempted: an agent-facing capability catalog (`ledgerhand catalog`),

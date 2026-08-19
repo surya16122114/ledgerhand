@@ -267,7 +267,7 @@ try {
     baseUrl: MERIDIAN,
     headless: true,
     unattended: true,
-    evidenceBaseDir: join(OUT, 'replays', '13-operator-console'),
+    evidenceBaseDir: join(OUT, 'replays', '15-operator-console'),
     escalationTimeoutMs: 60_000,
     onSurfaceReady: async ({ surface, lease, broker }) => {
       const console_ = await startOperatorConsole({ broker, lease, page: surface.livePage(), port: 4188 });
@@ -301,7 +301,7 @@ try {
   if (shot) {
     summary.push(
       [
-        '### 13-operator-console -- the operator console during a live escalation',
+        '### 15-operator-console -- the operator console during a live escalation',
         '',
         'A screenshot of the real console (`evidence/screenshots/operator-console.png`), taken while a replay was paused ' +
           'on an irreversible step. It shows the intervention context, the live view of the same session the automation ' +

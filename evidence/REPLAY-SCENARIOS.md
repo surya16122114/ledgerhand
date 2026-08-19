@@ -164,7 +164,7 @@ OUTCOME  VALIDATION_REJECTED  The application rejected the submitted values with
 
 expected `business_outcome`, got `business_outcome` -- match
 
-### 13-operator-console -- the operator console during a live escalation
+### 15-operator-console -- the operator console during a live escalation
 
 A screenshot of the real console (`evidence/screenshots/operator-console.png`), taken while a replay was paused on an irreversible step. It shows the intervention context, the live view of the same session the automation was driving, the control-transfer log, and the decision buttons.
 
