@@ -108,7 +108,7 @@ institution who must approve it, and the production agent that calls it by name.
                   "action": { "kind": "click", "target": { ... } },
                   "risk": "safe", "partOfAuth": false,
                   "checkpoint": { ... }, "handlers": [ ... ] } ],
-  "success":  { "checkpoint": { "kind": "textPresent", "pattern": "MEMBER PROFILE" } },
+  "success":  { "checkpoint": { "kind": "textPresent", "pattern": "SHARE / DEPOSIT ACCOUNTS ..." } },
   "interrupts": [ ... ],                  // conditions that can occur at ANY step
   "policy":   { "allowedUrlPatterns": [...], "maxRisk": "reversible", ... },
   "lifecycle": { "state": "draft", "stability": { ... } },
@@ -237,10 +237,28 @@ structural changed. The committed artifacts checkpoint on `OPERATOR SIGN ON`,
 `DAILY OPERATIONS SUMMARY`, `MEMBER SERVICING – INQUIRY`, `SHARE / DEPOSIT ACCOUNTS`
 — every one member-independent.
 
-The same guard applies to the model's claimed success phrase. It first offered
-`MEMBER PROFILE Member ID: 12345 Name: Ashgrove, Dolores`, which was rejected as
-record-time data; it corrected to `MEMBER PROFILE`. Both turns are in
-`evidence/discovery/*/run.jsonl` under `discovery.finishRejected`.
+The same guard applies to the model's claimed success phrase, and the committed run
+shows it firing. The model first offered
+
+```
+MEMBER PROFILE Member ID: {{input.memberId}} Name: Ashgrove, Dolores Status: ACTIVE
+```
+
+which was rejected as record-time data — it names one member and would only ever hold
+for that member. (The member id reads as a placeholder because tool calls are
+parameterised on the way into the committed transcript; at runtime the model wrote the
+concrete id, which is what the guard matched on.) It corrected to
+
+```
+SHARE / DEPOSIT ACCOUNTS Account Description Current Balance Available Opened
+```
+
+which is the section heading plus the accounts table's column headers: longer than I
+would have written by hand, but entirely screen chrome, and in one respect better than
+a bare heading — it asserts that the accounts table actually rendered with its header
+row, not merely that the profile page loaded. Both turns are in
+`evidence/discovery/*/run.jsonl` as `discovery.finishRejected` and
+`discovery.finishClaimed`.
 
 **Parameterisation reaches into targets, not just values.** A capability whose fill
 values are parameterised but whose `table-cell` row key still reads `12345-00` is
