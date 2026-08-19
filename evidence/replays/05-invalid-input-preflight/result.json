@@ -1,0 +1,38 @@
+{
+  "scenario": {
+    "slug": "05-invalid-input-preflight",
+    "title": "Invalid input, rejected before a browser is launched",
+    "why": "The declared input pattern is checked first, so a malformed member id costs milliseconds and yields a precise message.",
+    "inputs": [
+      "memberId"
+    ],
+    "fault": null,
+    "expected": "failed"
+  },
+  "matchedExpectation": true,
+  "result": {
+    "runId": "replay-20260819T185517-a27ece",
+    "capability": {
+      "id": "member.read-savings-balance",
+      "version": "1.0.0",
+      "digest": "sha256:fbc2aabef3f518090490924017c9ecf9",
+      "lifecycleState": "draft"
+    },
+    "tenantId": "meridian-cu",
+    "startedAt": "2026-08-19T18:55:17.862Z",
+    "finishedAt": "2026-08-19T18:55:17.866Z",
+    "durationMs": 4,
+    "steps": [],
+    "recoveries": [],
+    "drift": [],
+    "interventions": [],
+    "evidenceDir": "evidence/replays/05-invalid-input-preflight/replay-20260819T185517-a27ece",
+    "warnings": [],
+    "status": "failed",
+    "failure": {
+      "code": "INVALID_INPUT",
+      "message": "inputs do not satisfy the capability contract:\n  - input 'memberId' does not match the required format /^\\d{1,10}$/"
+    },
+    "outputs": {}
+  }
+}

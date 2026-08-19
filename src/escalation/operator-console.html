@@ -1,0 +1,242 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Ledgerhand Operator Console</title>
+<style>
+  :root { --bg:#11151c; --panel:#181d26; --line:#2a3240; --fg:#dfe6f0; --dim:#8c98a8; --accent:#4c9be8; --warn:#e8a33d; --bad:#e05c5c; --good:#57b97a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; }
+  header { padding:10px 16px; border-bottom:1px solid var(--line); display:flex; gap:16px; align-items:center; }
+  header h1 { font-size:14px; margin:0; font-weight:600; letter-spacing:.5px; }
+  .lease { margin-left:auto; font-size:12px; }
+  .pill { padding:2px 8px; border-radius:10px; border:1px solid var(--line); }
+  .pill.automation { color:var(--accent); border-color:var(--accent); }
+  .pill.operator { color:var(--warn); border-color:var(--warn); }
+  main { display:grid; grid-template-columns:340px 1fr; height:calc(100vh - 45px); }
+  #queue { border-right:1px solid var(--line); overflow:auto; }
+  .item { padding:10px 14px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .item:hover { background:var(--panel); }
+  .item.sel { background:var(--panel); border-left:3px solid var(--accent); }
+  .item .h { font-weight:600; margin-bottom:3px; }
+  .item .m { color:var(--dim); font-size:11px; }
+  .s-pending { color:var(--warn); } .s-claimed { color:var(--accent); } .s-resolved { color:var(--good); } .s-abandoned { color:var(--bad); }
+  #detail { overflow:auto; padding:14px 18px; }
+  h2 { font-size:13px; margin:18px 0 6px; color:var(--dim); text-transform:uppercase; letter-spacing:.8px; }
+  h2:first-child { margin-top:0; }
+  pre { background:var(--panel); border:1px solid var(--line); padding:10px; overflow:auto; margin:0; white-space:pre-wrap; font-size:12px; }
+  table.kv { width:100%; border-collapse:collapse; }
+  table.kv td { padding:3px 8px 3px 0; vertical-align:top; font-size:12px; }
+  table.kv td:first-child { color:var(--dim); width:150px; white-space:nowrap; }
+  #liveWrap { position:relative; border:1px solid var(--line); background:#000; display:inline-block; max-width:100%; }
+  #live { display:block; max-width:100%; image-rendering:auto; }
+  #liveOff { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(17,21,28,.82); color:var(--dim); text-align:center; padding:20px; font-size:12px; }
+  #liveWrap.live #liveOff { display:none; }
+  #liveWrap.driving { outline:2px solid var(--warn); }
+  .btns { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  button { background:var(--panel); color:var(--fg); border:1px solid var(--line); padding:6px 12px; font:inherit; font-size:12px; cursor:pointer; border-radius:3px; }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button:disabled { opacity:.4; cursor:not-allowed; }
+  button.primary { border-color:var(--good); color:var(--good); }
+  button.warn { border-color:var(--warn); color:var(--warn); }
+  button.bad { border-color:var(--bad); color:var(--bad); }
+  input[type=text] { background:var(--bg); color:var(--fg); border:1px solid var(--line); padding:6px 8px; font:inherit; font-size:12px; width:100%; margin-top:8px; }
+  .empty { color:var(--dim); padding:24px 14px; }
+  .hint { color:var(--dim); font-size:11px; margin-top:6px; }
+  ol.acts { margin:0; padding-left:20px; font-size:12px; }
+</style></head>
+<body>
+<header>
+  <h1>LEDGERHAND &middot; OPERATOR CONSOLE</h1>
+  <span id="mode" class="pill">&mdash;</span>
+  <span class="lease">session control: <span id="lease" class="pill">&mdash;</span></span>
+</header>
+<main>
+  <div id="queue"><div class="empty">no interventions</div></div>
+  <div id="detail"><div class="empty">select an intervention</div></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let state = { interventions: [], lease: 'automation', selected: null, driving: false };
+let ws = null;
+/**
+ * The most recent screencast frame, and a signature of the last rendered state.
+ *
+ * Both exist for the same reason. The queue is polled on a timer, and re-rendering
+ * the detail pane replaces its DOM -- including the <img> the live view draws into.
+ * A screencast only emits frames when the page repaints, and the screen an operator
+ * is called in to look at is usually static, so the destroyed frame is never
+ * naturally replaced and the live view goes blank a second after it appears.
+ *
+ * So: skip the re-render when nothing changed, and re-apply the last frame when a
+ * re-render does happen.
+ */
+let lastFrame = null;
+let lastSignature = null;
+
+function fmt(t) { return t ? new Date(t).toLocaleTimeString() : '-'; }
+function esc(s) { return String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+async function refresh() {
+  const r = await fetch('/api/state');
+  const next = await r.json();
+  state.interventions = next.interventions;
+  state.lease = next.lease;
+  if (!state.selected && next.interventions.length) state.selected = next.interventions[0].id;
+  render();
+}
+
+function signatureOf() {
+  const cur = state.interventions.find((i) => i.id === state.selected);
+  return JSON.stringify({
+    lease: state.lease,
+    selected: state.selected,
+    queue: state.interventions.map((i) => `${i.id}:${i.status}`),
+    actions: cur ? cur.humanActions.length : 0,
+    transfers: cur ? cur.leaseTransitions.length : 0,
+    note: cur ? cur.operatorNote : null,
+  });
+}
+
+function render(force) {
+  const signature = signatureOf();
+  if (!force && signature === lastSignature) return;
+  lastSignature = signature;
+
+  $('lease').textContent = state.lease;
+  $('lease').className = 'pill ' + state.lease;
+  const cur = state.interventions.find(i => i.id === state.selected);
+  $('mode').textContent = cur ? cur.context.runKind + ' run' : '—';
+
+  $('queue').innerHTML = state.interventions.length
+    ? state.interventions.map(i => `
+      <div class="item ${i.id === state.selected ? 'sel' : ''}" onclick="select('${i.id}')">
+        <div class="h">${esc(i.headline)}</div>
+        <div class="m"><span class="s-${i.status}">${i.status}</span> &middot; ${esc(i.reason)} &middot; ${fmt(i.createdAt)}</div>
+      </div>`).join('')
+    : '<div class="empty">no interventions</div>';
+
+  $('detail').innerHTML = cur ? detailHtml(cur) : '<div class="empty">select an intervention</div>';
+  const wrap = $('liveWrap');
+  if (wrap) {
+    wrap.classList.toggle('driving', state.driving);
+    // Re-apply the last frame into the freshly created <img>, so the view survives
+    // a re-render even if the remote page never repaints again.
+    if (lastFrame && cur && cur.status === 'claimed') {
+      $('live').src = 'data:image/jpeg;base64,' + lastFrame;
+      wrap.classList.add('live');
+    }
+    if (cur && cur.status === 'claimed') connectLive(); else disconnectLive();
+    // Re-bind input listeners on every render.
+    //
+    // This has to happen here rather than in connectLive(). Re-rendering replaces
+    // the <img>, and the new element carries no listeners; connectLive() early-returns
+    // when the socket is already open, so it never re-binds. The result was a live
+    // view that accepted mouse input right up until the first render caused by the
+    // operator's own clicks, and then silently accepted nothing -- which is a worse
+    // failure than not working at all, because the operator has no way to tell.
+    // bindInput is idempotent per element via dataset.bound.
+    bindInput();
+  }
+}
+
+function detailHtml(i) {
+  const c = i.context;
+  const claimed = i.status === 'claimed';
+  const done = i.status === 'resolved' || i.status === 'abandoned';
+  return `
+    <h2>why it stopped</h2>
+    <pre>${esc(i.detail)}</pre>
+    <h2>context</h2>
+    <table class="kv">
+      <tr><td>intervention</td><td>${esc(i.id)} &middot; <span class="s-${i.status}">${i.status}</span>${i.claimedBy ? ' by ' + esc(i.claimedBy) : ''}</td></tr>
+      <tr><td>reason</td><td>${esc(i.reason)}</td></tr>
+      <tr><td>run</td><td>${esc(c.runId)} (${esc(c.runKind)})</td></tr>
+      ${c.goal ? `<tr><td>goal</td><td>${esc(c.goal)}</td></tr>` : ''}
+      ${c.capability ? `<tr><td>capability</td><td>${esc(c.capability.id)}@${esc(c.capability.version)}${c.capability.tenantId ? ' &middot; tenant ' + esc(c.capability.tenantId) : ''}</td></tr>` : ''}
+      ${c.step ? `<tr><td>step</td><td>#${c.step.index + 1} <b>${esc(c.step.id)}</b><br><span style="color:var(--dim)">${esc(c.step.intent)}</span></td></tr>` : ''}
+      <tr><td>location</td><td>${esc(c.location.url)}</td></tr>
+      ${c.attempt ? `<tr><td>attempted</td><td>${esc(c.attempt.action)}${c.attempt.errorCode ? ' &rarr; ' + esc(c.attempt.errorCode) : ''}</td></tr>` : ''}
+      ${c.attempt && c.attempt.expected ? `<tr><td>expected</td><td>${esc(c.attempt.expected)}</td></tr>` : ''}
+      ${c.attempt && c.attempt.observed ? `<tr><td>observed</td><td>${esc(c.attempt.observed)}</td></tr>` : ''}
+    </table>
+    <h2>on screen</h2>
+    <pre>${esc(c.visibleExcerpt)}</pre>
+    <h2>live session</h2>
+    <div id="liveWrap"><img id="live" alt="live session"><div id="liveOff">${claimed ? 'connecting…' : done ? 'session control returned to automation' : 'claim this intervention to take control of the live session'}</div></div>
+    <div class="hint">${claimed ? 'You have control. Clicks and keystrokes here are dispatched to the real session and recorded. &quot;Authorize &amp; resume&quot; also permits the one irreversible action the run was stopped for.' : 'Automation holds the lease; the view is read-only until you claim.'}</div>
+    <div class="btns">
+      <button ${claimed || done ? 'disabled' : ''} onclick="claim('${i.id}')">Claim &amp; take control</button>
+      <button class="primary" ${claimed ? '' : 'disabled'} onclick="resolve('${i.id}','resume')">Return control &amp; resume</button>
+      <button class="warn" ${claimed ? '' : 'disabled'} onclick="resolve('${i.id}','authorize-and-resume')">Authorize &amp; resume</button>
+      <button ${claimed ? '' : 'disabled'} onclick="resolve('${i.id}','skip-step')">Skip step &amp; resume</button>
+      <button class="bad" ${claimed ? '' : 'disabled'} onclick="resolve('${i.id}','abort')">Abort run</button>
+    </div>
+    <input type="text" id="note" placeholder="operator note (recorded on the intervention)" ${claimed ? '' : 'disabled'}>
+    <h2>recorded human actions (${i.humanActions.length})</h2>
+    ${i.humanActions.length ? `<ol class="acts">${i.humanActions.map(a => `<li>${esc(a.kind)}${a.control ? ' &rarr; ' + esc(a.control) : ''}${a.value !== undefined ? ' = ' + esc(a.value) : ''}</li>`).join('')}</ol>` : '<pre>none yet</pre>'}
+    <h2>control transfers</h2>
+    <pre>${i.leaseTransitions.map(t => `${fmt(t.at)}  ${t.from} -> ${t.to}  (${esc(t.by)}: ${esc(t.reason)})`).join('\n') || 'none'}</pre>
+  `;
+}
+
+window.select = (id) => { state.selected = id; lastFrame = null; disconnectLive(); render(true); };
+window.claim = async (id) => {
+  await fetch('/api/interventions/' + id + '/claim', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ operator: 'operator@console' }) });
+  await refresh();
+};
+window.resolve = async (id, decision) => {
+  const note = ($('note') && $('note').value) || undefined;
+  await fetch('/api/interventions/' + id + '/resolve', { method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({ decision, by: 'operator@console', note }) });
+  disconnectLive();
+  await refresh();
+};
+
+// ------------------------------------------------------------------ live view
+function connectLive() {
+  if (ws && ws.readyState <= 1) return;
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/live');
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === 'frame') {
+      lastFrame = msg.data;
+      const img = $('live');
+      const wrap = $('liveWrap');
+      if (img && wrap) {
+        img.src = 'data:image/jpeg;base64,' + msg.data;
+        wrap.classList.add('live');
+        state.driving = msg.canDrive;
+        wrap.classList.toggle('driving', msg.canDrive);
+      }
+    }
+  };
+  ws.onopen = () => ws.send(JSON.stringify({ type: 'requestFrame' }));
+  ws.onclose = () => { const w = $('liveWrap'); if (w) w.classList.remove('live'); };
+  bindInput();
+}
+function disconnectLive() { if (ws) { ws.close(); ws = null; } state.driving = false; lastFrame = null; }
+
+function bindInput() {
+  const img = $('live');
+  if (!img || img.dataset.bound) return;
+  img.dataset.bound = '1';
+  const at = (e) => {
+    const r = img.getBoundingClientRect();
+    // The stream is scaled to fit; map back to real viewport coordinates or the
+    // click lands somewhere the operator did not aim at.
+    return { x: Math.round((e.clientX - r.left) * (img.naturalWidth / r.width)), y: Math.round((e.clientY - r.top) * (img.naturalHeight / r.height)) };
+  };
+  const send = (m) => { if (ws && ws.readyState === 1 && state.driving) ws.send(JSON.stringify(m)); };
+  img.addEventListener('mousedown', (e) => { e.preventDefault(); img.focus(); send({ type:'mouse', event:'mousePressed', ...at(e), button:'left' }); });
+  img.addEventListener('mouseup',   (e) => { e.preventDefault(); send({ type:'mouse', event:'mouseReleased', ...at(e), button:'left' }); });
+  img.addEventListener('mousemove', (e) => { if (e.buttons) send({ type:'mouse', event:'mouseMoved', ...at(e), button:'left' }); });
+  img.addEventListener('wheel',     (e) => { e.preventDefault(); send({ type:'scroll', ...at(e), dy: e.deltaY }); }, { passive:false });
+  img.tabIndex = 0;
+  img.addEventListener('keydown', (e) => {
+    e.preventDefault();
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) send({ type:'text', text: e.key });
+    else send({ type:'key', key: e.key });
+  });
+}
+
+refresh();
+setInterval(refresh, 1500);
+</script>
+</body></html>

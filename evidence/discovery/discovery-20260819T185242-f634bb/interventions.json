@@ -1,0 +1,49 @@
+{
+  "updatedAt": "2026-08-19T18:52:59.376Z",
+  "interventions": [
+    {
+      "id": "int_4693cb4e",
+      "createdAt": "2026-08-19T18:52:58.492Z",
+      "reason": "authorization-required",
+      "headline": "Authorise: Submit the request to open a new sub-account for member 123...",
+      "detail": "the agent wants to Submit the request to open a new sub-account for member 12345 with the specified description and initial deposit., which is classified irreversible: control named 'Submit Request' contains 'submit', which indicates durable state change",
+      "context": {
+        "runId": "discovery-20260819T185242-f634bb",
+        "runKind": "discovery",
+        "goal": "Sign on to the servicing console, look up member 12345, open a new sub-account for them with the description \"Holiday Club\" and an initial deposit of 250, and reach the confirmation screen.",
+        "location": {
+          "url": "http://localhost:4173/console.aspx",
+          "title": "Meridian Credit Union - Member Servicing Console"
+        },
+        "visibleExcerpt": "Meridian Credit Union • Member Servicing Console Home | Member Servicing | Teller Ops | General Ledger | Administration Signed on: [secret] Sign Off CorePoint Servicing 4.2.118 | meridian-cu | UNCLASSIFIED – SYNTHETIC DATA ONLY\nMeridian Credit Union • Member Servicing Console OPEN SUB-ACCOUNT – REQUEST Member [pii:memberId] – Ashgrove, Dolores Product Type: Sub-Share Savings Holiday Club Vacation Club Description: Initial Deposit: Minimum opening deposit is $25.00. Requests post same-day. CorePoint Servicing 4.2.118 | meridian-cu | UNCLASSIFIED – SYNTHETIC DATA ONLY",
+        "evidence": {
+          "screenshot": "evidence/discovery/discovery-20260819T185242-f634bb/screenshots/034-escalation-turn-10.png",
+          "snapshot": "evidence/discovery/discovery-20260819T185242-f634bb/snapshots/034-escalation-turn-10.html"
+        }
+      },
+      "status": "resolved",
+      "humanActions": [],
+      "leaseTransitions": [
+        {
+          "at": "2026-08-19T18:52:58.492Z",
+          "from": "automation",
+          "to": "operator",
+          "by": "system",
+          "reason": "escalation int_4693cb4e: authorization-required"
+        },
+        {
+          "at": "2026-08-19T18:52:59.376Z",
+          "from": "operator",
+          "to": "automation",
+          "by": "auto-operator (scripted; see evidence/README.md)",
+          "reason": "intervention int_4693cb4e resolved as authorize-and-resume"
+        }
+      ],
+      "claimedBy": "auto-operator (scripted; see evidence/README.md)",
+      "claimedAt": "2026-08-19T18:52:58.769Z",
+      "decision": "authorize-and-resume",
+      "operatorNote": "reviewed at the console; opening a sub-account is expected for this task",
+      "resolvedAt": "2026-08-19T18:52:59.376Z"
+    }
+  ]
+}

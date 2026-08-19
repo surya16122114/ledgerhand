@@ -1,0 +1,157 @@
+{
+  "scenario": {
+    "slug": "03-business-outcome-not-found",
+    "title": "Business outcome: no such member",
+    "why": "A legitimate answer the caller must handle, returned as MEMBER_NOT_FOUND rather than thrown as an error.",
+    "inputs": [
+      "memberId"
+    ],
+    "fault": null,
+    "expected": "business_outcome"
+  },
+  "matchedExpectation": true,
+  "result": {
+    "runId": "replay-20260819T185438-26fc1f",
+    "capability": {
+      "id": "member.read-savings-balance",
+      "version": "1.0.0",
+      "digest": "sha256:fbc2aabef3f518090490924017c9ecf9",
+      "lifecycleState": "draft"
+    },
+    "tenantId": "meridian-cu",
+    "startedAt": "2026-08-19T18:54:38.256Z",
+    "finishedAt": "2026-08-19T18:54:57.704Z",
+    "durationMs": 19448,
+    "steps": [
+      {
+        "index": 0,
+        "id": "01-open-entry",
+        "intent": "Open the servicing console entry screen",
+        "action": "navigate",
+        "risk": "safe",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 974,
+        "checkpoint": {
+          "satisfied": true,
+          "observed": "all 2 sub-conditions held"
+        }
+      },
+      {
+        "index": 1,
+        "id": "02-fill-user-id",
+        "intent": "Enter the operator user ID to begin sign on.",
+        "action": "fill",
+        "risk": "reversible",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 997,
+        "target": "textbox \"User ID\" in OPERATOR SIGN ON (textbox labelled \"User ID\")",
+        "strategy": {
+          "kind": "labelled-field",
+          "index": 0
+        }
+      },
+      {
+        "index": 2,
+        "id": "03-fill-password",
+        "intent": "Enter the operator password to complete sign on.",
+        "action": "fill",
+        "risk": "reversible",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1008,
+        "target": "password \"Password\" in OPERATOR SIGN ON (password labelled \"Password\")",
+        "strategy": {
+          "kind": "labelled-field",
+          "index": 0
+        }
+      },
+      {
+        "index": 3,
+        "id": "04-click-sign-on",
+        "intent": "Click the Sign On button to submit operator credentials and sign in to the servicing console.",
+        "action": "click",
+        "risk": "safe",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1347,
+        "target": "button \"Sign On\" in OPERATOR SIGN ON (button \"Sign On\")",
+        "strategy": {
+          "kind": "role-name",
+          "index": 0
+        },
+        "checkpoint": {
+          "satisfied": true,
+          "observed": "all 2 sub-conditions held"
+        }
+      },
+      {
+        "index": 4,
+        "id": "05-click-member-servicing",
+        "intent": "Click the Member Servicing menu to begin looking up a member profile.",
+        "action": "click",
+        "risk": "safe",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1748,
+        "target": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console (link \"Member Servicing\" @navFrame)",
+        "strategy": {
+          "kind": "role-name",
+          "index": 0
+        },
+        "checkpoint": {
+          "satisfied": true,
+          "observed": "all 2 sub-conditions held"
+        }
+      },
+      {
+        "index": 5,
+        "id": "06-fill-member-id",
+        "intent": "Enter the member ID to search for member {{input.memberId}}'s profile.",
+        "action": "fill",
+        "risk": "reversible",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1350,
+        "target": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY (textbox labelled \"Member ID\" @bodyFrame)",
+        "strategy": {
+          "kind": "labelled-field",
+          "index": 0
+        }
+      },
+      {
+        "index": 6,
+        "id": "07-click-search",
+        "intent": "Click the Search button to look up member {{input.memberId}}'s profile.",
+        "action": "click",
+        "risk": "safe",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 11873,
+        "target": "button \"Search\" in MEMBER SERVICING – INQUIRY (button \"Search\" @bodyFrame)",
+        "strategy": {
+          "kind": "role-name",
+          "index": 0
+        },
+        "checkpoint": {
+          "satisfied": false,
+          "observed": "sub-condition 1 failed: /SHARE / DEPOSIT ACCOUNTS/ not found in 485 chars of visible text"
+        }
+      }
+    ],
+    "recoveries": [],
+    "drift": [],
+    "interventions": [],
+    "evidenceDir": "evidence/replays/03-business-outcome-not-found/replay-20260819T185438-26fc1f",
+    "warnings": [],
+    "status": "business_outcome",
+    "outcome": {
+      "code": "MEMBER_NOT_FOUND",
+      "description": "The member id was searched and the application reported no matching records. A legitimate answer, not an error.",
+      "retryable": true,
+      "observed": "matched \"No records found matching\""
+    },
+    "outputs": {}
+  }
+}

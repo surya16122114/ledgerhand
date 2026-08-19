@@ -1,0 +1,136 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_Evg67JCfoSBTndbO18YAikwM",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "coreOperatorUser",
+            "why": "Enter the operator user ID to begin sign on."
+          }
+        },
+        {
+          "id": "call_XtevEniBVraDTOWHEDSNzzie",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "coreOperatorPassword",
+            "why": "Enter the operator password to begin sign on."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_3QJ3E1BgldWyCt2SuTHyHV0o",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "coreOperatorPassword",
+            "why": "Enter the operator password to complete sign on."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_fxczuVaMX6XnI6b7P2yAlyqd",
+          "name": "click_control",
+          "args": {
+            "ref": "7:2",
+            "why": "Click the Sign On button to submit operator credentials and sign in to the servicing console."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_Xba8to1djTMlMkRl6Fbc8wH7",
+          "name": "click_control",
+          "args": {
+            "ref": "navFrame|10:1",
+            "why": "Click the Member Servicing menu to begin looking up a member profile."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_SeH7M30P9JgbiMKaY79CPXqS",
+          "name": "fill_field",
+          "args": {
+            "ref": "bodyFrame|13:0",
+            "value": "{{input.memberId}}",
+            "why": "Enter the member ID to search for member {{input.memberId}}'s profile."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_5RfNhvBEyBZsg6CqhLhLWiA3",
+          "name": "click_control",
+          "args": {
+            "ref": "bodyFrame|16:1",
+            "why": "Click the Search button to look up member {{input.memberId}}'s profile."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_IHEEfo0iXrXPXUDvnCaeeDbR",
+          "name": "read_value",
+          "args": {
+            "ref": "bodyFrame|19:13",
+            "outputName": "savingsBalance",
+            "format": "money",
+            "why": "Read the current balance of the REGULAR SHARE SAVINGS account for member {{input.memberId}}."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_g9RGFqPym9xIzEbNYNWGaqk1",
+          "name": "finish_goal",
+          "args": {
+            "successText": "MEMBER PROFILE Member ID: {{input.memberId}} Name: Ashgrove, Dolores Status: ACTIVE",
+            "summary": "Signs on to the servicing console, looks up member {{input.memberId}}, and retrieves the current balance of their regular share savings account."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_X4pCQCyzgOJe4MnZzLiwfvj2",
+          "name": "finish_goal",
+          "args": {
+            "successText": "SHARE / DEPOSIT ACCOUNTS Account Description Current Balance Available Opened",
+            "summary": "Signs on to the servicing console, looks up member {{input.memberId}}, and retrieves the current balance of their regular share savings account."
+          }
+        }
+      ]
+    }
+  ]
+}

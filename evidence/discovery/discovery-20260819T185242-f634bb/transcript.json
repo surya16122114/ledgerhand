@@ -1,0 +1,211 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_kuUp5kvwCl44GKETC6v8zR3u",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "coreOperatorUser",
+            "why": "Enter the operator user ID to sign on to the servicing console."
+          }
+        },
+        {
+          "id": "call_NPNz5YCmJo2miRtMyaRjbHpw",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "coreOperatorPassword",
+            "why": "Enter the operator password to sign on to the servicing console."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_f4jSyG1qH4hW9oYFcTC6xyQK",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "coreOperatorPassword",
+            "why": "Enter the operator password to sign on to the servicing console."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_vxmWY3gRfVksosOaUTxKhrY1",
+          "name": "click_control",
+          "args": {
+            "ref": "7:2",
+            "why": "Click the Sign On button to log in to the servicing console with the entered credentials."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_8QYClZFVT9GsYPy3qgS0IVG4",
+          "name": "click_control",
+          "args": {
+            "ref": "navFrame|10:1",
+            "why": "Click Member Servicing in the top menu to begin looking up a member."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_v805hnksYsMyV3GrxcbEcQLa",
+          "name": "fill_field",
+          "args": {
+            "ref": "bodyFrame|13:0",
+            "value": "{{input.memberId}}",
+            "why": "Enter the member ID to look up member {{input.memberId}} for servicing."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_WsRfhJBRDaZnv4papqq6T49Q",
+          "name": "click_control",
+          "args": {
+            "ref": "bodyFrame|16:1",
+            "why": "Click the Search button to look up member {{input.memberId}} and access their profile for account servicing."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_9iDiTBaLECQzJKogBm9l0HVh",
+          "name": "click_control",
+          "args": {
+            "ref": "bodyFrame|19:0",
+            "why": "Click the Open Sub-Account link to begin opening a new sub-account for member {{input.memberId}}."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_hk7Tq2OV2R7C5xqlea26OJeo",
+          "name": "fill_field",
+          "args": {
+            "ref": "bodyFrame|22:1",
+            "value": "{{input.description}}",
+            "why": "Enter the description for the new sub-account as '{{input.description}}'."
+          }
+        },
+        {
+          "id": "call_SBczSRdKHeDieHC711BuzU9B",
+          "name": "fill_field",
+          "args": {
+            "ref": "bodyFrame|22:2",
+            "value": "{{input.initialDeposit}}",
+            "why": "Enter the initial deposit amount of {{input.initialDeposit}} for the new sub-account."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_vRVo9gjn4Xlu9DvYo74U8VSw",
+          "name": "fill_field",
+          "args": {
+            "ref": "bodyFrame|25:2",
+            "value": "{{input.initialDeposit}}",
+            "why": "Enter the initial deposit amount of {{input.initialDeposit}} for the new sub-account."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_NfyukFl6J7WomhTNKth6ahi2",
+          "name": "click_control",
+          "args": {
+            "ref": "bodyFrame|28:3",
+            "why": "Submit the request to open a new sub-account for member {{input.memberId}} with the specified description and initial deposit."
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "toolCalls": [
+        {
+          "id": "call_95MqOTUVFqiDcjf6Blfls9bg",
+          "name": "read_value",
+          "args": {
+            "ref": "bodyFrame|32:1",
+            "outputName": "newAccountNumber",
+            "format": "text",
+            "why": "Record the new account number for the sub-account that was just opened."
+          }
+        },
+        {
+          "id": "call_4FN7qqDL5zijQbq37baCsXwS",
+          "name": "read_value",
+          "args": {
+            "ref": "bodyFrame|32:4",
+            "outputName": "confirmationReference",
+            "format": "text",
+            "why": "Record the confirmation reference for the sub-account opening transaction."
+          }
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "toolCalls": [
+        {
+          "id": "call_oK1DY7Mb8wKaH93KfwdX9oj5",
+          "name": "read_value",
+          "args": {
+            "ref": "bodyFrame|35:4",
+            "outputName": "confirmationReference",
+            "format": "text",
+            "why": "Record the confirmation reference for the newly opened sub-account to complete the process."
+          }
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "toolCalls": [
+        {
+          "id": "call_qQdT3d8taysnJsmsYWj1hFJx",
+          "name": "finish_goal",
+          "args": {
+            "successText": "SUB-ACCOUNT OPENED The request completed successfully. Retain the confirmation reference below.",
+            "summary": "Signs on, looks up a member, opens a new sub-account with a description and initial deposit, and reaches the confirmation screen with the new account number and confirmation reference."
+          }
+        }
+      ]
+    }
+  ]
+}

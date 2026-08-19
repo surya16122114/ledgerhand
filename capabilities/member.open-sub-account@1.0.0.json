@@ -1,0 +1,986 @@
+{
+  "description": "Signs on, looks up a member, opens a new sub-account with a description and initial deposit, and reaches the confirmation screen with the new account number and confirmation reference.\n\nRecorded from the goal: \"Sign on to the servicing console, look up member {{input.memberId}}, open a new sub-account for them with the description \"{{input.description}}\" and an initial deposit of {{input.initialDeposit}}, and reach the confirmation screen.\"",
+  "id": "member.open-sub-account",
+  "inputs": [
+    {
+      "description": "The credit union member number to open the sub-account for.",
+      "name": "memberId",
+      "pattern": "^\\d{1,10}$",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    },
+    {
+      "description": "Description for the new sub-account.",
+      "name": "description",
+      "pattern": "^.{1,40}$",
+      "required": true,
+      "sensitivity": "internal",
+      "type": "string"
+    },
+    {
+      "description": "Opening deposit amount in dollars. The application requires at least $25.",
+      "name": "initialDeposit",
+      "required": true,
+      "sensitivity": "internal",
+      "type": "money"
+    }
+  ],
+  "interrupts": [
+    {
+      "name": "app-error-page",
+      "notDuringAuth": false,
+      "then": {
+        "code": "APP_ERROR",
+        "do": "fail",
+        "message": "the application returned an unhandled exception page"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "UNHANDLED EXCEPTION|Server Error in"
+      }
+    },
+    {
+      "name": "permission-denied",
+      "notDuringAuth": false,
+      "then": {
+        "code": "PERMISSION_DENIED",
+        "do": "outcome"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "not authorized to view this member record|ACCESS DENIED"
+      }
+    },
+    {
+      "name": "session-expired",
+      "notDuringAuth": true,
+      "then": {
+        "do": "reauthenticate",
+        "maxAttempts": 1
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "Your session has expired"
+      }
+    },
+    {
+      "name": "system-notice-interstitial",
+      "notDuringAuth": false,
+      "then": {
+        "do": "dismiss",
+        "target": {
+          "description": "Continue button on the system notice",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Continue",
+              "nameMatch": "normalized",
+              "role": "button"
+            }
+          ]
+        },
+        "thenRetryStep": true
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "SYSTEM NOTICE"
+          },
+          {
+            "kind": "controlPresent",
+            "target": {
+              "description": "Continue button on the system notice",
+              "strategies": [
+                {
+                  "kind": "role-name",
+                  "name": "Continue",
+                  "nameMatch": "normalized",
+                  "role": "button"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "terms-acknowledgement-gate",
+      "notDuringAuth": false,
+      "then": {
+        "do": "dismiss",
+        "target": {
+          "description": "acknowledgement button",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "I Acknowledge",
+              "nameMatch": "contains",
+              "role": "button"
+            }
+          ]
+        },
+        "thenRetryStep": true
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "ACKNOWLEDGEMENT|ACKNOWLEDGMENT"
+          },
+          {
+            "kind": "controlPresent",
+            "target": {
+              "description": "acknowledgement button",
+              "strategies": [
+                {
+                  "kind": "role-name",
+                  "name": "I Acknowledge",
+                  "nameMatch": "contains",
+                  "role": "button"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "unexpected-signon-screen",
+      "notDuringAuth": true,
+      "then": {
+        "do": "escalate",
+        "reason": "the application returned to the sign-on screen without reporting an expired session"
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "textAbsent",
+            "pattern": "Your session has expired"
+          }
+        ]
+      }
+    }
+  ],
+  "lifecycle": {
+    "approvedAt": "2026-08-19T18:53:06.650Z",
+    "approvedBy": "S. Vulavala <reviewer@example.test>",
+    "stability": {
+      "consecutiveFailures": 0,
+      "fallbackHits": 0,
+      "runs": 0,
+      "successes": 0
+    },
+    "state": "approved"
+  },
+  "name": "Open Sub Account",
+  "outcomes": [
+    {
+      "code": "MEMBER_NOT_FOUND",
+      "description": "The member id was searched and the application reported no matching records. A legitimate answer, not an error.",
+      "retryable": true,
+      "terminal": true
+    },
+    {
+      "code": "PERMISSION_DENIED",
+      "description": "The member record exists but the service account is not entitled to read it. Requires an entitlement change, not a retry.",
+      "retryable": false,
+      "terminal": true
+    },
+    {
+      "code": "VALIDATION_REJECTED",
+      "description": "The application rejected the submitted values with a validation message. The caller should correct the inputs and retry.",
+      "retryable": true,
+      "terminal": true
+    }
+  ],
+  "outputs": [
+    {
+      "description": "Record the new account number for the sub-account that was just opened.",
+      "name": "newAccountNumber",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    },
+    {
+      "description": "Record the confirmation reference for the newly opened sub-account to complete the process.",
+      "name": "confirmationReference",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    }
+  ],
+  "overlays": [],
+  "policy": {
+    "allowedActions": [
+      "navigate",
+      "fill",
+      "click",
+      "readText"
+    ],
+    "allowedUrlPatterns": [
+      "^{{baseUrl}}/"
+    ],
+    "maxRisk": "irreversible",
+    "requiresApprovalForIrreversible": true
+  },
+  "provenance": {
+    "discoveryRunId": "discovery-20260819T185242-f634bb",
+    "humanInterventions": 1,
+    "model": "openai:gpt-4.1",
+    "modelTurns": 13,
+    "recordedAt": "2026-08-19T18:53:04.921Z",
+    "recordedBy": "ledgerhand-discovery",
+    "redactionApplied": true,
+    "toolVersion": "ledgerhand/0.1.0",
+    "transcriptDigest": "sha256:064ba235b99c59975e50cf90baf1d66b"
+  },
+  "schemaVersion": "1.0.0",
+  "steps": [
+    {
+      "action": {
+        "kind": "navigate",
+        "url": "{{baseUrl}}/login.aspx"
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/login\\.aspx"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 1500,
+            "do": "retryStep",
+            "maxAttempts": 2
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "^\\s*$"
+          }
+        }
+      ],
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"User ID\" in OPERATOR SIGN ON",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "User ID",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "OPERATOR SIGN ON"
+            },
+            {
+              "css": "#ctl00_MainContent_txtUserId",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "coreOperatorUser"
+        }
+      },
+      "handlers": [],
+      "id": "02-fill-user-id",
+      "intent": "Enter the operator user ID to sign on to the servicing console.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "password \"Password\" in OPERATOR SIGN ON",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Password",
+              "labelMatch": "normalized",
+              "role": "password"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "password",
+              "section": "OPERATOR SIGN ON"
+            },
+            {
+              "css": "#ctl00_MainContent_txtPassword",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "coreOperatorPassword"
+        }
+      },
+      "handlers": [],
+      "id": "03-fill-password",
+      "intent": "Enter the operator password to sign on to the servicing console.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Sign On\" in OPERATOR SIGN ON",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Sign On",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Sign On",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "OPERATOR SIGN ON"
+            },
+            {
+              "css": "#ctl00_MainContent_btnSignOn",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "DAILY OPERATIONS SUMMARY"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/nav\\.aspx"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 1500,
+            "do": "retryStep",
+            "maxAttempts": 2
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "^\\s*$"
+          }
+        }
+      ],
+      "id": "04-click-sign-on",
+      "intent": "Click the Sign On button to log in to the servicing console with the entered credentials.",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console",
+          "framePath": [
+            "navFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Member Servicing",
+              "nameMatch": "normalized",
+              "role": "link"
+            },
+            {
+              "kind": "text",
+              "role": "link",
+              "text": "Member Servicing",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 1,
+              "kind": "section-ordinal",
+              "role": "link",
+              "section": "Meridian Credit Union • Member Servicing Console"
+            },
+            {
+              "css": "tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > font:nth-child(1) > a:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "MEMBER SERVICING – INQUIRY"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/member-search\\.aspx"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 1500,
+            "do": "retryStep",
+            "maxAttempts": 2
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "^\\s*$"
+          }
+        }
+      ],
+      "id": "05-click-member-servicing",
+      "intent": "Click Member Servicing in the top menu to begin looking up a member.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Member ID",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "MEMBER SERVICING – INQUIRY"
+            },
+            {
+              "css": "#ctl00_MainContent_txtMemberId",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "memberId"
+        }
+      },
+      "handlers": [],
+      "id": "06-fill-member-id",
+      "intent": "Enter the member ID to look up member {{input.memberId}} for servicing.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Search\" in MEMBER SERVICING – INQUIRY",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Search",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Search",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "MEMBER SERVICING – INQUIRY"
+            },
+            {
+              "css": "#ctl00_MainContent_btnSearch",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "SHARE / DEPOSIT ACCOUNTS"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/member-detail\\.aspx"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "no-matching-member",
+          "notDuringAuth": false,
+          "then": {
+            "code": "MEMBER_NOT_FOUND",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "No records found matching"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "is required\\."
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be at least"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be numeric"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 1500,
+            "do": "retryStep",
+            "maxAttempts": 2
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "^\\s*$"
+          }
+        }
+      ],
+      "id": "07-click-search",
+      "intent": "Click the Search button to look up member {{input.memberId}} and access their profile for account servicing.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "link \"Open Sub-Account\" in SHARE / DEPOSIT ACCOUNTS",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Open Sub-Account",
+              "nameMatch": "normalized",
+              "role": "link"
+            },
+            {
+              "kind": "text",
+              "role": "link",
+              "text": "Open Sub-Account",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "link",
+              "section": "SHARE / DEPOSIT ACCOUNTS"
+            },
+            {
+              "css": "tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > font:nth-child(8) > a:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPEN SUB-ACCOUNT – REQUEST"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/subaccount-new\\.aspx"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "is required\\."
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be at least"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be numeric"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 1500,
+            "do": "retryStep",
+            "maxAttempts": 2
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "^\\s*$"
+          }
+        }
+      ],
+      "id": "08-click-open-sub-account",
+      "intent": "Click the Open Sub-Account link to begin opening a new sub-account for member {{input.memberId}}.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Description\" in OPEN SUB-ACCOUNT – REQUEST",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Description",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "OPEN SUB-ACCOUNT – REQUEST"
+            },
+            {
+              "css": "#ctl00_MainContent_txtDescription",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "description"
+        }
+      },
+      "handlers": [],
+      "id": "09-fill-description",
+      "intent": "Enter the description for the new sub-account as '{{input.description}}'.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Initial Deposit\" in OPEN SUB-ACCOUNT – REQUEST",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Initial Deposit",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 1,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "OPEN SUB-ACCOUNT – REQUEST"
+            },
+            {
+              "css": "#ctl00_MainContent_txtInitialDeposit",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "initialDeposit"
+        }
+      },
+      "handlers": [],
+      "id": "10-fill-initial-deposit",
+      "intent": "Enter the initial deposit amount of {{input.initialDeposit}} for the new sub-account.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Submit Request\" in OPEN SUB-ACCOUNT – REQUEST",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Submit Request",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Submit Request",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "OPEN SUB-ACCOUNT – REQUEST"
+            },
+            {
+              "css": "#ctl00_MainContent_btnSubmit",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "textPresent",
+        "pattern": "SUB-ACCOUNT OPENED"
+      },
+      "handlers": [
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "is required\\."
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be at least"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be numeric"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 1500,
+            "do": "retryStep",
+            "maxAttempts": 2
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "^\\s*$"
+          }
+        }
+      ],
+      "id": "11-click-submit-request",
+      "intent": "Submit the request to open a new sub-account for member {{input.memberId}} with the specified description and initial deposit.",
+      "partOfAuth": false,
+      "risk": "irreversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "readText",
+        "target": {
+          "description": "cell \"New Account Number\" in SUB-ACCOUNT OPENED",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "New Account Number",
+              "nameMatch": "normalized",
+              "role": "cell"
+            },
+            {
+              "css": "td:nth-child(1) > table:nth-child(6) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "captureAs": "newAccountNumber",
+      "handlers": [],
+      "id": "12-read-new-account-number",
+      "intent": "Record the new account number for the sub-account that was just opened.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000,
+      "transform": {
+        "kind": "trim"
+      }
+    },
+    {
+      "action": {
+        "kind": "readText",
+        "target": {
+          "description": "cell \"Confirmation Reference\" in SUB-ACCOUNT OPENED",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Confirmation Reference",
+              "nameMatch": "normalized",
+              "role": "cell"
+            },
+            {
+              "css": "td:nth-child(1) > table:nth-child(6) > tbody:nth-child(1) > tr:nth-child(4) > td:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "captureAs": "confirmationReference",
+      "handlers": [],
+      "id": "13-read-confirmation-reference",
+      "intent": "Record the confirmation reference for the newly opened sub-account to complete the process.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000,
+      "transform": {
+        "kind": "trim"
+      }
+    }
+  ],
+  "success": {
+    "checkpoint": {
+      "kind": "textPresent",
+      "pattern": "SUB-ACCOUNT OPENED The request completed successfully\\. Retain the confirmation reference below\\."
+    },
+    "description": "the screen shows \"SUB-ACCOUNT OPENED The request completed successfully. Retain the confirmation reference below.\""
+  },
+  "summary": "Signs on, looks up a member, opens a new sub-account with a description and initial deposit, and reaches the confirmation screen with the new account number and confirmation reference.",
+  "target": {
+    "entryUrl": "{{baseUrl}}/login.aspx",
+    "productId": "corepoint-servicing",
+    "productVersion": "4.2.118",
+    "recordedTenantId": "meridian-cu",
+    "surfaceKind": "legacy-web"
+  },
+  "version": "1.0.0"
+}

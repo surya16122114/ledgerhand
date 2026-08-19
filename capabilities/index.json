@@ -1,0 +1,56 @@
+{
+  "generatedAt": "2026-08-19T18:53:06.661Z",
+  "capabilities": [
+    {
+      "id": "member.open-sub-account",
+      "version": "1.0.0",
+      "name": "Open Sub Account",
+      "summary": "Signs on, looks up a member, opens a new sub-account with a description and initial deposit, and reaches the confirmation screen with the new account number and confirmation reference.",
+      "productId": "corepoint-servicing",
+      "recordedTenantId": "meridian-cu",
+      "state": "approved",
+      "file": "capabilities/member.open-sub-account@1.0.0.json",
+      "digest": "sha256:8e4b3063cd3712b392a7cce47106ecad",
+      "inputs": [
+        "memberId:string",
+        "description:string",
+        "initialDeposit:money"
+      ],
+      "outputs": [
+        "newAccountNumber:string",
+        "confirmationReference:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED"
+      ],
+      "tenantOverlays": []
+    },
+    {
+      "id": "member.read-savings-balance",
+      "version": "1.0.0",
+      "name": "Read Savings Balance",
+      "summary": "Signs on to the servicing console, looks up member {{input.memberId}}, and retrieves the current balance of their regular share savings account.",
+      "productId": "corepoint-servicing",
+      "recordedTenantId": "meridian-cu",
+      "state": "draft",
+      "file": "capabilities/member.read-savings-balance@1.0.0.json",
+      "digest": "sha256:fbc2aabef3f518090490924017c9ecf9",
+      "inputs": [
+        "memberId:string"
+      ],
+      "outputs": [
+        "savingsBalance:money"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED"
+      ],
+      "tenantOverlays": [
+        "riverstone-fcu"
+      ]
+    }
+  ]
+}

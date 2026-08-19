@@ -1,0 +1,25 @@
+{
+  "runId": "discovery-20260819T185242-f634bb",
+  "kind": "discovery",
+  "eventCounts": {
+    "action.ok": 12,
+    "discovery.captured": 2,
+    "discovery.compiled": 1,
+    "discovery.entry": 1,
+    "discovery.finishClaimed": 1,
+    "discovery.start": 1,
+    "escalation.claimed": 1,
+    "escalation.raised": 1,
+    "escalation.resolved": 1,
+    "evidence.captured": 1,
+    "model.turn": 13,
+    "operator.console.started": 1,
+    "policy": 14,
+    "run.end": 1,
+    "run.start": 1
+  },
+  "turns": 13,
+  "recordedSteps": 13,
+  "humanInterventions": 1,
+  "model": "openai:gpt-4.1"
+}

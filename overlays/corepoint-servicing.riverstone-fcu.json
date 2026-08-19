@@ -1,0 +1,22 @@
+{
+  "tenantId": "riverstone-fcu",
+  "productVersion": "4.1.94",
+  "description": "Riverstone Federal Credit Union runs CorePoint Servicing 4.1.94 -- the same vendor product as Meridian, an older build. It renames three visible labels, reorganises the servicing routes under /servicing/, and mandates an acceptable-use acknowledgement after sign-on. The flow itself is the vendor's and is unchanged, so this is an alias map rather than a second recording.",
+
+  "labelAliases": {
+    "Member ID": "Account Holder #",
+    "Search": "Find",
+    "Member Servicing": "Member Services",
+    "MEMBER SERVICING – INQUIRY": "MEMBER SERVICES – INQUIRY"
+  },
+
+  "routeAliases": {
+    "/login.aspx": "/signon.aspx",
+    "/nav.aspx": "/menu.aspx",
+    "/member-search.aspx": "/servicing/find-member.aspx",
+    "/member-detail.aspx": "/servicing/member-profile.aspx"
+  },
+
+  "extraInterrupts": [],
+  "stepPatches": []
+}
