@@ -14,6 +14,7 @@
  */
 
 import type { ActionKind, RiskClass } from '../surface/types.js';
+import { escapeRegExp } from '../util/regex.js';
 
 export interface AllowlistConfig {
   /** Regex sources, matched case-insensitively against the full URL. */
@@ -112,6 +113,3 @@ export function discoveryAllowlist(baseUrl: string): AllowlistConfig {
   };
 }
 
-export function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}

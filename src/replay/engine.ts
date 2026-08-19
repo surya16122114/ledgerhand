@@ -332,14 +332,61 @@ export async function replay(
      * Evaluate a handler list against current state. Single-shot (budget 0): the
      * point is to classify the state we are already in, not to wait for one.
      */
+    /**
+     * How many times each handler has already fired, per step.
+     *
+     * Needed because a handler's declared `maxAttempts` was previously accepted by
+     * the schema and then ignored by the engine -- bounded only by the global
+     * recovery budget and the step's hard ceiling. Config that is declared and not
+     * enforced is worse than no config: a reviewer reads `maxAttempts: 1` and
+     * believes it.
+     */
+    /**
+     * Set when a `retryStep` handler fired because something was transiently slow.
+     *
+     * It changes how long the step loop waits before re-attempting. After a transient
+     * retry we *expect* the state to arrive, so waiting the step's full budget is
+     * right. After a dismissed interstitial or a human handoff the state is either
+     * already there or it is not, and a short probe is right. Using one arbitrary
+     * number for both meant a stall slightly longer than the budget escalated even
+     * though the retry was seconds away from succeeding.
+     */
+    let transientRetryPending = false;
+
+    const handlerAttempts = new Map<string, number>();
+    const attemptKey = (stepId: string, handler: Handler) => `${stepId}::${handler.name}`;
+    const declaredLimit = (handler: Handler): number | undefined =>
+      handler.then.do === 'retryStep' || handler.then.do === 'reauthenticate' ? handler.then.maxAttempts : undefined;
+
     const firstMatchingHandler = async (
       handlers: Handler[],
-      context: { duringAuth: boolean } = { duringAuth: false },
+      context: { duringAuth: boolean; failureCode?: ReplayFailureCode; stepId?: string } = { duringAuth: false },
     ): Promise<{ handler: Handler; observed: string } | undefined> => {
       for (const handler of handlers) {
         if (handler.notDuringAuth && context.duringAuth) continue;
-        const r = await surface.evaluate(handler.when, { timeoutMs: 0 });
-        if (r.satisfied) return { handler, observed: r.observed };
+
+        // A failure-code-guarded handler is only eligible after a failure, and only
+        // for the codes it names. During the pre-step interrupt sweep there is no
+        // failure, so these are skipped entirely.
+        if (handler.whenFailureCode) {
+          if (!context.failureCode || !handler.whenFailureCode.includes(context.failureCode)) continue;
+        }
+
+        const limit = declaredLimit(handler);
+        if (limit !== undefined) {
+          const used = handlerAttempts.get(attemptKey(context.stepId ?? '(pre-step)', handler)) ?? 0;
+          if (used >= limit) {
+            logger.event('handler.exhausted', { handler: handler.name, stepId: context.stepId, used, limit });
+            continue;
+          }
+        }
+
+        if (handler.when) {
+          const r = await surface.evaluate(handler.when, { timeoutMs: 0 });
+          if (!r.satisfied) continue;
+          return { handler, observed: r.observed };
+        }
+        return { handler, observed: `failure code ${context.failureCode}` };
       }
       return undefined;
     };
@@ -483,7 +530,9 @@ export async function replay(
         // submit the same request twice. For a read that is wasteful; for
         // "Open Sub-Account" it opens two accounts.
         if (attempt > 1 && step.checkpoint) {
-          const already = await surface.evaluate(step.checkpoint, { timeoutMs: 1500 });
+          const probeBudget = transientRetryPending ? step.timeoutMs : 1500;
+          transientRetryPending = false;
+          const already = await surface.evaluate(step.checkpoint, { timeoutMs: probeBudget });
           if (already.satisfied) {
             trace.status = 'satisfied-externally';
             trace.checkpoint = { satisfied: true, observed: already.observed };
@@ -550,6 +599,17 @@ export async function replay(
           continue;
         }
 
+        if (result.narrowedFrom) {
+          // Resolved, but only after a tie-break. Recorded because an ambiguity that
+          // a narrowing rule happens to resolve today is a target that will fail
+          // outright after the next change to the screen.
+          logger.event('drift.ambiguityNarrowed', {
+            stepId: step.id,
+            target: trace.target,
+            candidates: result.narrowedFrom,
+            strategy: result.strategyUsed?.kind,
+          });
+        }
         if (result.strategyUsed && result.strategyIndex !== undefined) {
           trace.strategy = { kind: result.strategyUsed.kind, index: result.strategyIndex };
           if (result.strategyIndex > 0 && 'target' in step.action) {
@@ -642,7 +702,11 @@ export async function replay(
     ): Promise<{ outcome: StepOutcome } | undefined> {
       logger.event('step.failed', { stepId: step.id, ...failure });
 
-      const stepHandler = await firstMatchingHandler(step.handlers);
+      const stepHandler = await firstMatchingHandler(step.handlers, {
+        duringAuth: step.partOfAuth,
+        failureCode: failure.code,
+        stepId: step.id,
+      });
       if (stepHandler) {
         const handled = await runHandler(stepHandler.handler, stepHandler.observed, { index, step }, 'step');
         if (handled.kind === 'continue') {
@@ -652,7 +716,11 @@ export async function replay(
         return { outcome: handled };
       }
 
-      const interruptHandler = await firstMatchingHandler(capability.interrupts, { duringAuth: step.partOfAuth });
+      const interruptHandler = await firstMatchingHandler(capability.interrupts, {
+        duringAuth: step.partOfAuth,
+        failureCode: failure.code,
+        stepId: step.id,
+      });
       if (interruptHandler) {
         const handled = await runHandler(interruptHandler.handler, interruptHandler.observed, { index, step }, 'interrupt');
         if (handled.kind === 'continue') {
@@ -819,9 +887,37 @@ export async function replay(
         }
 
         case 'retryStep': {
+          // Never auto-retry something that cannot be taken back.
+          //
+          // A retry looks harmless for a read and is a double-submit for a write. The
+          // checkpoint pre-check in the step loop catches the common case -- a slow
+          // load whose effect has since landed -- but if the checkpoint genuinely does
+          // not hold we do not know whether the first attempt took effect, and
+          // guessing is not acceptable for an irreversible action.
+          if (at?.step.risk === 'irreversible') {
+            logger.event('handler.retryRefused', { handler: handler.name, stepId, risk: at.step.risk });
+            const decided = await escalate({
+              reason: 'handler-requested',
+              headline: `Confirm before retrying: ${at.step.intent}`,
+              detail:
+                `Step '${at.step.id}' is irreversible and its checkpoint did not hold. Retrying automatically could ` +
+                `duplicate the action, so this needs a person to confirm what actually happened.\n\nobserved: ${observed}`,
+              step: at,
+            });
+            const traceForStep = steps.find((x) => x.id === at.step.id) ?? steps[steps.length - 1]!;
+            return applyDecision(decided, at.step, at.index, traceForStep, {
+              code: 'RECOVERY_EXHAUSTED',
+              message: `irreversible step '${at.step.id}' was not retried automatically`,
+              observed,
+            });
+          }
           recoveryBudget--;
-          recoveries.push({ at: new Date().toISOString(), stepId, handler: handler.name, action: 'retryStep', attempt: 1, detail: `backing off ${handler.then.backoffMs}ms` });
-          logger.event('handler.retry', { handler: handler.name, backoffMs: handler.then.backoffMs, stepId });
+          const key = attemptKey(stepId, handler);
+          const used = (handlerAttempts.get(key) ?? 0) + 1;
+          handlerAttempts.set(key, used);
+          recoveries.push({ at: new Date().toISOString(), stepId, handler: handler.name, action: 'retryStep', attempt: used, detail: `backing off ${handler.then.backoffMs}ms (attempt ${used}/${handler.then.maxAttempts})` });
+          logger.event('handler.retry', { handler: handler.name, backoffMs: handler.then.backoffMs, stepId, attempt: used, limit: handler.then.maxAttempts });
+          transientRetryPending = true;
           // The one intentional wait in the engine, and it is a back-off rather
           // than a synchronisation primitive: the condition that follows still
           // has to hold before anything proceeds.
@@ -831,7 +927,9 @@ export async function replay(
 
         case 'reauthenticate': {
           recoveryBudget--;
-          logger.event('handler.reauthenticate', { handler: handler.name, authStepCount: authSteps.length, stepId });
+          const reauthKey = attemptKey(stepId, handler);
+          handlerAttempts.set(reauthKey, (handlerAttempts.get(reauthKey) ?? 0) + 1);
+          logger.event('handler.reauthenticate', { handler: handler.name, authStepCount: authSteps.length, stepId, attempt: handlerAttempts.get(reauthKey), limit: handler.then.maxAttempts });
           if (authSteps.length === 0) {
             return {
               kind: 'fail',
@@ -1049,7 +1147,7 @@ async function attachRecorder(web: PlaywrightWebSurface, broker: InterventionBro
 function materialiseCapability(cap: Capability, inputs: Record<string, InputValue>): Capability {
   const mapHandler = (h: Handler): Handler => ({
     ...h,
-    when: materialiseCondition(h.when, inputs),
+    ...(h.when ? { when: materialiseCondition(h.when, inputs) } : {}),
     then: h.then.do === 'dismiss' ? { ...h.then, target: materialiseTarget(h.then.target, inputs) } : h.then,
   });
 

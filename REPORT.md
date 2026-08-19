@@ -13,7 +13,7 @@ unexpected interstitial, a permission denial and an exception page on demand. A
 public sandbox gives you neither.
 
 Two capabilities were discovered by a real model run (`openai:gpt-4.1`) and are in
-`/capabilities`. Evidence for both, plus thirteen replay scenarios, is in
+`/capabilities`. Evidence for both, plus fourteen replay scenarios, is in
 `/evidence`.
 
 ---
@@ -202,6 +202,14 @@ the step loop. The only two timers in the action path are inside
 `PlaywrightWebSurface.settle()` and neither is load-bearing: correctness comes from
 the conditions, `settle` only reduces how many polls they need.
 
+This is also how **transient slowness** is handled, and the answer is more boring than
+a retry policy: a 9-second stall on a step with a 10-second budget is absorbed by
+polling with `attempts=1` and no handler involved at all. Only a load that *overruns*
+the budget needs the failure-code-guarded retry described below, and even then the
+re-attempt first re-checks the checkpoint — so a load that has since landed is
+recognised as already satisfied and the click is not repeated
+(`evidence/replays/13-recovered-slow-load`).
+
 That distinction came out of a real bug. Clicking a submit button does not navigate
 synchronously — the click returns and the navigation starts a beat later, so
 `waitForLoadState` resolves instantly against the document still on screen and
@@ -296,7 +304,28 @@ step handlers  →  capability interrupts  →  offer to a human  →  hard fail
 
 Handler actions map one-to-one onto the taxonomy: `outcome` (business),
 `dismiss` / `retryStep` / `reauthenticate` (recoverable), `escalate` (ask), `fail`
-(hard). Two details earned their place:
+(hard). Four details earned their place:
+
+- **A handler can match on the failure code, not only on page state.** This was a
+  genuine hole in the model. Every handler originally matched a `Condition` over the
+  screen, and the most ordinary runtime condition of all — a page slower than the
+  step's budget — has no appearance on screen: while it loads, the browser is still
+  showing the *previous* page, which looks perfectly healthy. My attempt to express it
+  as state was a handler matching `^\s*$` against the visible text, which can never be
+  true once a nav frame has rendered. It never fired once. I only caught it because the
+  fault that should have exercised it was *also* broken — the harness consumed the
+  armed fault before reading its delay, so `slow-load` slept zero milliseconds and had
+  never actually stalled anything. Handlers now carry an optional
+  `whenFailureCode`, and such a handler is only ever considered after a failure, never
+  during the pre-step interrupt sweep.
+
+- **`retryStep` refuses to re-attempt an irreversible step.** A retry is free for a
+  read and a double-submit for a write. The checkpoint pre-check catches the benign
+  case, but if the checkpoint genuinely does not hold we do not know whether the first
+  attempt landed, and guessing is not acceptable. `evidence/replays/12-*` is this:
+  a 30-second stall on the submit POST, the retry refused, a human asked. Ground truth
+  — the POST *had* completed server-side, and exactly **one** sub-account exists where
+  a retry would have made two.
 
 - **`notDuringAuth`.** "The app is showing the sign-on screen" is the definition of
   being stuck at step six and the definition of working correctly at step one.
@@ -339,7 +368,19 @@ experience.
 
 Replay reports which strategy resolved each target and how far down the fallback
 list it was. On a stable UI `drift` is empty; entries mean the app changed before
-anything has actually broken, which is the only cheap moment to fix it. Faults are
+anything has actually broken, which is the only cheap moment to fix it.
+
+Two quieter signals sit alongside it, both cases of "resolved, but only just":
+
+- **Ambiguity narrowed.** When a strategy matched several controls and a tie-break rule
+  picked one, that is logged (`drift.ambiguityNarrowed`). Nothing is wrong yet, which is
+  exactly the point: the artifact's description of that control is no longer unique on
+  screen, and the next change may push it from *narrowed* to *ambiguous*, which fails.
+- **Perception truncated.** There is a 400-control cap per frame, and hitting it used to
+  drop controls silently — so a target that resolved yesterday would report
+  `TARGET_NOT_FOUND` today with nothing to explain why. Truncation is now attached to
+  the resolution failure itself, which is both the only moment it matters and the only
+  moment it is free (the observation already exists). Faults are
 armed on a side channel (`POST /__fault/arm`) rather than via query strings on the
 app's own URLs, so the capability under test is byte-identical to the happy-path
 run and only the application's behaviour differs.
@@ -506,12 +547,21 @@ model. The queue is in-memory with a JSON mirror in the run's evidence directory
 **One chokepoint.** `PolicyGate` is a `Surface` decorator, so there is no path to the
 browser that skips it. It enforces, in order: the action kind is allowed; a
 navigation's destination is allowed; the action's risk is within ceiling; and — after
-the action — the resulting location is *still* allowed. That last check catches what
-a pre-flight check cannot, a click that redirects somewhere the agent was never
-permitted to be, and a violation there **latches the session shut**, because at that
-point we no longer know what state the app is in. Only a human review clears it.
-Deny patterns beat allow patterns; an empty allowlist throws rather than permitting
-everything.
+the action — **every document in the frame tree** is still allowed. A violation on
+that last check **latches the session shut**, because at that point we no longer know
+what state the app is in, and only a human review clears it. Deny patterns beat allow
+patterns; an empty allowlist throws rather than permitting everything.
+
+The words "every document" are doing real work there, and I only got them right by
+attacking my own guardrail. The check originally compared a single URL — the page's —
+and on a frameset the top document loads once and never navigates again. So the check
+saw `console.aspx` forever. I pointed the agent at the **Administration** link, a route
+on the *deny* list, and it went straight there: the body frame landed on `/admin.aspx`,
+the gate allowed the click, and nothing tripped. The seam now reports
+`frameUrls` alongside `url` and the gate checks all of them
+(`tests/gate.test.ts` pins it). It is the same root cause as the checkpoint bug in §3 —
+on a frameset, the thing you naturally reach for never changes — which is why that
+pattern is worth naming rather than just fixing twice.
 
 **Risk is classified by the system, never by the model.** `src/policy/risk.ts` reads
 the resolved control's accessible name for state-changing verbs — the same signal a
@@ -558,6 +608,21 @@ longest-match-wins splicing — longest-wins because if a short sensitive input 
 inside a card number, redacting the card number whole leaks nothing while redacting
 the short match first would leave twelve digits exposed.
 
+**Outputs are the one place regulated data legitimately leaves the system**, and that
+is worth saying out loud rather than leaving implicit. A capability whose job is to
+read a balance must return the balance; redacting it would make the capability
+useless. So `ReplayResult.outputs` is deliberately *not* redacted, while the same
+values are withheld from the structured log when their declared sensitivity is `pii`.
+The consequence a deployment has to own: `--json` prints outputs to stdout, so a CI
+job that captures that output is storing member data. The boundary is the caller's,
+and the schema tells them exactly which fields it applies to.
+
+**The operator console rejects unexpected websocket origins.** Binding to localhost
+stops remote attackers, not local pages: without an origin check, any page the operator
+had open in another tab could connect to the live channel and — whenever the lease
+happened to sit with the operator — drive a signed-on banking session. Proportionate
+rather than complete, and §7 says what would close it.
+
 ### Limits of the model, stated plainly
 
 - **Verb-based risk classification is a heuristic.** A button labelled `OK` that
@@ -588,6 +653,11 @@ the short match first would leave twelve digits exposed.
   the digest — which proves *which* transcript produced a capability — is what travels
   between environments. The transcripts are committed here only because every member
   in this repo is invented and the application generating them is in the repo too.
+- **The console's origin check is not authentication.** `Origin` is set by browsers and
+  simply omitted by a non-browser client, so it stops a drive-by page and not a
+  determined local process. A per-session bearer token minted with the intervention
+  would close it; on a shared host that would be required, not optional.
+
 - **`bypassCSP` is enabled** on the browser context. Perception injects a local
   function, never remote code, but a restrictive policy can block the injection
   channel itself. Worth an explicit decision in a real deployment.
@@ -648,6 +718,16 @@ by hand through the UI.
    place.
 5. **Closing the resolve-then-act window** in `PolicyGate` by threading a resolution
    handle through `perform`, if the concurrency risk ever proved real.
+
+**Added after a self-review pass**, because a reviewer should know what a second look
+found: the frameset egress hole (§6), a handler that could never fire together with the
+broken fault that hid it (§3), declared-but-unenforced handler attempt limits, three
+pieces of schema surface that nothing read (`terminal`, `captureInto`, and a screenshot
+flag on `observe`), silent perception truncation, six copies of `escapeRegExp`, a
+missing websocket origin check, and two operators being able to claim the same live
+session. There is now a CI workflow running typecheck, the unit suite, the build, and
+`lint` over every committed artifact — chosen so CI never depends on a model key or a
+browser.
 
 **What I'd change if I started again:** I would build the checkpoint-synthesis
 problem before the discovery loop. Three of the four hardest bugs in this project

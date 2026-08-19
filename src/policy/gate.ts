@@ -129,7 +129,7 @@ export class PolicyGate implements Surface {
   evaluate(condition: Condition, opts?: { timeoutMs?: number }): Promise<ConditionResult> {
     return this.inner.evaluate(condition, opts);
   }
-  location(): Promise<{ url: string; title: string }> {
+  location(): Promise<{ url: string; title: string; frameUrls: string[] }> {
     return this.inner.location();
   }
   screenshot(path: string, opts?: { maskSensitive?: boolean }): Promise<string | undefined> {
@@ -221,10 +221,23 @@ export class PolicyGate implements Surface {
 
     const result = await this.inner.perform(action);
 
-    // Post-action egress check.
-    const { url } = await this.inner.location();
-    const after = this.allowlist.checkUrl(url);
+    // Post-action egress check, across every document in the tree.
+    //
+    // Checking only the top document is the mistake worth naming, because it fails
+    // silently in exactly the environment this system targets. On a frameset the top
+    // document loads once and never navigates, so a click in the nav frame that
+    // sends the body frame to a denied route leaves the top url untouched and the
+    // check passes. Verified against the target app: the agent reached /admin.aspx,
+    // a route on the deny list, and the gate allowed it.
+    const { frameUrls, url: topUrl } = await this.inner.location();
+    const candidates = [topUrl, ...frameUrls]
+      // about:blank and empty urls are not navigations to content -- a frame that
+      // has not loaded anything yet must not trip the guardrail.
+      .filter((u) => u && !u.startsWith('about:') && !u.startsWith('blob:'));
+    const offending = candidates.find((u) => !this.allowlist.checkUrl(u).allowed);
+    const after = offending ? this.allowlist.checkUrl(offending) : { allowed: true as const };
     if (!after.allowed) {
+      const url = offending!;
       this.tripped = { code: after.code, reason: `${after.reason} (reached ${url} after ${action.kind})` };
       this.emit({
         phase: 'post-action',

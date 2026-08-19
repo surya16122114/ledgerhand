@@ -34,6 +34,7 @@ import { ARTIFACT_SCHEMA_VERSION, capabilitySchema, type Capability } from '../a
 import type { Condition, Handler, RiskClass, Step, StepAction, TargetDescriptor } from '../artifact/index-types.js';
 import { profileFor, stepOutcomeHandlers } from '../artifact/product-profiles.js';
 import type { ActionKind } from '../surface/types.js';
+import { escapeRegExp } from '../util/regex.js';
 
 export const TOOL_VERSION = 'ledgerhand/0.1.0';
 
@@ -159,11 +160,22 @@ export function compileCapability(input: CompileInput): Capability {
     }
 
     // Transient slowness on a navigating step is recoverable, once.
+    //
+    // Guarded on the failure code rather than on page state. The state-condition
+    // version of this handler matched `^\s*$` against the visible text and could
+    // never fire, because while a page is loading the browser still shows the
+    // *previous* one -- there is no observable "still loading". Verified: with a
+    // 16-second stall the handler never triggered and the run escalated.
+    //
+    // Retrying is safe here specifically because the step loop re-evaluates the
+    // checkpoint before any re-attempt, so a load that has since landed is recognised
+    // as already satisfied and the click is not repeated. And `retryStep` refuses
+    // outright to re-attempt an irreversible step.
     if (rec.action.kind === 'click' || rec.action.kind === 'navigate') {
       handlers.push({
         name: 'transient-slow-load',
-        when: { kind: 'textPresent', pattern: '^\\s*$' },
-        then: { do: 'retryStep', maxAttempts: 2, backoffMs: 1500 },
+        whenFailureCode: ['CHECKPOINT_FAILED', 'TIMEOUT'],
+        then: { do: 'retryStep', maxAttempts: 1, backoffMs: 3000 },
         notDuringAuth: false,
       });
     }
@@ -546,6 +558,3 @@ function lastIndexWhere<T>(arr: T[], pred: (v: T) => boolean): number {
   return -1;
 }
 
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}

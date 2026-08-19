@@ -11,17 +11,17 @@
   },
   "matchedExpectation": true,
   "result": {
-    "runId": "replay-20260819T185627-42a39d",
+    "runId": "replay-20260819T201117-e1de56",
     "capability": {
       "id": "member.read-savings-balance",
       "version": "1.0.0",
-      "digest": "sha256:fbc2aabef3f518090490924017c9ecf9",
+      "digest": "sha256:0f743a9a7bf5e4b25bc65828342619da",
       "lifecycleState": "draft"
     },
     "tenantId": "riverstone-fcu",
-    "startedAt": "2026-08-19T18:56:27.822Z",
-    "finishedAt": "2026-08-19T18:56:50.168Z",
-    "durationMs": 22346,
+    "startedAt": "2026-08-19T20:11:17.354Z",
+    "finishedAt": "2026-08-19T20:11:53.019Z",
+    "durationMs": 35665,
     "steps": [
       {
         "index": 0,
@@ -31,7 +31,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 964,
+        "durationMs": 968,
         "checkpoint": {
           "satisfied": true,
           "observed": "all 2 sub-conditions held"
@@ -45,7 +45,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 992,
+        "durationMs": 984,
         "target": "textbox \"User ID\" in OPERATOR SIGN ON (textbox labelled \"User ID\")",
         "strategy": {
           "kind": "labelled-field",
@@ -60,7 +60,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 997,
+        "durationMs": 1001,
         "target": "password \"Password\" in OPERATOR SIGN ON (password labelled \"Password\")",
         "strategy": {
           "kind": "labelled-field",
@@ -74,8 +74,8 @@
         "action": "click",
         "risk": "safe",
         "status": "satisfied-externally",
-        "attempts": 2,
-        "durationMs": 12852,
+        "attempts": 3,
+        "durationMs": 26152,
         "target": "button \"Sign On\" in OPERATOR SIGN ON (button \"Sign On\")",
         "strategy": {
           "kind": "role-name",
@@ -94,7 +94,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1755,
+        "durationMs": 1753,
         "target": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console (link \"Member Services\" @navFrame)",
         "strategy": {
           "kind": "role-name",
@@ -113,7 +113,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1359,
+        "durationMs": 1363,
         "target": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY (textbox labelled \"Account Holder #\" @bodyFrame)",
         "strategy": {
           "kind": "labelled-field",
@@ -128,7 +128,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1710,
+        "durationMs": 1767,
         "target": "button \"Search\" in MEMBER SERVICING – INQUIRY (button \"Find\" @bodyFrame)",
         "strategy": {
           "kind": "role-name",
@@ -147,7 +147,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1399,
+        "durationMs": 1372,
         "target": "cell \"Current Balance\" in SHARE / DEPOSIT ACCOUNTS (cell [12345-00 / Current Balance] @bodyFrame)",
         "strategy": {
           "kind": "table-cell",
@@ -157,7 +157,15 @@
     ],
     "recoveries": [
       {
-        "at": "2026-08-19T18:56:43.595Z",
+        "at": "2026-08-19T20:11:31.759Z",
+        "stepId": "04-click-sign-on",
+        "handler": "transient-slow-load",
+        "action": "retryStep",
+        "attempt": 1,
+        "detail": "backing off 3000ms (attempt 1/1)"
+      },
+      {
+        "at": "2026-08-19T20:11:46.420Z",
         "stepId": "04-click-sign-on",
         "handler": "terms-acknowledgement-gate",
         "action": "dismiss",
@@ -167,7 +175,7 @@
     ],
     "drift": [],
     "interventions": [],
-    "evidenceDir": "evidence/replays/09-cross-tenant-overlay/replay-20260819T185627-42a39d",
+    "evidenceDir": "evidence/replays/09-cross-tenant-overlay/replay-20260819T201117-e1de56",
     "warnings": [],
     "status": "success",
     "outputs": {

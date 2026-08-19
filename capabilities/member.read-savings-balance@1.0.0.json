@@ -169,20 +169,17 @@
     {
       "code": "MEMBER_NOT_FOUND",
       "description": "The member id was searched and the application reported no matching records. A legitimate answer, not an error.",
-      "retryable": true,
-      "terminal": true
+      "retryable": true
     },
     {
       "code": "PERMISSION_DENIED",
       "description": "The member record exists but the service account is not entitled to read it. Requires an entitlement change, not a retry.",
-      "retryable": false,
-      "terminal": true
+      "retryable": false
     },
     {
       "code": "VALIDATION_REJECTED",
       "description": "The application rejected the submitted values with a validation message. The caller should correct the inputs and retry.",
-      "retryable": true,
-      "terminal": true
+      "retryable": true
     }
   ],
   "outputs": [
@@ -199,7 +196,7 @@
       "description": "Riverstone Federal Credit Union runs CorePoint Servicing 4.1.94 -- the same vendor product as Meridian, an older build. It renames three visible labels, reorganises the servicing routes under /servicing/, and mandates an acceptable-use acknowledgement after sign-on. The flow itself is the vendor's and is unchanged, so this is an alias map rather than a second recording.",
       "extraInterrupts": [],
       "labelAliases": {
-        "MEMBER SERVICING – INQUIRY": "MEMBER SERVICES – INQUIRY",
+        "MEMBER SERVICING \u2013 INQUIRY": "MEMBER SERVICES \u2013 INQUIRY",
         "Member ID": "Account Holder #",
         "Member Servicing": "Member Services",
         "Search": "Find"
@@ -264,14 +261,14 @@
           "name": "transient-slow-load",
           "notDuringAuth": false,
           "then": {
-            "backoffMs": 1500,
+            "backoffMs": 3000,
             "do": "retryStep",
-            "maxAttempts": 2
+            "maxAttempts": 1
           },
-          "when": {
-            "kind": "textPresent",
-            "pattern": "^\\s*$"
-          }
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
         }
       ],
       "id": "01-open-entry",
@@ -401,14 +398,14 @@
           "name": "transient-slow-load",
           "notDuringAuth": false,
           "then": {
-            "backoffMs": 1500,
+            "backoffMs": 3000,
             "do": "retryStep",
-            "maxAttempts": 2
+            "maxAttempts": 1
           },
-          "when": {
-            "kind": "textPresent",
-            "pattern": "^\\s*$"
-          }
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
         }
       ],
       "id": "04-click-sign-on",
@@ -421,7 +418,7 @@
       "action": {
         "kind": "click",
         "target": {
-          "description": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console",
+          "description": "link \"Member Servicing\" in Meridian Credit Union \u2022 Member Servicing Console",
           "framePath": [
             "navFrame"
           ],
@@ -442,7 +439,7 @@
               "index": 1,
               "kind": "section-ordinal",
               "role": "link",
-              "section": "Meridian Credit Union • Member Servicing Console"
+              "section": "Meridian Credit Union \u2022 Member Servicing Console"
             },
             {
               "css": "tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > font:nth-child(1) > a:nth-child(2)",
@@ -456,7 +453,7 @@
         "of": [
           {
             "kind": "textPresent",
-            "pattern": "MEMBER SERVICING – INQUIRY"
+            "pattern": "MEMBER SERVICING \u2013 INQUIRY"
           },
           {
             "kind": "urlMatches",
@@ -469,14 +466,14 @@
           "name": "transient-slow-load",
           "notDuringAuth": false,
           "then": {
-            "backoffMs": 1500,
+            "backoffMs": 3000,
             "do": "retryStep",
-            "maxAttempts": 2
+            "maxAttempts": 1
           },
-          "when": {
-            "kind": "textPresent",
-            "pattern": "^\\s*$"
-          }
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
         }
       ],
       "id": "05-click-member-servicing",
@@ -489,7 +486,7 @@
       "action": {
         "kind": "fill",
         "target": {
-          "description": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY",
+          "description": "textbox \"Member ID\" in MEMBER SERVICING \u2013 INQUIRY",
           "framePath": [
             "bodyFrame"
           ],
@@ -504,7 +501,7 @@
               "index": 0,
               "kind": "section-ordinal",
               "role": "textbox",
-              "section": "MEMBER SERVICING – INQUIRY"
+              "section": "MEMBER SERVICING \u2013 INQUIRY"
             },
             {
               "css": "#ctl00_MainContent_txtMemberId",
@@ -528,7 +525,7 @@
       "action": {
         "kind": "click",
         "target": {
-          "description": "button \"Search\" in MEMBER SERVICING – INQUIRY",
+          "description": "button \"Search\" in MEMBER SERVICING \u2013 INQUIRY",
           "framePath": [
             "bodyFrame"
           ],
@@ -549,7 +546,7 @@
               "index": 0,
               "kind": "section-ordinal",
               "role": "button",
-              "section": "MEMBER SERVICING – INQUIRY"
+              "section": "MEMBER SERVICING \u2013 INQUIRY"
             },
             {
               "css": "#ctl00_MainContent_btnSearch",
@@ -617,14 +614,14 @@
           "name": "transient-slow-load",
           "notDuringAuth": false,
           "then": {
-            "backoffMs": 1500,
+            "backoffMs": 3000,
             "do": "retryStep",
-            "maxAttempts": 2
+            "maxAttempts": 1
           },
-          "when": {
-            "kind": "textPresent",
-            "pattern": "^\\s*$"
-          }
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
         }
       ],
       "id": "07-click-search",

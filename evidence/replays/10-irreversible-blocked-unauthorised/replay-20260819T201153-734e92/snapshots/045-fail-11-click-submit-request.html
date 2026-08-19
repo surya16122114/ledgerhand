@@ -1,0 +1,78 @@
+<!-- ===== frame: (top) url: http://localhost:4173/console.aspx ===== -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN"><html><head><title>Meridian Credit Union - Member Servicing Console</title></head>
+<frameset rows="86,*" border="1" frameborder="1">
+  <frame name="navFrame" src="/nav.aspx" scrolling="no" noresize="">
+  <frame name="bodyFrame" src="/home.aspx">
+  <noframes><body>This application requires frame support.</body></noframes>
+</frameset></html>
+
+<!-- ===== frame: navFrame url: http://localhost:4173/nav.aspx ===== -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><title>Navigation</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<style type="text/css">
+body { background:#d4d0c8; font-family:Tahoma,Arial,sans-serif; font-size:11px; margin:0; padding:0; }
+table { border-collapse:collapse; font-size:11px; }
+td { padding:2px 6px; }
+.t1 { background:#003c71; color:#fff; font-weight:bold; padding:4px 8px; }
+.t2 { background:#f0eee6; border:1px solid #9a9a8a; }
+.g  { background:#c8c4bc; font-weight:bold; border-bottom:1px solid #7a7a6a; }
+.e  { color:#7a0019; font-weight:bold; }
+input[type=text],input[type=password],select { border:1px solid #7a7a6a; background:#fff; font-family:Tahoma; font-size:11px; padding:1px 2px; }
+input[type=submit],button { border:1px outset #b0b0a0; background:#dcdcd0; font-family:Tahoma; font-size:11px; padding:1px 8px; cursor:pointer; }
+a { color:#00309a; }
+.ftr { color:#555; font-size:10px; padding:6px 8px; }
+</style></head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0"><tbody><tr><td class="t1" data-lh-ref="90:6">Meridian Credit Union &nbsp;•&nbsp; Member Servicing Console</td></tr></tbody></table>
+
+<table width="100%"><tbody><tr>
+<td nowrap=""><font size="1">
+<a href="/home.aspx" target="bodyFrame" data-lh-ref="90:0">Home</a> &nbsp;|&nbsp;
+<a href="/member-search.aspx" target="bodyFrame" data-lh-ref="90:1">Member Servicing</a> &nbsp;|&nbsp;
+<a href="/teller.aspx" target="bodyFrame" data-lh-ref="90:2">Teller Ops</a> &nbsp;|&nbsp;
+<a href="/gl.aspx" target="bodyFrame" data-lh-ref="90:3">General Ledger</a> &nbsp;|&nbsp;
+<a href="/admin.aspx" target="bodyFrame" data-lh-ref="90:4">Administration</a>
+</font></td>
+<td align="right" nowrap=""><font size="1">Signed on: <b>svc_agent</b> &nbsp; <a href="/signoff.aspx" target="_top" data-lh-ref="90:5">Sign Off</a></font></td>
+</tr></tbody></table>
+<table width="100%"><tbody><tr><td class="ftr">CorePoint Servicing 4.2.118 &nbsp; | &nbsp; meridian-cu &nbsp; | &nbsp; UNCLASSIFIED – SYNTHETIC DATA ONLY</td></tr></tbody></table>
+</body></html>
+
+<!-- ===== frame: bodyFrame url: http://localhost:4173/subaccount-new.aspx?mid=12345 ===== -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><html><head><title>Open Sub-Account</title>
+<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1">
+<style type="text/css">
+body { background:#d4d0c8; font-family:Tahoma,Arial,sans-serif; font-size:11px; margin:0; padding:0; }
+table { border-collapse:collapse; font-size:11px; }
+td { padding:2px 6px; }
+.t1 { background:#003c71; color:#fff; font-weight:bold; padding:4px 8px; }
+.t2 { background:#f0eee6; border:1px solid #9a9a8a; }
+.g  { background:#c8c4bc; font-weight:bold; border-bottom:1px solid #7a7a6a; }
+.e  { color:#7a0019; font-weight:bold; }
+input[type=text],input[type=password],select { border:1px solid #7a7a6a; background:#fff; font-family:Tahoma; font-size:11px; padding:1px 2px; }
+input[type=submit],button { border:1px outset #b0b0a0; background:#dcdcd0; font-family:Tahoma; font-size:11px; padding:1px 8px; cursor:pointer; }
+a { color:#00309a; }
+.ftr { color:#555; font-size:10px; padding:6px 8px; }
+</style></head>
+<body>
+<table width="100%" cellspacing="0" cellpadding="0"><tbody><tr><td class="t1" data-lh-ref="90:5">Meridian Credit Union &nbsp;•&nbsp; Member Servicing Console</td></tr></tbody></table>
+
+<br><table class="t2" cellpadding="8" width="90%" align="center"><tbody><tr><td>
+<table width="100%"><tbody><tr><td class="g" colspan="2" data-lh-ref="90:6">OPEN SUB-ACCOUNT – REQUEST</td></tr></tbody></table>
+<br><font size="1">Member <b>12345</b> – Ashgrove, Dolores</font><br><br>
+
+<form method="post" action="/subaccount-new.aspx?mid=12345" id="frmSubAccount">
+<table>
+<tbody><tr><td align="right" nowrap=""><font face="Tahoma" size="1"><b>Product Type:</b></font></td><td><select name="ctl00$MainContent$ddlProductType" id="ctl00_MainContent_ddlProductType" data-lh-ref="90:0"><option value="SUBSHARE">Sub-Share Savings</option><option value="HOLIDAY">Holiday Club</option><option value="VACATION">Vacation Club</option></select></td></tr>
+<tr><td align="right" nowrap=""><font face="Tahoma" size="1"><b>Description:</b></font></td><td><input type="text" name="ctl00$MainContent$txtDescription" id="ctl00_MainContent_txtDescription" size="30" maxlength="40" value="" style="" data-lh-ref="90:1"></td></tr>
+<tr><td align="right" nowrap=""><font face="Tahoma" size="1"><b>Initial Deposit:</b></font></td><td><input type="text" name="ctl00$MainContent$txtInitialDeposit" id="ctl00_MainContent_txtInitialDeposit" size="12" maxlength="12" value="" style="" data-lh-ref="90:2"></td></tr>
+<tr><td></td><td><br>
+<input type="submit" name="ctl00$MainContent$btnSubmit" id="ctl00_MainContent_btnSubmit" value="Submit Request" style="" data-lh-ref="90:3">
+&nbsp;<input type="submit" name="ctl00$MainContent$btnCancel" id="ctl00_MainContent_btnCancel" value="Cancel" style="" data-lh-ref="90:4">
+</td></tr>
+</tbody></table>
+</form>
+<br><font size="1">Minimum opening deposit is $25.00. Requests post same-day.</font>
+</td></tr></tbody></table>
+<table width="100%"><tbody><tr><td class="ftr">CorePoint Servicing 4.2.118 &nbsp; | &nbsp; meridian-cu &nbsp; | &nbsp; UNCLASSIFIED – SYNTHETIC DATA ONLY</td></tr></tbody></table>
+</body></html>

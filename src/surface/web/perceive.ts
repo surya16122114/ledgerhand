@@ -50,6 +50,14 @@ export interface RawPerception {
   text: string;
   controls: RawControl[];
   /**
+   * True when the control cap was hit and some controls were not reported.
+   *
+   * Silent truncation is the dangerous version of this: a screen with a long table
+   * would simply stop mentioning controls past the cap, and a target that resolved
+   * yesterday would report TARGET_NOT_FOUND today with nothing to explain why.
+   */
+  truncated: boolean;
+  /**
    * The structural section headings found on this screen.
    *
    * Reported directly rather than inferred from which heading each control was
@@ -63,13 +71,22 @@ export interface RawPerception {
 export const REF_ATTR = 'data-lh-ref';
 
 /**
+ * Upper bound on controls reported per frame.
+ *
+ * A cap is necessary -- a report screen with a thousand rows would otherwise produce an
+ * observation too large to send to a model and slow to match against. Hitting it is
+ * reported via `RawPerception.truncated` rather than passing silently.
+ */
+export const MAX_PERCEIVED_CONTROLS = 400;
+
+/**
  * @param generation observation generation, embedded in every ref so stale refs
  *                   are detectable instead of silently resolving to whatever now
  *                   sits in that slot.
  */
 export function perceiveInPage(generation: number): RawPerception {
   const REF = 'data-lh-ref';
-  const MAX_CONTROLS = 400;
+  const MAX_CONTROLS = 400; // keep in sync with MAX_PERCEIVED_CONTROLS (this runs in-page)
 
   // Clear refs from the previous observation so nothing stale lingers.
   for (const el of Array.from(document.querySelectorAll('[' + REF + ']'))) el.removeAttribute(REF);
@@ -401,9 +418,13 @@ export function perceiveInPage(generation: number): RawPerception {
 
   const controls: RawControl[] = [];
   let n = 0;
+  let truncated = false;
   const seen = new Set<Element>();
   for (const el of candidates) {
-    if (controls.length >= MAX_CONTROLS) break;
+    if (controls.length >= MAX_CONTROLS) {
+      truncated = true;
+      break;
+    }
     if (seen.has(el)) continue;
     seen.add(el);
 
@@ -514,6 +535,7 @@ export function perceiveInPage(generation: number): RawPerception {
     title: document.title,
     text: norm((document.body as HTMLElement | null)?.innerText ?? document.body?.textContent ?? ''),
     controls,
+    truncated,
     headings: Array.from(new Set(headings.map((h) => h.text))),
   };
 }

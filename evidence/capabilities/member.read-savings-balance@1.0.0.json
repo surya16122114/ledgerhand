@@ -1,0 +1,684 @@
+{
+  "description": "Signs on to the servicing console, looks up member {{input.memberId}}, and retrieves the current balance of their regular share savings account.\n\nRecorded from the goal: \"Sign on to the servicing console, look up member {{input.memberId}}, and read that member's current regular share savings balance from their profile.\"",
+  "id": "member.read-savings-balance",
+  "inputs": [
+    {
+      "description": "The credit union member number to look up.",
+      "name": "memberId",
+      "pattern": "^\\d{1,10}$",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    }
+  ],
+  "interrupts": [
+    {
+      "name": "app-error-page",
+      "notDuringAuth": false,
+      "then": {
+        "code": "APP_ERROR",
+        "do": "fail",
+        "message": "the application returned an unhandled exception page"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "UNHANDLED EXCEPTION|Server Error in"
+      }
+    },
+    {
+      "name": "permission-denied",
+      "notDuringAuth": false,
+      "then": {
+        "code": "PERMISSION_DENIED",
+        "do": "outcome"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "not authorized to view this member record|ACCESS DENIED"
+      }
+    },
+    {
+      "name": "session-expired",
+      "notDuringAuth": true,
+      "then": {
+        "do": "reauthenticate",
+        "maxAttempts": 1
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "Your session has expired"
+      }
+    },
+    {
+      "name": "system-notice-interstitial",
+      "notDuringAuth": false,
+      "then": {
+        "do": "dismiss",
+        "target": {
+          "description": "Continue button on the system notice",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Continue",
+              "nameMatch": "normalized",
+              "role": "button"
+            }
+          ]
+        },
+        "thenRetryStep": true
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "SYSTEM NOTICE"
+          },
+          {
+            "kind": "controlPresent",
+            "target": {
+              "description": "Continue button on the system notice",
+              "strategies": [
+                {
+                  "kind": "role-name",
+                  "name": "Continue",
+                  "nameMatch": "normalized",
+                  "role": "button"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "terms-acknowledgement-gate",
+      "notDuringAuth": false,
+      "then": {
+        "do": "dismiss",
+        "target": {
+          "description": "acknowledgement button",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "I Acknowledge",
+              "nameMatch": "contains",
+              "role": "button"
+            }
+          ]
+        },
+        "thenRetryStep": true
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "ACKNOWLEDGEMENT|ACKNOWLEDGMENT"
+          },
+          {
+            "kind": "controlPresent",
+            "target": {
+              "description": "acknowledgement button",
+              "strategies": [
+                {
+                  "kind": "role-name",
+                  "name": "I Acknowledge",
+                  "nameMatch": "contains",
+                  "role": "button"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "unexpected-signon-screen",
+      "notDuringAuth": true,
+      "then": {
+        "do": "escalate",
+        "reason": "the application returned to the sign-on screen without reporting an expired session"
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "textAbsent",
+            "pattern": "Your session has expired"
+          }
+        ]
+      }
+    }
+  ],
+  "lifecycle": {
+    "stability": {
+      "consecutiveFailures": 0,
+      "fallbackHits": 0,
+      "runs": 0,
+      "successes": 0
+    },
+    "state": "draft"
+  },
+  "name": "Read Savings Balance",
+  "outcomes": [
+    {
+      "code": "MEMBER_NOT_FOUND",
+      "description": "The member id was searched and the application reported no matching records. A legitimate answer, not an error.",
+      "retryable": true
+    },
+    {
+      "code": "PERMISSION_DENIED",
+      "description": "The member record exists but the service account is not entitled to read it. Requires an entitlement change, not a retry.",
+      "retryable": false
+    },
+    {
+      "code": "VALIDATION_REJECTED",
+      "description": "The application rejected the submitted values with a validation message. The caller should correct the inputs and retry.",
+      "retryable": true
+    }
+  ],
+  "outputs": [
+    {
+      "description": "Read the current balance of the REGULAR SHARE SAVINGS account for member {{input.memberId}}.",
+      "name": "savingsBalance",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "money"
+    }
+  ],
+  "overlays": [
+    {
+      "description": "Riverstone Federal Credit Union runs CorePoint Servicing 4.1.94 -- the same vendor product as Meridian, an older build. It renames three visible labels, reorganises the servicing routes under /servicing/, and mandates an acceptable-use acknowledgement after sign-on. The flow itself is the vendor's and is unchanged, so this is an alias map rather than a second recording.",
+      "extraInterrupts": [],
+      "labelAliases": {
+        "MEMBER SERVICING – INQUIRY": "MEMBER SERVICES – INQUIRY",
+        "Member ID": "Account Holder #",
+        "Member Servicing": "Member Services",
+        "Search": "Find"
+      },
+      "productVersion": "4.1.94",
+      "routeAliases": {
+        "/login.aspx": "/signon.aspx",
+        "/member-detail.aspx": "/servicing/member-profile.aspx",
+        "/member-search.aspx": "/servicing/find-member.aspx",
+        "/nav.aspx": "/menu.aspx"
+      },
+      "stepPatches": [],
+      "tenantId": "riverstone-fcu"
+    }
+  ],
+  "policy": {
+    "allowedActions": [
+      "navigate",
+      "fill",
+      "click",
+      "readText"
+    ],
+    "allowedUrlPatterns": [
+      "^{{baseUrl}}/"
+    ],
+    "maxRisk": "reversible",
+    "requiresApprovalForIrreversible": true
+  },
+  "provenance": {
+    "discoveryRunId": "discovery-20260819T185141-08d098",
+    "humanInterventions": 0,
+    "model": "openai:gpt-4.1",
+    "modelTurns": 9,
+    "recordedAt": "2026-08-19T18:51:57.389Z",
+    "recordedBy": "ledgerhand-discovery",
+    "redactionApplied": true,
+    "toolVersion": "ledgerhand/0.1.0",
+    "transcriptDigest": "sha256:f948932c9b66267a083912fe5409ac10"
+  },
+  "schemaVersion": "1.0.0",
+  "steps": [
+    {
+      "action": {
+        "kind": "navigate",
+        "url": "{{baseUrl}}/login.aspx"
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/login\\.aspx"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"User ID\" in OPERATOR SIGN ON",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "User ID",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "OPERATOR SIGN ON"
+            },
+            {
+              "css": "#ctl00_MainContent_txtUserId",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "coreOperatorUser"
+        }
+      },
+      "handlers": [],
+      "id": "02-fill-user-id",
+      "intent": "Enter the operator user ID to begin sign on.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "password \"Password\" in OPERATOR SIGN ON",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Password",
+              "labelMatch": "normalized",
+              "role": "password"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "password",
+              "section": "OPERATOR SIGN ON"
+            },
+            {
+              "css": "#ctl00_MainContent_txtPassword",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "coreOperatorPassword"
+        }
+      },
+      "handlers": [],
+      "id": "03-fill-password",
+      "intent": "Enter the operator password to complete sign on.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Sign On\" in OPERATOR SIGN ON",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Sign On",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Sign On",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "OPERATOR SIGN ON"
+            },
+            {
+              "css": "#ctl00_MainContent_btnSignOn",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "DAILY OPERATIONS SUMMARY"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/nav\\.aspx"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "04-click-sign-on",
+      "intent": "Click the Sign On button to submit operator credentials and sign in to the servicing console.",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console",
+          "framePath": [
+            "navFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Member Servicing",
+              "nameMatch": "normalized",
+              "role": "link"
+            },
+            {
+              "kind": "text",
+              "role": "link",
+              "text": "Member Servicing",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 1,
+              "kind": "section-ordinal",
+              "role": "link",
+              "section": "Meridian Credit Union • Member Servicing Console"
+            },
+            {
+              "css": "tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(1) > font:nth-child(1) > a:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "MEMBER SERVICING – INQUIRY"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/member-search\\.aspx"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "05-click-member-servicing",
+      "intent": "Click the Member Servicing menu to begin looking up a member profile.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Member ID",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "MEMBER SERVICING – INQUIRY"
+            },
+            {
+              "css": "#ctl00_MainContent_txtMemberId",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "memberId"
+        }
+      },
+      "handlers": [],
+      "id": "06-fill-member-id",
+      "intent": "Enter the member ID to search for member {{input.memberId}}'s profile.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Search\" in MEMBER SERVICING – INQUIRY",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Search",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Search",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "MEMBER SERVICING – INQUIRY"
+            },
+            {
+              "css": "#ctl00_MainContent_btnSearch",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "SHARE / DEPOSIT ACCOUNTS"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/member-detail\\.aspx"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "no-matching-member",
+          "notDuringAuth": false,
+          "then": {
+            "code": "MEMBER_NOT_FOUND",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "No records found matching"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "is required\\."
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be at least"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be numeric"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "07-click-search",
+      "intent": "Click the Search button to look up member {{input.memberId}}'s profile.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "readText",
+        "target": {
+          "description": "cell \"Current Balance\" in SHARE / DEPOSIT ACCOUNTS",
+          "framePath": [
+            "bodyFrame"
+          ],
+          "strategies": [
+            {
+              "columnHeader": "Current Balance",
+              "kind": "table-cell",
+              "near": "SHARE / DEPOSIT ACCOUNTS",
+              "rowKey": "{{input.memberId}}-00",
+              "rowKeyMatch": "normalized"
+            },
+            {
+              "css": "td:nth-child(1) > table:nth-child(6) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(3)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "captureAs": "savingsBalance",
+      "handlers": [],
+      "id": "08-read-savings-balance",
+      "intent": "Read the current balance of the REGULAR SHARE SAVINGS account for member {{input.memberId}}.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000,
+      "transform": {
+        "kind": "money"
+      }
+    }
+  ],
+  "success": {
+    "checkpoint": {
+      "kind": "textPresent",
+      "pattern": "SHARE / DEPOSIT ACCOUNTS Account Description Current Balance Available Opened"
+    },
+    "description": "the screen shows \"SHARE / DEPOSIT ACCOUNTS Account Description Current Balance Available Opened\""
+  },
+  "summary": "Signs on to the servicing console, looks up member {{input.memberId}}, and retrieves the current balance of their regular share savings account.",
+  "target": {
+    "entryUrl": "{{baseUrl}}/login.aspx",
+    "productId": "corepoint-servicing",
+    "productVersion": "4.2.118",
+    "recordedTenantId": "meridian-cu",
+    "surfaceKind": "legacy-web"
+  },
+  "version": "1.0.0"
+}

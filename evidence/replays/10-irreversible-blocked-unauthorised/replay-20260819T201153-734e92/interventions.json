@@ -1,0 +1,52 @@
+{
+  "updatedAt": "2026-08-19T20:12:17.257Z",
+  "interventions": [
+    {
+      "id": "int_b65ff05f",
+      "createdAt": "2026-08-19T20:12:09.241Z",
+      "reason": "authorization-required",
+      "headline": "Authorise: Submit the request to open a new sub-account for member {{input.memberId}} with the specified description and initial deposit.",
+      "detail": "Step '11-click-submit-request' is classified irreversible and this run carries no authorisation for it.\n\nRISK_EXCEEDS_CEILING",
+      "context": {
+        "runId": "replay-20260819T201153-734e92",
+        "runKind": "replay",
+        "capability": {
+          "id": "member.open-sub-account",
+          "version": "1.0.0",
+          "tenantId": "meridian-cu"
+        },
+        "step": {
+          "index": 10,
+          "id": "11-click-submit-request",
+          "intent": "Submit the request to open a new sub-account for member 12345 with the specified description and initial deposit."
+        },
+        "location": {
+          "url": "http://localhost:4173/console.aspx",
+          "title": "Meridian Credit Union - Member Servicing Console"
+        },
+        "visibleExcerpt": "Meridian Credit Union • Member Servicing Console Home | Member Servicing | Teller Ops | General Ledger | Administration Signed on: [secret] Sign Off CorePoint Servicing 4.2.118 | meridian-cu | UNCLASSIFIED – SYNTHETIC DATA ONLY\nMeridian Credit Union • Member Servicing Console OPEN SUB-ACCOUNT – REQUEST Member [pii:memberId] – Ashgrove, Dolores Product Type: Sub-Share Savings Holiday Club Vacation Club Description: Initial Deposit: Minimum opening deposit is $25.00. Requests post same-day. CorePoint Servicing 4.2.118 | meridian-cu | UNCLASSIFIED – SYNTHETIC DATA ONLY",
+        "evidence": {
+          "screenshot": "evidence/replays/10-irreversible-blocked-unauthorised/replay-20260819T201153-734e92/screenshots/042-escalation-11-click-submit-request.png",
+          "snapshot": "evidence/replays/10-irreversible-blocked-unauthorised/replay-20260819T201153-734e92/snapshots/042-escalation-11-click-submit-request.html"
+        },
+        "attempt": {
+          "action": "click button \"Submit Request\" in OPEN SUB-ACCOUNT – REQUEST (button \"Submit Request\" @bodyFrame)",
+          "expected": "button \"Submit Request\" in OPEN SUB-ACCOUNT – REQUEST (button \"Submit Request\" @bodyFrame)",
+          "observed": "RISK_EXCEEDS_CEILING",
+          "errorCode": "POLICY_DENIED"
+        }
+      },
+      "status": "abandoned",
+      "humanActions": [],
+      "leaseTransitions": [
+        {
+          "at": "2026-08-19T20:12:09.241Z",
+          "from": "automation",
+          "to": "operator",
+          "by": "system",
+          "reason": "escalation int_b65ff05f: authorization-required"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+# Typecheck, lint the committed artifacts, and run the unit suite.
+#
+# Deliberately does not run discovery: that needs a model API key and would make CI
+# depend on a paid external service and on a model's non-determinism. Replay is
+# excluded for a related reason -- it needs a browser and the target app, so it belongs
+# in a separate job someone opts into rather than on every push.
+#
+# What this does cover is the part where correctness lives: the artifact schema and its
+# referential integrity, target resolution, condition evaluation, the error taxonomy,
+# redaction, the policy gate, and the control lease. All of it runs with no browser, no
+# network and no key.
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: typecheck
+        run: npm run typecheck
+      - name: unit tests
+        run: npm test
+      - name: build (including non-TS assets)
+        run: npm run build
+      - name: lint the committed capability artifacts
+        # Every artifact must still validate and be free of credential- and PII-shaped
+        # literals. This is the check that would catch a hand-edited artifact.
+        run: |
+          for f in capabilities/*.json; do
+            case "$f" in */index.json) continue;; esac
+            id=$(node -e "process.stdout.write(require('./$f').id)")
+            npx tsx src/cli.ts lint "$id"
+          done

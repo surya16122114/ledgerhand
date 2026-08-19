@@ -47,6 +47,7 @@ import { PlaywrightWebSurface } from '../surface/web/playwright-surface.js';
 import { RunLogger, newRunId } from '../evidence/logger.js';
 import { Redactor } from '../policy/redact.js';
 import { SecretVault } from '../policy/vault.js';
+import { escapeRegExp } from '../util/regex.js';
 
 export interface DiscoveryParameter {
   name: string;
@@ -780,6 +781,3 @@ function titleCase(s: string): string {
   return s.replace(/[-_.]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}

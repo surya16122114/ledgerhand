@@ -29,6 +29,7 @@
  */
 
 import type { BusinessOutcomeDecl, Handler } from './index-types.js';
+import { escapeRegExp } from '../util/regex.js';
 
 export interface ProductProfile {
   productId: string
@@ -154,19 +155,16 @@ const COREPOINT: ProductProfile = {
     {
       code: 'MEMBER_NOT_FOUND',
       description: 'The member id was searched and the application reported no matching records. A legitimate answer, not an error.',
-      terminal: true,
       retryable: true,
     },
     {
       code: 'PERMISSION_DENIED',
       description: 'The member record exists but the service account is not entitled to read it. Requires an entitlement change, not a retry.',
-      terminal: true,
       retryable: false,
     },
     {
       code: 'VALIDATION_REJECTED',
       description: 'The application rejected the submitted values with a validation message. The caller should correct the inputs and retry.',
-      terminal: true,
       retryable: true,
     },
   ],
@@ -241,6 +239,3 @@ export function stepOutcomeHandlers(profileId: string, kind: 'after-search' | 'a
   ];
 }
 
-export function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}

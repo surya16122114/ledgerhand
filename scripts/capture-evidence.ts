@@ -15,7 +15,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { loadEnvFile } from '../src/config/env.js';
-import { loadCapability } from '../src/artifact/store.js';
+import { canonicalJson, capabilityDigest, loadCapability } from '../src/artifact/store.js';
 import { replay, type ReplayOptions } from '../src/replay/engine.js';
 import { summarizeResult, type ReplayResult } from '../src/replay/outcome.js';
 import { startOperatorConsole } from '../src/escalation/operator-server.js';
@@ -32,7 +32,7 @@ interface Scenario {
   inputs: Record<string, unknown>;
   options?: Partial<ReplayOptions>;
   /** Fault armed on the target app before the run. */
-  fault?: { kind: string; pathContains: string };
+  fault?: { kind: string; pathContains: string; method?: string; delayMs?: number };
   expect: ReplayResult['status'];
 }
 
@@ -144,7 +144,33 @@ const SCENARIOS: Scenario[] = [
     expect: 'success',
   },
   {
-    slug: '12-business-outcome-validation',
+    slug: '12-irreversible-slow-submit-retry-refused',
+    title: 'A slow irreversible submit is NOT retried automatically',
+    why:
+      'The most important safety case in the project. The submit POST stalls for 30s, so the confirmation screen does ' +
+      'not appear within the step budget and the transient-slow-load handler matches. Because the step is classified ' +
+      'irreversible, the retry is refused and a human is asked instead -- we do not know whether the first submit took ' +
+      'effect. Ground truth: it had. Exactly one sub-account was created, which is what a retry would have made two.',
+    capability: 'member.open-sub-account',
+    inputs: { memberId: '30014', description: 'Holiday Club', initialDeposit: 250 },
+    options: { unattended: true, authorizeIrreversible: { by: 'evidence-capture', reason: 'exercising the retry-refusal path' } },
+    fault: { kind: 'slow-load', pathContains: 'subaccount-new', method: 'POST', delayMs: 30_000 },
+    expect: 'escalated',
+  },
+  {
+    slug: '13-recovered-slow-load',
+    title: 'Recoverable: a load that overruns the step budget',
+    why:
+      'A 16s stall exceeds the 10s step budget, so the checkpoint fails and the failure-code-guarded ' +
+      'transient-slow-load handler fires. On re-attempt the checkpoint is found already satisfied, so the click is ' +
+      'not repeated. A 9s stall (inside budget) needs no handler at all -- condition polling absorbs it.',
+    capability: 'member.read-savings-balance',
+    inputs: { memberId: '12345' },
+    fault: { kind: 'slow-load', pathContains: 'member-detail', delayMs: 16_000 },
+    expect: 'success',
+  },
+  {
+    slug: '14-business-outcome-validation',
     title: 'Business outcome: the application rejects the submitted values',
     why: 'A deposit below the product minimum is VALIDATION_REJECTED with retryable=true, not a crash.',
     capability: 'member.open-sub-account',
@@ -154,7 +180,7 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-async function arm(baseUrl: string, fault: { kind: string; pathContains: string } | undefined): Promise<void> {
+async function arm(baseUrl: string, fault: Scenario['fault']): Promise<void> {
   if (!fault) {
     await fetch(`${baseUrl}/__fault/disarm`, { method: 'POST' }).catch(() => {});
     return;
@@ -162,13 +188,29 @@ async function arm(baseUrl: string, fault: { kind: string; pathContains: string 
   await fetch(`${baseUrl}/__fault/arm`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ ...fault, mode: 'once', delayMs: 9000 }),
+    body: JSON.stringify({ mode: 'once', delayMs: 9000, ...fault }),
   });
 }
 
 await loadEnvFile('.env');
 await rm(join(OUT, 'replays'), { recursive: true, force: true });
 await mkdir(join(OUT, 'replays'), { recursive: true });
+
+/**
+ * Copy the artifacts these scenarios ran against into the evidence bundle.
+ *
+ * The brief asks for "a saved example artifact plus logs" in /evidence, and a reviewer
+ * reading only that directory should not have to go looking in /capabilities to find
+ * what was actually replayed. Copied at capture time so the two cannot drift: if an
+ * artifact changes, the next capture brings the new one along with its results.
+ */
+await mkdir(join(OUT, 'capabilities'), { recursive: true });
+for (const ref of ['member.read-savings-balance', 'member.open-sub-account']) {
+  const cap = await loadCapability(ref);
+  const file = join(OUT, 'capabilities', `${cap.id}@${cap.version}.json`);
+  await writeFile(file, `${canonicalJson(cap)}\n`, 'utf8');
+  process.stdout.write(`artifact under test: ${file}  digest ${capabilityDigest(cap)}\n`);
+}
 
 const summary: string[] = [];
 for (const scenario of SCENARIOS) {

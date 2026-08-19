@@ -1,0 +1,227 @@
+{
+  "scenario": {
+    "slug": "14-business-outcome-validation",
+    "title": "Business outcome: the application rejects the submitted values",
+    "why": "A deposit below the product minimum is VALIDATION_REJECTED with retryable=true, not a crash.",
+    "inputs": [
+      "memberId",
+      "description",
+      "initialDeposit"
+    ],
+    "fault": null,
+    "expected": "business_outcome"
+  },
+  "matchedExpectation": true,
+  "result": {
+    "runId": "replay-20260819T201338-61ec3a",
+    "capability": {
+      "id": "member.open-sub-account",
+      "version": "1.0.0",
+      "digest": "sha256:f47305ade8901cc8bae268a44528ff9d",
+      "lifecycleState": "approved"
+    },
+    "tenantId": "meridian-cu",
+    "startedAt": "2026-08-19T20:13:38.824Z",
+    "finishedAt": "2026-08-19T20:14:04.345Z",
+    "durationMs": 25521,
+    "steps": [
+      {
+        "index": 0,
+        "id": "01-open-entry",
+        "intent": "Open the servicing console entry screen",
+        "action": "navigate",
+        "risk": "safe",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 960,
+        "checkpoint": {
+          "satisfied": true,
+          "observed": "all 2 sub-conditions held"
+        }
+      },
+      {
+        "index": 1,
+        "id": "02-fill-user-id",
+        "intent": "Enter the operator user ID to sign on to the servicing console.",
+        "action": "fill",
+        "risk": "reversible",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 986,
+        "target": "textbox \"User ID\" in OPERATOR SIGN ON (textbox labelled \"User ID\")",
+        "strategy": {
+          "kind": "labelled-field",
+          "index": 0
+        }
+      },
+      {
+        "index": 2,
+        "id": "03-fill-password",
+        "intent": "Enter the operator password to sign on to the servicing console.",
+        "action": "fill",
+        "risk": "reversible",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 995,
+        "target": "password \"Password\" in OPERATOR SIGN ON (password labelled \"Password\")",
+        "strategy": {
+          "kind": "labelled-field",
+          "index": 0
+        }
+      },
+      {
+        "index": 3,
+        "id": "04-click-sign-on",
+        "intent": "Click the Sign On button to log in to the servicing console with the entered credentials.",
+        "action": "click",
+        "risk": "safe",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1337,
+        "target": "button \"Sign On\" in OPERATOR SIGN ON (button \"Sign On\")",
+        "strategy": {
+          "kind": "role-name",
+          "index": 0
+        },
+        "checkpoint": {
+          "satisfied": true,
+          "observed": "all 2 sub-conditions held"
+        }
+      },
+      {
+        "index": 4,
+        "id": "05-click-member-servicing",
+        "intent": "Click Member Servicing in the top menu to begin looking up a member.",
+        "action": "click",
+        "risk": "safe",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1739,
+        "target": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console (link \"Member Servicing\" @navFrame)",
+        "strategy": {
+          "kind": "role-name",
+          "index": 0
+        },
+        "checkpoint": {
+          "satisfied": true,
+          "observed": "all 2 sub-conditions held"
+        }
+      },
+      {
+        "index": 5,
+        "id": "06-fill-member-id",
+        "intent": "Enter the member ID to look up member {{input.memberId}} for servicing.",
+        "action": "fill",
+        "risk": "reversible",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1346,
+        "target": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY (textbox labelled \"Member ID\" @bodyFrame)",
+        "strategy": {
+          "kind": "labelled-field",
+          "index": 0
+        }
+      },
+      {
+        "index": 6,
+        "id": "07-click-search",
+        "intent": "Click the Search button to look up member {{input.memberId}} and access their profile for account servicing.",
+        "action": "click",
+        "risk": "safe",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1690,
+        "target": "button \"Search\" in MEMBER SERVICING – INQUIRY (button \"Search\" @bodyFrame)",
+        "strategy": {
+          "kind": "role-name",
+          "index": 0
+        },
+        "checkpoint": {
+          "satisfied": true,
+          "observed": "all 2 sub-conditions held"
+        }
+      },
+      {
+        "index": 7,
+        "id": "08-click-open-sub-account",
+        "intent": "Click the Open Sub-Account link to begin opening a new sub-account for member {{input.memberId}}.",
+        "action": "click",
+        "risk": "safe",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1778,
+        "target": "link \"Open Sub-Account\" in SHARE / DEPOSIT ACCOUNTS (link \"Open Sub-Account\" @bodyFrame)",
+        "strategy": {
+          "kind": "role-name",
+          "index": 0
+        },
+        "checkpoint": {
+          "satisfied": true,
+          "observed": "all 2 sub-conditions held"
+        }
+      },
+      {
+        "index": 8,
+        "id": "09-fill-description",
+        "intent": "Enter the description for the new sub-account as '{{input.description}}'.",
+        "action": "fill",
+        "risk": "reversible",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1353,
+        "target": "textbox \"Description\" in OPEN SUB-ACCOUNT – REQUEST (textbox labelled \"Description\" @bodyFrame)",
+        "strategy": {
+          "kind": "labelled-field",
+          "index": 0
+        }
+      },
+      {
+        "index": 9,
+        "id": "10-fill-initial-deposit",
+        "intent": "Enter the initial deposit amount of {{input.initialDeposit}} for the new sub-account.",
+        "action": "fill",
+        "risk": "reversible",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 1351,
+        "target": "textbox \"Initial Deposit\" in OPEN SUB-ACCOUNT – REQUEST (textbox labelled \"Initial Deposit\" @bodyFrame)",
+        "strategy": {
+          "kind": "labelled-field",
+          "index": 0
+        }
+      },
+      {
+        "index": 10,
+        "id": "11-click-submit-request",
+        "intent": "Submit the request to open a new sub-account for member {{input.memberId}} with the specified description and initial deposit.",
+        "action": "click",
+        "risk": "irreversible",
+        "status": "ok",
+        "attempts": 1,
+        "durationMs": 11859,
+        "target": "button \"Submit Request\" in OPEN SUB-ACCOUNT – REQUEST (button \"Submit Request\" @bodyFrame)",
+        "strategy": {
+          "kind": "role-name",
+          "index": 0
+        },
+        "checkpoint": {
+          "satisfied": false,
+          "observed": "/SUB-ACCOUNT OPENED/ not found in 605 chars of visible text"
+        }
+      }
+    ],
+    "recoveries": [],
+    "drift": [],
+    "interventions": [],
+    "evidenceDir": "evidence/replays/14-business-outcome-validation/replay-20260819T201338-61ec3a",
+    "warnings": [],
+    "status": "business_outcome",
+    "outcome": {
+      "code": "VALIDATION_REJECTED",
+      "description": "The application rejected the submitted values with a validation message. The caller should correct the inputs and retry.",
+      "retryable": true,
+      "observed": "sub-condition 2 held: matched \"must be at least\""
+    },
+    "outputs": {}
+  }
+}

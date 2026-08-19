@@ -35,6 +35,7 @@ export function observation(controls: PerceivedControl[], overrides: Partial<Obs
     ],
     controls,
     headings: ['MEMBER PROFILE', 'SHARE / DEPOSIT ACCOUNTS'],
+    truncatedFrames: [],
     text: 'MEMBER PROFILE Member ID: 12345 SHARE / DEPOSIT ACCOUNTS REGULAR SHARE SAVINGS $8,241.77',
     ...overrides,
   };

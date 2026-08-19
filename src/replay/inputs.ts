@@ -10,6 +10,7 @@
 
 import type { Capability, Condition, InputParam, TargetDescriptor, TargetStrategy, ValueSource } from '../artifact/index-types.js';
 import type { SecretVault } from '../policy/vault.js';
+import { escapeRegExp } from '../util/regex.js';
 
 export type InputValue = string | number | boolean;
 
@@ -218,12 +219,9 @@ export function materialiseCondition(condition: Condition, inputs: Record<string
  * regex-escaped on the way in, while the surrounding pattern is left as authored.
  */
 export function renderUrlPattern(pattern: string, baseUrl: string): string {
-  return pattern.replace(/\{\{\s*baseUrl\s*\}\}/g, escapeRegExpValue(baseUrl.replace(/\/$/, '')));
+  return pattern.replace(/\{\{\s*baseUrl\s*\}\}/g, escapeRegExp(baseUrl.replace(/\/$/, '')));
 }
 
-function escapeRegExpValue(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 /** Apply a declared transform to a captured string. */
 export function applyTransform(raw: string, transform: { kind: string; pattern?: string; group?: number } | undefined): InputValue {

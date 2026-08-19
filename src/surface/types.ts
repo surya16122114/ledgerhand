@@ -197,6 +197,14 @@ export interface Observation {
   frames: { path: string[]; url: string }[];
   controls: PerceivedControl[];
   /**
+   * Frames whose control list was cut short by the perception cap.
+   *
+   * Empty in normal operation. Non-empty means a target may be unresolvable for a
+   * reason that has nothing to do with the target -- worth knowing before debugging
+   * the locator.
+   */
+  truncatedFrames: string[];
+  /**
    * Structural section headings, across all frames.
    *
    * Identified by styling rather than by tag name, because the apps this targets
@@ -206,8 +214,6 @@ export interface Observation {
   headings: string[];
   /** Visible text of the surface, normalised. Used for `textPresent` conditions. */
   text: string;
-  /** Present when the driver was asked for one. Path on disk, never inline base64 in logs. */
-  screenshotPath?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -277,6 +283,17 @@ export interface ActionResult {
   strategyUsed?: TargetStrategy;
   /** Index of the winning strategy in the descriptor's list. >0 means a fallback fired. */
   strategyIndex?: number;
+  /**
+   * How many other controls the winning strategy also matched before the narrowing
+   * rules picked one.
+   *
+   * Non-zero means the artifact's description of that control is no longer unique on
+   * screen and only survived because a tie-break rule fired. Nothing is wrong yet,
+   * which is exactly why it is worth surfacing: it is the earliest signal that the
+   * target is drifting toward ambiguity, and the next change to the app may push it
+   * over.
+   */
+  narrowedFrom?: number;
   /** Set when !ok. */
   error?: { code: SurfaceErrorCode; message: string; observed?: string };
   /** True when the action caused a document load. */
@@ -290,8 +307,6 @@ export type SurfaceErrorCode =
   | 'TARGET_AMBIGUOUS'
   /** Matched, but not actionable (hidden, disabled, covered). */
   | 'TARGET_NOT_ACTIONABLE'
-  /** The ref handed in belongs to an older observation. */
-  | 'STALE_REF'
   /** Condition did not hold within its budget. */
   | 'CONDITION_TIMEOUT'
   /** The surface itself misbehaved (crash, closed page, driver fault). */
@@ -332,9 +347,15 @@ export type Resolution =
 // ---------------------------------------------------------------------------
 
 export interface ObserveOptions {
-  /** Capture a screenshot alongside the tree. Costs ~100ms; off by default. */
-  screenshot?: boolean;
-  /** Restrict perception to one frame. */
+  /**
+   * Restrict perception to one frame.
+   *
+   * (There was also a `screenshot` flag here that folded image capture into
+   * observation. Nothing used it: failure evidence goes through `Surface.screenshot`,
+   * which is the path that actually needs to run when perception itself is what
+   * failed. Two ways to take a screenshot, one of them never exercised, is one too
+   * many.)
+   */
   framePath?: string[];
 }
 
@@ -348,8 +369,16 @@ export interface Surface {
   perform(action: Action): Promise<ActionResult>;
   evaluate(condition: Condition, opts?: { timeoutMs?: number }): Promise<ConditionResult>;
 
-  /** Current location, cheaply. */
-  location(): Promise<{ url: string; title: string }>;
+  /**
+   * Current location, cheaply.
+   *
+   * `frameUrls` carries **every** document in the tree, not just the top one, and
+   * that is not a convenience. On a frameset the top document is loaded once and
+   * never navigates again, so a policy check that looks only at `url` cannot see a
+   * click that sent the body frame somewhere it was never permitted to go. A
+   * desktop driver reports one entry per window it is driving.
+   */
+  location(): Promise<{ url: string; title: string; frameUrls: string[] }>;
 
   /** Failure evidence. Both are best-effort and must never throw. */
   screenshot(path: string, opts?: { maskSensitive?: boolean }): Promise<string | undefined>;

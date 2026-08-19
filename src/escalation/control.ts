@@ -134,7 +134,7 @@ export class LeaseGuard implements Surface {
   evaluate(condition: Condition, opts?: { timeoutMs?: number }): Promise<ConditionResult> {
     return this.inner.evaluate(condition, opts);
   }
-  location(): Promise<{ url: string; title: string }> {
+  location(): Promise<{ url: string; title: string; frameUrls: string[] }> {
     return this.inner.location();
   }
   screenshot(path: string, opts?: { maskSensitive?: boolean }): Promise<string | undefined> {

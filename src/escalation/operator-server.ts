@@ -99,7 +99,34 @@ export async function startOperatorConsole(opts: OperatorConsoleOptions): Promis
   });
 
   const server: Server = createServer(app);
-  const wss = new WebSocketServer({ server, path: '/live' });
+
+  /**
+   * Reject websocket connections that did not come from the console itself.
+   *
+   * The live channel forwards mouse and keyboard input into a signed-on banking
+   * session. Without an origin check, any page the operator happens to have open in
+   * another tab could connect to ws://127.0.0.1:<port>/live and -- whenever the lease
+   * happens to sit with the operator -- drive that session. Binding to localhost stops
+   * remote attackers, not local pages.
+   *
+   * This is proportionate rather than complete: `Origin` is set by browsers and can be
+   * omitted by a non-browser client, so it stops the drive-by case and not a
+   * determined local process. A per-session bearer token minted with the intervention
+   * would close that, and is the right next step if this ever leaves a workstation.
+   */
+  const expectedOrigins = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
+  const wss = new WebSocketServer({
+    server,
+    path: '/live',
+    verifyClient: ({ origin }, done) => {
+      if (origin && !expectedOrigins.has(origin)) {
+        log('operator.console.rejectedOrigin', { origin });
+        done(false, 403, 'origin not permitted');
+        return;
+      }
+      done(true);
+    },
+  });
 
   wss.on('connection', (socket: WebSocket) => {
     void attachLiveSession(socket, page, lease, log);

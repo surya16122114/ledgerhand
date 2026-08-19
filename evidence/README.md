@@ -4,11 +4,16 @@ Everything here came from real runs against the target application in
 `/target-app`. Nothing is hand-written.
 
 ```
+capabilities/              the exact artifacts these scenarios ran against
 discovery/                 two genuine LLM-driven discovery runs
-replays/                   13 replay scenarios, one directory each
+replays/                   14 replay scenarios, one directory each
 screenshots/               the operator console during a live escalation
 REPLAY-SCENARIOS.md        generated summary of every replay scenario
 ```
+
+`capabilities/` is a copy of `/capabilities`, written by the capture script at the same
+time as the results, so the artifact and the runs that exercised it cannot drift apart.
+The digest of each is printed during capture.
 
 Each run directory contains:
 
@@ -55,6 +60,9 @@ the result contract deliberately:
 - **business outcomes** — `MEMBER_NOT_FOUND`, `PERMISSION_DENIED`, `VALIDATION_REJECTED`
 - **recoverable** — an unexpected interstitial, and a session expiry mid-flow
 - **hard failure** — an application exception page, with screenshot and DOM snapshot
+- **a slow irreversible submit that is deliberately NOT retried** (`12-*`) — the most
+  important one. Ground truth: the stalled POST *had* landed, and exactly one
+  sub-account exists where an automatic retry would have created two.
 - **pre-flight rejection** — a malformed member id, refused before a browser launches
 - **policy** — an irreversible step refused without authorisation, then completed with it
 - **cross-tenant** — the Meridian recording replayed against Riverstone

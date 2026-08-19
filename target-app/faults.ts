@@ -26,11 +26,19 @@ export interface ArmedFault {
   mode: 'once' | 'always';
   /** Only fire on request paths containing this substring. Empty = any path. */
   pathContains: string;
+  /**
+   * Only fire on this HTTP method. Empty = any method.
+   *
+   * Needed to target a submit rather than the form that precedes it: the GET that
+   * renders /subaccount-new.aspx and the POST that submits it share a path, so a
+   * path-only filter always fires on the harmless one.
+   */
+  method: string;
   /** For slow-load. */
   delayMs: number;
 }
 
-const NO_FAULT: ArmedFault = { kind: 'none', mode: 'always', pathContains: '', delayMs: 0 };
+const NO_FAULT: ArmedFault = { kind: 'none', mode: 'always', pathContains: '', method: '', delayMs: 0 };
 
 let armed: ArmedFault = { ...NO_FAULT };
 
@@ -39,6 +47,7 @@ export function arm(f: Partial<ArmedFault> & { kind: FaultKind }): ArmedFault {
     kind: f.kind,
     mode: f.mode ?? 'once',
     pathContains: f.pathContains ?? '',
+    method: (f.method ?? '').toUpperCase(),
     delayMs: f.delayMs ?? 9000,
   };
   return armed;
@@ -52,15 +61,25 @@ export function peek(): ArmedFault {
   return armed;
 }
 
-/** Returns the fault to apply to this request, consuming it if mode === 'once'. */
-export function consumeFor(path: string): FaultKind {
-  if (armed.kind === 'none') return 'none';
-  if (armed.pathContains && !path.includes(armed.pathContains)) return 'none';
-  const kind = armed.kind;
-  if (armed.mode === 'once') armed = { ...NO_FAULT };
-  return kind;
+/**
+ * Returns the fault to apply to this request, consuming it if mode === 'once'.
+ *
+ * The delay is returned *with* the kind rather than fetched separately afterwards.
+ * The separate-getter version had a real bug: consuming a `once` fault reset the
+ * armed record before the caller read `delayMs`, so `slow-load` always slept zero
+ * milliseconds and the fault silently never fired. Returning both together makes
+ * that mistake unrepresentable.
+ */
+export interface ConsumedFault {
+  kind: FaultKind;
+  delayMs: number;
 }
 
-export function currentDelayMs(): number {
-  return armed.delayMs;
+export function consumeFor(path: string, method = ''): ConsumedFault {
+  if (armed.kind === 'none') return { kind: 'none', delayMs: 0 };
+  if (armed.pathContains && !path.includes(armed.pathContains)) return { kind: 'none', delayMs: 0 };
+  if (armed.method && method.toUpperCase() !== armed.method) return { kind: 'none', delayMs: 0 };
+  const consumed: ConsumedFault = { kind: armed.kind, delayMs: armed.delayMs };
+  if (armed.mode === 'once') armed = { ...NO_FAULT };
+  return consumed;
 }

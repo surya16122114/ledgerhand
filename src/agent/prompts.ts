@@ -76,10 +76,20 @@ export function renderObservation(input: {
     container: { framePath: string[]; section?: string; table?: { rowKey?: string; columnHeader?: string } };
   }[];
   text: string;
+  truncatedFrames?: string[];
   note?: string;
 }): string {
   const lines: string[] = [];
   if (input.note) lines.push(`! ${input.note}`, '');
+  if (input.truncatedFrames?.length) {
+    // Told plainly, because a model that cannot see a control will otherwise conclude
+    // the control does not exist and go looking for another route.
+    lines.push(
+      `! This screen has more controls than can be listed (frame(s): ${input.truncatedFrames.join(', ')}). ` +
+        'If something you expect is missing, narrow the screen first rather than assuming it is absent.',
+      '',
+    );
+  }
   lines.push(`URL: ${input.url}`);
   if (input.frames.length > 1) {
     lines.push(`Frames: ${input.frames.map((f) => `${f.path.join('/') || '(top)'} -> ${short(f.url)}`).join(' | ')}`);

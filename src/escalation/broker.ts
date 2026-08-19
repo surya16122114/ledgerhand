@@ -32,11 +32,14 @@ export type EscalationReason =
   /** Replay hit a condition with no declared handler. */
   | 'unhandled-condition'
   /** A handler explicitly routed to a human. */
-  | 'handler-requested'
-  /** The policy gate latched the session shut. */
-  | 'policy-violation'
-  /** Repeated recoverable failures exhausted their budget. */
-  | 'recovery-exhausted';
+  | 'handler-requested';
+
+// Two variants used to live here -- 'policy-violation' and 'recovery-exhausted' -- and
+// nothing ever raised either. A latched policy violation surfaces as
+// 'unhandled-condition' with the gate's reason attached, and an exhausted recovery
+// budget becomes a hard failure rather than a question for a person. An escalation
+// reason an operator can never actually see is noise in the one enum a console filters
+// on, so they are gone.
 
 export interface HumanAction {
   at: string;
@@ -167,6 +170,13 @@ export class InterventionBroker {
   claim(id: string, operator: string): Intervention {
     const item = this.require(id);
     if (item.status === 'resolved') throw new Error(`intervention ${id} is already resolved`);
+    // Two operators silently sharing one live session is worse than a visible error:
+    // both would be clicking into the same signed-on screen with no way to tell whose
+    // action did what. Re-claiming by the same operator is fine -- that is a page
+    // reload.
+    if (item.status === 'claimed' && item.claimedBy && item.claimedBy !== operator) {
+      throw new Error(`intervention ${id} is already held by ${item.claimedBy}; one operator drives a session at a time`);
+    }
     item.status = 'claimed';
     item.claimedBy = operator;
     item.claimedAt = new Date().toISOString();

@@ -16,7 +16,7 @@ function stubSurface(): Surface & { performed: Action[] } {
       return { ok: true };
     },
     async observe() {
-      return { generation: 1, at: '', url: 'http://localhost:4173/x', title: '', frames: [], controls: [], headings: [], text: '' };
+      return { generation: 1, at: '', url: 'http://localhost:4173/x', title: '', frames: [], controls: [], headings: [], truncatedFrames: [], text: '' };
     },
     async resolve() {
       return { ok: false, code: 'TARGET_NOT_FOUND', attempts: [] };
@@ -25,7 +25,7 @@ function stubSurface(): Surface & { performed: Action[] } {
       return { satisfied: true, observed: 'stub' };
     },
     async location() {
-      return { url: 'http://localhost:4173/x', title: '' };
+      return { url: 'http://localhost:4173/x', title: '', frameUrls: ['http://localhost:4173/x'] };
     },
     async screenshot() {
       return undefined;
@@ -189,5 +189,29 @@ describe('InterventionBroker', () => {
     });
     expect(events[0]?.type).toBe('escalation.raised');
     expect(events[0]?.data.step).toMatchObject({ id: '04-click-submit' });
+  });
+});
+
+describe('InterventionBroker concurrent claims', () => {
+  const ctx = (): InterventionContext => ({
+    runId: 'r',
+    runKind: 'replay',
+    location: { url: 'http://localhost:4173/x', title: '' },
+    visibleExcerpt: '',
+    evidence: {},
+  });
+
+  it('refuses a second operator claiming a session another already holds', () => {
+    const broker = new InterventionBroker(new ControlLease());
+    const item = broker.raise({ reason: 'unhandled-condition', headline: 'h', detail: 'd', context: ctx() });
+    broker.claim(item.id, 'alice@console');
+    expect(() => broker.claim(item.id, 'bob@console')).toThrow(/already held by alice@console/);
+  });
+
+  it('allows the same operator to re-claim, which is just a page reload', () => {
+    const broker = new InterventionBroker(new ControlLease());
+    const item = broker.raise({ reason: 'unhandled-condition', headline: 'h', detail: 'd', context: ctx() });
+    broker.claim(item.id, 'alice@console');
+    expect(() => broker.claim(item.id, 'alice@console')).not.toThrow();
   });
 });

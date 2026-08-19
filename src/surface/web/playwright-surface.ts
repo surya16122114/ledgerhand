@@ -37,7 +37,7 @@ import {
   type TargetDescriptor,
 } from '../types.js';
 import { describeTarget, matchTarget } from '../matching.js';
-import { REF_ATTR, perceiveInPage, type RawControl, type RawPerception } from './perceive.js';
+import { MAX_PERCEIVED_CONTROLS, REF_ATTR, perceiveInPage, type RawControl, type RawPerception } from './perceive.js';
 
 export interface WebSurfaceOptions {
   headless?: boolean;
@@ -121,6 +121,7 @@ export class PlaywrightWebSurface implements Surface {
     const controls: PerceivedControl[] = [];
     const texts: string[] = [];
     const headings = new Set<string>();
+    const truncatedFrames: string[] = [];
     const frameMeta: { path: string[]; url: string }[] = [];
 
     for (const { frame, path } of frames) {
@@ -136,6 +137,7 @@ export class PlaywrightWebSurface implements Surface {
         continue;
       }
       if (raw.text) texts.push(raw.text);
+      if (raw.truncated) truncatedFrames.push(path.join('/') || '(top)');
       for (const h of raw.headings ?? []) headings.add(h);
       for (const rc of raw.controls) controls.push(hydrate(rc, path));
     }
@@ -148,15 +150,10 @@ export class PlaywrightWebSurface implements Surface {
       title,
       frames: frameMeta,
       controls,
+      truncatedFrames,
       headings: [...headings],
       text: texts.join('\n'),
     };
-
-    if (opts.screenshot) {
-      const path = `${process.env.LEDGERHAND_EVIDENCE_DIR ?? 'evidence/scratch'}/obs-${gen}.png`;
-      const written = await this.screenshot(path, { maskSensitive: true });
-      if (written) observation.screenshotPath = written;
-    }
 
     this.lastObservation = observation;
     return observation;
@@ -166,7 +163,31 @@ export class PlaywrightWebSurface implements Surface {
 
   async resolve(target: TargetDescriptor, requireActionable = false): Promise<Resolution> {
     const obs = await this.observe();
-    return matchTarget(obs.controls, target, { requireActionable });
+    const result = matchTarget(obs.controls, target, { requireActionable });
+
+    // If perception was truncated, say so on the failure rather than on every step.
+    //
+    // A truncated control list can make a perfectly good target unresolvable, and
+    // without this note the failure looks like a locator problem and sends you
+    // debugging the wrong thing. Attaching it here costs nothing -- the observation
+    // already exists -- whereas checking before every step would double perception
+    // cost for a diagnostic that is almost never true.
+    if (!result.ok && obs.truncatedFrames.length) {
+      return {
+        ...result,
+        attempts: [
+          ...result.attempts,
+          {
+            strategy: { kind: 'dom-hint', css: '(diagnostic)' },
+            matched: 0,
+            note:
+              `perception was truncated in frame(s) ${obs.truncatedFrames.join(', ')} at the ${MAX_PERCEIVED_CONTROLS}-control cap; ` +
+              'the target may exist but be unreported',
+          },
+        ],
+      };
+    }
+    return result;
   }
 
   // ------------------------------------------------------------------- perform
@@ -236,7 +257,11 @@ export class PlaywrightWebSurface implements Surface {
       return { ok: false, error: { code: 'SURFACE_FAULT', message: `frame ${res.control.container.framePath.join('/')} disappeared` } };
     }
     const locator = frame.locator(`[${REF_ATTR}="${domRef(res.ref)}"]`);
-    const base = { strategyUsed: res.strategyUsed, strategyIndex: res.strategyIndex };
+    const base = {
+      strategyUsed: res.strategyUsed,
+      strategyIndex: res.strategyIndex,
+      ...(res.alsoMatched.length ? { narrowedFrom: res.alsoMatched.length + 1 } : {}),
+    };
 
     switch (action.kind) {
       case 'click': {
@@ -285,11 +310,15 @@ export class PlaywrightWebSurface implements Surface {
 
   // ----------------------------------------------------------------- evidence
 
-  async location(): Promise<{ url: string; title: string }> {
+  async location(): Promise<{ url: string; title: string; frameUrls: string[] }> {
     try {
-      return { url: this.page.url(), title: await this.page.title() };
+      return {
+        url: this.page.url(),
+        title: await this.page.title(),
+        frameUrls: this.frameTree().map((f) => safeUrl(f.frame)),
+      };
     } catch {
-      return { url: 'about:unknown', title: '' };
+      return { url: 'about:unknown', title: '', frameUrls: [] };
     }
   }
 

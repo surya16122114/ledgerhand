@@ -62,7 +62,7 @@ artifact or a log — see [REPORT.md §6](REPORT.md#6-safety).
 Everything else works with no keys and no live services:
 
 ```bash
-npm test          # 156 unit tests, no browser, no network
+npm test          # 169 unit tests, no browser, no network
 npm run typecheck
 ```
 
@@ -224,6 +224,27 @@ ledgerhand overlay  <capability> <file>     attach a tenant overlay
 Useful flags: `--headed`/`--headless`, `--times N` (stability signal),
 `--unattended`, `--authorize "<reason>"`, `--tenant`, `--base-url`,
 `--no-operator`, `--json`.
+
+---
+
+## Where each requirement lives
+
+The brief's Section 3, mapped to code and to the evidence that exercises it.
+
+| requirement | implementation | evidence |
+|---|---|---|
+| **3.1** goal-driven observe/decide/act loop against a live UI | `src/agent/loop.ts`, perception in `src/surface/web/perceive.ts` | `evidence/discovery/*` — two real `gpt-4.1` runs |
+| **3.2** typed, versioned, reviewable capability artifact | `src/artifact/schema.ts`, `store.ts` | `evidence/capabilities/*.json` |
+| **3.3** deterministic replay, stable targeting, checkpoints | `src/replay/engine.ts`, `src/surface/matching.ts` | scenarios `01`, `02`, `13` |
+| **3.3** business outcome vs recoverable vs hard failure | `src/replay/outcome.ts`, handlers in `src/artifact/product-profiles.ts` | `03`, `04`, `06`, `07`, `08`, `13`, `14` |
+| **3.4** allowlist, risky-action handling, redaction | `src/policy/{gate,allowlist,risk,redact,vault}.ts` | `10`, `11`, `12`; `tests/gate.test.ts` |
+| **3.5** structured log + richer signal on failure | `src/evidence/logger.ts` | `run.jsonl`, `screenshots/`, `snapshots/` in each run |
+| **3.6** detect stuck, route with context, transfer control, resume | `src/escalation/*`, `operator-console.html` | `evidence/screenshots/operator-console.png`, `12`, `13-operator-console` |
+| **3.7** heterogeneity and multi-tenant reuse | `src/surface/types.ts` seam, `src/surface/desktop/README.md`, `src/artifact/overlay.ts` | scenario `09` — one recording, two institutions |
+
+Stretch goals attempted: an agent-facing capability catalog (`ledgerhand catalog`),
+cross-tenant reuse with per-tenant overrides (`overlays/`), and a multi-run stability
+signal (`--times N`).
 
 ---
 

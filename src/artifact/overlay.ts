@@ -25,6 +25,7 @@ import type {
 } from './index-types.js';
 import { normalizeText } from '../surface/matching.js';
 import type { TargetDescriptor, TargetStrategy } from '../surface/types.js';
+import { escapeRegExp } from '../util/regex.js';
 
 export interface OverlayAudit {
   tenantId: string;
@@ -41,9 +42,6 @@ export interface OverlayResult {
   audit: OverlayAudit;
 }
 
-function escapeRegExp(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
 
 /** Case/whitespace-insensitive lookup, so an overlay author need not match punctuation exactly. */
 function makeAliasLookup(map: Record<string, string>): (s: string) => string | undefined {
@@ -189,7 +187,7 @@ export function applyOverlay(base: Capability, overlay: Overlay): OverlayResult 
 
   const mapHandler = (h: Handler, at: string): Handler => {
     const then = h.then.do === 'dismiss' ? { ...h.then, target: mapTarget(h.then.target, `${at}/dismiss`) } : h.then;
-    return { ...h, when: mapCondition(h.when, at), then };
+    return { ...h, ...(h.when ? { when: mapCondition(h.when, at) } : {}), then };
   };
 
   // ------------------------------------------------------------------ rewrite

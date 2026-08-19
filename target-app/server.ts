@@ -59,10 +59,10 @@ function buildApp(t: TenantConfig) {
   // ------------------------------------------------------- fault interception
   app.use(async (req, res, next) => {
     if (req.path.startsWith('/__')) return next();
-    const kind = faults.consumeFor(req.path);
+    const { kind, delayMs } = faults.consumeFor(req.path, req.method);
     switch (kind) {
       case 'slow-load':
-        await sleep(faults.currentDelayMs());
+        await sleep(delayMs);
         return next();
       case 'app-error':
         res.status(500).send(R.appErrorFrame(t, randomUUID().slice(0, 8)));

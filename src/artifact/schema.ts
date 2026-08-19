@@ -174,14 +174,19 @@ export type OutputField = z.infer<typeof outputFieldSchema>;
 export const businessOutcomeSchema = z.object({
   code: z.string().regex(/^[A-Z][A-Z0-9_]*$/, 'outcome codes are SCREAMING_SNAKE_CASE'),
   description: z.string().min(1),
-  /** Whether the flow can continue afterwards. Almost always false. */
-  terminal: z.boolean().default(true),
   /**
    * Guidance for the calling agent: is retrying with different inputs sensible?
    * Encoded because the agent invoking this has no other way to know.
    */
   retryable: z.boolean().default(false),
 });
+
+// Note on what used to be here: a `terminal` flag, meaning "the flow can continue
+// after this outcome". The engine always treats a business outcome as terminal, so
+// the field was declared and never read. On a schema whose whole purpose is to be a
+// reviewable contract, a field a reviewer can set and that changes nothing is worse
+// than a missing feature -- so it is gone rather than aspirational. Non-terminal
+// outcomes would need real support in the step loop, and nothing has asked for them.
 export type BusinessOutcomeDecl = z.infer<typeof businessOutcomeSchema>;
 
 // ---------------------------------------------------------------------------
@@ -227,8 +232,13 @@ export type ExtractTransform = z.infer<typeof extractTransformSchema>;
  *   neither, ask a human -> { do: 'escalate' }
  */
 export const handlerActionSchema = z.discriminatedUnion('do', [
-  /** Classify as a declared business outcome and return it to the caller. */
-  z.object({ do: z.literal('outcome'), code: z.string(), captureInto: z.string().optional() }),
+  /**
+   * Classify as a declared business outcome and return it to the caller.
+   *
+   * (Previously also carried an unimplemented `captureInto`. Removed for the same
+   * reason as `terminal`: declared configuration that nothing reads.)
+   */
+  z.object({ do: z.literal('outcome'), code: z.string() }),
   /** A known interstitial: acknowledge it and re-attempt the step that hit it. */
   z.object({ do: z.literal('dismiss'), target: targetDescriptorSchema, thenRetryStep: z.boolean().default(true) }),
   /** Transient slowness or a lost race. Bounded re-attempt of the same step. */
@@ -249,7 +259,25 @@ export type HandlerAction = z.infer<typeof handlerActionSchema>;
 
 export const handlerSchema = z.object({
   name: z.string().min(1),
-  when: conditionSchema,
+  /**
+   * A predicate over what is on screen. Optional, because some conditions are not
+   * visible in the page at all -- see `whenFailureCode`.
+   */
+  when: conditionSchema.optional(),
+  /**
+   * Fire only when the step failed with one of these codes.
+   *
+   * This exists because `when` alone cannot express the most ordinary runtime
+   * condition of all: a page that took longer than the step's budget. There is no
+   * text on screen that says "this is still loading" -- the browser is showing the
+   * *previous* page, which looks perfectly healthy. Trying to express it as a state
+   * condition produced a handler matching `^\s*$` against the visible text, which
+   * could never be true once a nav frame had rendered, so it silently never fired.
+   *
+   * A handler carrying this guard is only ever considered after a failure, never
+   * during the pre-step interrupt sweep.
+   */
+  whenFailureCode: z.array(z.string().regex(/^[A-Z][A-Z0-9_]*$/)).min(1).optional(),
   then: handlerActionSchema,
   /**
    * Suppress this handler while a step marked `partOfAuth` is running.
@@ -261,6 +289,13 @@ export const handlerSchema = z.object({
    * useful, and a handler that always fires gets deleted rather than fixed.
    */
   notDuringAuth: z.boolean().default(false),
+}).superRefine((h, ctx) => {
+  if (!h.when && !h.whenFailureCode) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: `handler '${h.name}' declares neither 'when' nor 'whenFailureCode', so it would fire unconditionally`,
+    });
+  }
 });
 export type Handler = z.infer<typeof handlerSchema>;
 
