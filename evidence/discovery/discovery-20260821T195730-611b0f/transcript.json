@@ -1,0 +1,181 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_v0rdjCIkdGE5dnP74yxCiZ0c",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "value": "coreOperatorUser",
+            "why": "Enter the operator user ID to sign on to the servicing console."
+          }
+        },
+        {
+          "id": "call_9Fa2bTNXMLb3uCD3nhySGbCL",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "coreOperatorPassword",
+            "why": "Enter the operator password to sign on to the servicing console."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_REtfkJyhYudwwf8vPsxwka2V",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "coreOperatorUser",
+            "why": "Enter the operator user ID to sign on to the servicing console."
+          }
+        },
+        {
+          "id": "call_IiVUtQKzmzMjbfQl8psI2JRK",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "coreOperatorPassword",
+            "why": "Enter the operator password to sign on to the servicing console."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_tvgOyVqJMnteGGsCBXNSSTSp",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "coreOperatorPassword",
+            "why": "Enter the operator password to sign on to the servicing console."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_FDWy8LQYDZIRyQGY7jOJ6vFm",
+          "name": "click_control",
+          "args": {
+            "ref": "7:2",
+            "why": "Click the Sign On button to log in to the servicing console with the entered credentials."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_y9yQkbFIDZxNxt0qmhM6W3Qs",
+          "name": "click_control",
+          "args": {
+            "ref": "navFrame|10:1",
+            "why": "Click Member Servicing to begin looking up a member profile."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_A3AXOu0OMrbPJqmmLjZsrh7f",
+          "name": "fill_field",
+          "args": {
+            "ref": "bodyFrame|13:0",
+            "value": "{{input.memberId}}",
+            "why": "Enter the member ID to search for member {{input.memberId}}'s profile."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_ajLeSsxFqsUQ748ZobYcTjuF",
+          "name": "click_control",
+          "args": {
+            "ref": "bodyFrame|16:1",
+            "why": "Click the Search button to look up member {{input.memberId}}'s profile."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_dEcpwIW738bwLRskiqxtN1fk",
+          "name": "read_value",
+          "args": {
+            "ref": "bodyFrame|19:4",
+            "outputName": "accountStatus",
+            "why": "Read the member's account status from their profile."
+          }
+        },
+        {
+          "id": "call_RvMKzjFFEJvTYjg1S2IQ7y3c",
+          "name": "read_value",
+          "args": {
+            "ref": "bodyFrame|19:6",
+            "outputName": "homeBranch",
+            "why": "Read the branch the member belongs to from their profile."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_P3RkMpqcJv2CrTv6mjHZBxLP",
+          "name": "read_value",
+          "args": {
+            "ref": "bodyFrame|22:6",
+            "outputName": "homeBranch",
+            "why": "Read the member's home branch from their profile."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_fjedDL72uyq3jz5NTYyXO5rU",
+          "name": "finish_goal",
+          "args": {
+            "successText": "MEMBER PROFILE Member ID: {{input.memberId}} Name: Ashgrove, Dolores Status: ACTIVE Tax ID: ***-**-4417 Branch: BR-014 NORTHGATE",
+            "summary": "Signs on to the servicing console, looks up member {{input.memberId}}, and retrieves their account status and home branch from the member profile screen."
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "toolCalls": [
+        {
+          "id": "call_FgKIFTjjvzcddeV9OTADScFm",
+          "name": "finish_goal",
+          "args": {
+            "successText": "MEMBER PROFILE",
+            "summary": "Signs on to the servicing console, looks up member {{input.memberId}}, and retrieves their account status and home branch from the member profile screen."
+          }
+        }
+      ]
+    }
+  ]
+}

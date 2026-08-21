@@ -23,7 +23,8 @@
     "test:watch": "vitest",
     "capture-evidence": "tsx scripts/capture-evidence.ts",
     "demo:discover": "tsx src/cli.ts discover read-balance",
-    "demo:replay": "tsx src/cli.ts replay member.read-savings-balance --input memberId=12345"
+    "demo:replay": "tsx src/cli.ts replay member.read-savings-balance --input memberId=12345",
+    "test:browser": "vitest run --config vitest.browser.config.ts"
   },
   "dependencies": {
     "express": "^4.19.2",

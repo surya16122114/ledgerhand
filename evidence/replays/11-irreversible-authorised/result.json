@@ -13,7 +13,7 @@
   },
   "matchedExpectation": true,
   "result": {
-    "runId": "replay-20260819T201217-e075d8",
+    "runId": "replay-20260821T200410-0716a0",
     "capability": {
       "id": "member.open-sub-account",
       "version": "1.0.0",
@@ -21,9 +21,9 @@
       "lifecycleState": "approved"
     },
     "tenantId": "meridian-cu",
-    "startedAt": "2026-08-19T20:12:17.325Z",
-    "finishedAt": "2026-08-19T20:12:35.602Z",
-    "durationMs": 18277,
+    "startedAt": "2026-08-21T20:04:10.579Z",
+    "finishedAt": "2026-08-21T20:04:29.083Z",
+    "durationMs": 18504,
     "steps": [
       {
         "index": 0,
@@ -33,7 +33,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 961,
+        "durationMs": 958,
         "checkpoint": {
           "satisfied": true,
           "observed": "all 2 sub-conditions held"
@@ -47,7 +47,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 987,
+        "durationMs": 1021,
         "target": "textbox \"User ID\" in OPERATOR SIGN ON (textbox labelled \"User ID\")",
         "strategy": {
           "kind": "labelled-field",
@@ -62,7 +62,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 997,
+        "durationMs": 1013,
         "target": "password \"Password\" in OPERATOR SIGN ON (password labelled \"Password\")",
         "strategy": {
           "kind": "labelled-field",
@@ -77,7 +77,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1336,
+        "durationMs": 1354,
         "target": "button \"Sign On\" in OPERATOR SIGN ON (button \"Sign On\")",
         "strategy": {
           "kind": "role-name",
@@ -96,7 +96,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1741,
+        "durationMs": 1769,
         "target": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console (link \"Member Servicing\" @navFrame)",
         "strategy": {
           "kind": "role-name",
@@ -115,7 +115,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1355,
+        "durationMs": 1361,
         "target": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY (textbox labelled \"Member ID\" @bodyFrame)",
         "strategy": {
           "kind": "labelled-field",
@@ -130,7 +130,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1694,
+        "durationMs": 1722,
         "target": "button \"Search\" in MEMBER SERVICING – INQUIRY (button \"Search\" @bodyFrame)",
         "strategy": {
           "kind": "role-name",
@@ -149,7 +149,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1762,
+        "durationMs": 1780,
         "target": "link \"Open Sub-Account\" in SHARE / DEPOSIT ACCOUNTS (link \"Open Sub-Account\" @bodyFrame)",
         "strategy": {
           "kind": "role-name",
@@ -168,7 +168,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1350,
+        "durationMs": 1377,
         "target": "textbox \"Description\" in OPEN SUB-ACCOUNT – REQUEST (textbox labelled \"Description\" @bodyFrame)",
         "strategy": {
           "kind": "labelled-field",
@@ -183,7 +183,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1352,
+        "durationMs": 1347,
         "target": "textbox \"Initial Deposit\" in OPEN SUB-ACCOUNT – REQUEST (textbox labelled \"Initial Deposit\" @bodyFrame)",
         "strategy": {
           "kind": "labelled-field",
@@ -198,7 +198,7 @@
         "risk": "irreversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1720,
+        "durationMs": 1767,
         "target": "button \"Submit Request\" in OPEN SUB-ACCOUNT – REQUEST (button \"Submit Request\" @bodyFrame)",
         "strategy": {
           "kind": "role-name",
@@ -217,7 +217,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1340,
+        "durationMs": 1353,
         "target": "cell \"New Account Number\" in SUB-ACCOUNT OPENED (cell \"New Account Number\" @bodyFrame)",
         "strategy": {
           "kind": "role-name",
@@ -232,7 +232,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1341,
+        "durationMs": 1342,
         "target": "cell \"Confirmation Reference\" in SUB-ACCOUNT OPENED (cell \"Confirmation Reference\" @bodyFrame)",
         "strategy": {
           "kind": "role-name",
@@ -243,12 +243,12 @@
     "recoveries": [],
     "drift": [],
     "interventions": [],
-    "evidenceDir": "evidence/replays/11-irreversible-authorised/replay-20260819T201217-e075d8",
+    "evidenceDir": "evidence/replays/11-irreversible-authorised/replay-20260821T200410-0716a0",
     "warnings": [],
     "status": "success",
     "outputs": {
       "newAccountNumber": "12345-50",
-      "confirmationReference": "SA-MT0J31GJ"
+      "confirmationReference": "SA-MT3DOBD9"
     }
   }
 }

@@ -310,18 +310,42 @@ export function perceiveInPage(generation: number): RawPerception {
     if (!row) return undefined;
     const cells = Array.from(row.cells);
     const index = cells.indexOf(cell);
-    // Position, not styling, decides which cell is the label. Styling looked like
-    // the obvious signal and is wrong: this application bolds the value it most
-    // wants the operator to notice, so the new account number on a confirmation
-    // screen is bold -- and a styling test classifies the very field the capability
-    // exists to return as a label and drops it.
     if (index <= 0) return undefined;
-    const labelCell = cells[0];
-    if (!labelCell) return undefined;
-    if (labelCell.querySelector('input, select, textarea, button, a[href]')) return undefined;
-    if (!isHeaderish(labelCell)) return undefined;
-    const txt = stripLabelPunct(norm(labelCell.innerText || labelCell.textContent));
-    return txt && txt.length <= 60 ? txt : undefined;
+
+    // A cell that is itself a label is not a value.
+    //
+    // Without this, a four-column row of two label/value pairs reports the *labels*
+    // as values too -- "Name:" would come back as a value whose label is the previous
+    // pair's contents. Worse than noise: two cells then answer to the name "Status",
+    // and a read of Status fails as ambiguous rather than returning ACTIVE.
+    //
+    // The trailing colon is the signal, which is a convention rather than a
+    // guarantee -- but it is the near-universal one for label/value presentation in
+    // these applications, and `stripLabelPunct` already relies on it when deriving
+    // names. A label without a colon degrades to an extra perceived control, not to a
+    // wrong answer.
+    if (/:\s*$/.test(norm(cell.innerText || cell.textContent))) return undefined;
+
+    // The label is the NEAREST preceding label-like cell in this row, not the first
+    // cell of the row.
+    //
+    // Both halves of that sentence were learned the hard way. Testing the cell itself
+    // for boldness fails because this application bolds the value it most wants the
+    // operator to notice -- a confirmation screen's new account number is bold, and a
+    // styling test throws away the very field the capability exists to return. But
+    // anchoring on cells[0] instead fails on the profile block, which packs *two*
+    // label/value pairs into one four-column row: the "Name" value sits at index 3 and
+    // would take its label from "Member ID" at index 0. Walking backwards to the
+    // nearest label handles both, and multi-pair rows are the norm on these screens.
+    for (let i = index - 1; i >= 0; i--) {
+      const candidate = cells[i];
+      if (!candidate) continue;
+      if (candidate.querySelector('input, select, textarea, button, a[href]')) continue;
+      if (!isHeaderish(candidate)) continue;
+      const txt = stripLabelPunct(norm(candidate.innerText || candidate.textContent));
+      if (txt && txt.length <= 60) return txt;
+    }
+    return undefined;
   }
 
   function tableInfoFor(el: Element): RawControl['table'] {

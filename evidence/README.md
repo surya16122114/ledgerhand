@@ -6,7 +6,7 @@ Everything here came from real runs against the target application in
 ```
 capabilities/              the exact artifacts these scenarios ran against
 discovery/                 two genuine LLM-driven discovery runs
-replays/                   14 replay scenarios, one directory each
+replays/                   16 replay scenarios, one directory each
 screenshots/               the operator console during a live escalation
 REPLAY-SCENARIOS.md        generated summary of every replay scenario
 ```
@@ -28,12 +28,13 @@ Each run directory contains:
 
 ## Discovery
 
-Two capabilities, both discovered by `openai:gpt-4.1` driving the live application.
+Three capabilities, all discovered by `openai:gpt-4.1` driving the live application.
 
-| run | capability | turns | note |
-|---|---|---|---|
-| `discovery-*-1af4af` | `member.read-savings-balance` | 9 | read-only |
-| `discovery-*-9b5fda` | `member.open-sub-account` | 13 | contains an irreversible write; **escalated to a human for authorisation** |
+| capability | turns | note |
+|---|---|---|
+| `member.read-savings-balance` | 9 | read-only; from a goal preset |
+| `member.open-sub-account` | 13 | contains an irreversible write; **escalated to a human for authorisation** |
+| `member.read-profile-summary` | 11 | from a **free-form `--goal`**, not a preset |
 
 Two things in these logs are worth opening:
 

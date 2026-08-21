@@ -185,16 +185,50 @@ npm run replay -- member.open-sub-account --unattended --authorize "batch LH-447
   --input memberId=12345 --input description="Holiday Club" --input initialDeposit=250
 ```
 
-### 6. The agent-facing catalog
+### 6. Discover and invoke a capability the way an agent would
 
 ```bash
-npm run cli -- catalog
-npm run cli -- catalog --json    # tool definitions with JSON Schema args
+npm run cli -- catalog                # human view
+npm run cli -- catalog --json         # tool definitions with JSON Schema args
+
+npm run cli -- invoke member_read_savings_balance --args '{"memberId":"12345"}'
 ```
 
-Saved artifacts are projected into callable tool definitions with typed args, typed
-returns, **the declared business outcomes an agent must handle**, the lifecycle state,
-and a stability signal.
+```json
+{ "ok": true, "tool": "member_read_savings_balance",
+  "runId": "replay-...", "outputs": { "savingsBalance": 8241.77 } }
+```
+
+A declared business outcome comes back as data an agent can branch on, not an exception:
+
+```bash
+npm run cli -- invoke member_read_savings_balance --args '{"memberId":"99999"}'
+# { "ok": false, "outcome": { "code": "MEMBER_NOT_FOUND", "retryable": true, ... } }
+```
+
+and a wrong argument name is a typed error before any browser starts:
+
+```bash
+npm run cli -- invoke member_read_savings_balance --args '{"memberID":"12345"}'
+# { "ok": false, "error": { "code": "INVALID_ARGUMENTS", ... "expected": <the JSON Schema> } }
+```
+
+### 7. A goal of your own
+
+Nothing is wired to the presets — they are shortcuts. `member.read-profile-summary`
+was discovered from a free-form goal:
+
+```bash
+npm run cli -- discover \
+  --goal "Sign on, look up member 12345, and read that member's account status and branch." \
+  --capability-id member.read-profile-summary \
+  --param 'memberId=12345:string:pii:^\d{1,10}$' \
+  --expect accountStatus --expect homeBranch
+```
+
+It returns `ACTIVE / BR-014 NORTHGATE` for member 12345 and `DORMANT / BR-014 NORTHGATE`
+for member 30014 — the reads resolve by their on-screen labels, not by the values that
+happened to be there at record time.
 
 ---
 
@@ -203,6 +237,7 @@ and a stability signal.
 | what | how |
 |---|---|
 | unit tests | `npm test` — no browser, no network, no key |
+| perception tests | `npm run test:browser` — needs Chromium and the target app; covers the label/value and data-grid cases browser-free tests cannot reach |
 | replay | needs the target app; **never** needs a model key |
 | discovery loop, no key | drive the real loop from a recorded transcript — see [evidence/README.md](evidence/README.md#driving-the-loop-with-no-api-key). Restart the target app first: refs are positional. |
 | regenerate replay evidence | `npm run capture-evidence` |
@@ -219,6 +254,7 @@ ledgerhand show     <capability>            human-readable steps, targets, handl
 ledgerhand lint     <capability>            structural + safety findings
 ledgerhand approve  <capability> --by "..." draft -> approved
 ledgerhand overlay  <capability> <file>     attach a tenant overlay
+ledgerhand invoke   <tool-name> --args '{}'  call a capability the way an agent would
 ```
 
 Useful flags: `--headed`/`--headless`, `--times N` (stability signal),

@@ -42,6 +42,7 @@ usage
   ledgerhand approve  <capability[@version]> --by "Name <email>"
   ledgerhand show     <capability[@version]>
   ledgerhand overlay  <capability[@version]> <overlay.json>
+  ledgerhand invoke   <tool-name> --args '{"...":"..."}'   call a capability the way an agent would
 
 discover options
   --goal <text>            free-form goal (or use a preset: ${Object.keys(DEMO_GOALS).join(', ')})
@@ -92,6 +93,8 @@ async function main(argv: string[]): Promise<number> {
       return cmdShow(args);
     case 'overlay':
       return cmdOverlay(args);
+    case 'invoke':
+      return cmdInvoke(args);
     case 'help':
     case '--help':
     case '-h':
@@ -456,6 +459,124 @@ async function cmdShow(args: Args): Promise<number> {
   lines.push('', `success: ${cap.success.description}`, '');
   process.stdout.write(lines.join('\n'));
   return 0;
+}
+
+/**
+ * Invoke a capability the way a calling agent would.
+ *
+ * This is the other half of the catalog. `catalog --json` is what an agent reads to
+ * discover a tool; this is what it calls, and the two agree by construction because
+ * both come from `toToolDefinition`. The differences from `replay` are the point:
+ *
+ *  - addressed by **tool name** (`member_read_savings_balance`), not by file or id,
+ *    because that is the name the catalog advertises;
+ *  - arguments arrive as one **JSON object**, validated against the declared input
+ *    schema before anything launches, so a wrong argument name is a typed error and
+ *    not a mystery four screens in;
+ *  - the result is an **agent-shaped envelope** rather than a human step table. A
+ *    business outcome comes back as `ok: false` with a `code` the agent can branch on
+ *    and `retryable` telling it whether trying again could possibly help -- which is
+ *    the whole reason outcomes are in the schema.
+ */
+async function cmdInvoke(args: Args): Promise<number> {
+  const name = args.positional[0];
+  if (!name) {
+    process.stderr.write("invoke needs a tool name (see `ledgerhand catalog`) and --args '{...}'\n");
+    return 2;
+  }
+
+  const catalog = await buildCatalog();
+  const tool =
+    catalog.tools.find((t) => t.name === name) ??
+    catalog.tools.find((t) => t.capabilityId === name);
+  if (!tool) {
+    process.stderr.write(`no callable capability named '${name}'. Available: ${catalog.tools.map((t) => t.name).join(', ') || '(none)'}\n`);
+    return 2;
+  }
+
+  let parsedArgs: Record<string, unknown>;
+  try {
+    parsedArgs = JSON.parse(args.str('args') ?? '{}') as Record<string, unknown>;
+  } catch (err) {
+    process.stderr.write(`--args is not valid JSON: ${err instanceof Error ? err.message : String(err)}\n`);
+    return 2;
+  }
+
+  // Check the arguments against the advertised schema before doing anything. The
+  // engine validates too; doing it here as well means the error names the *tool's*
+  // contract, which is what the caller was reading.
+  const missing = tool.inputSchema.required.filter((k) => parsedArgs[k] === undefined);
+  const unknown = Object.keys(parsedArgs).filter((k) => !(k in tool.inputSchema.properties));
+  if (missing.length || unknown.length) {
+    const envelope = {
+      ok: false as const,
+      error: {
+        code: 'INVALID_ARGUMENTS',
+        message: [
+          missing.length ? `missing required argument(s): ${missing.join(', ')}` : '',
+          unknown.length ? `unknown argument(s): ${unknown.join(', ')}` : '',
+        ]
+          .filter(Boolean)
+          .join('; '),
+        expected: tool.inputSchema,
+      },
+    };
+    process.stdout.write(`${JSON.stringify(envelope, null, 2)}\n`);
+    return 1;
+  }
+
+  if (args.flag('unattended') && !tool.lifecycle.callableUnattended) {
+    process.stdout.write(
+      `${JSON.stringify(
+        { ok: false, error: { code: 'NOT_APPROVED', message: `'${tool.name}' is in lifecycle state '${tool.lifecycle.state}' and cannot be called unattended` } },
+        null,
+        2,
+      )}\n`,
+    );
+    return 1;
+  }
+
+  const capability = await loadCapability(tool.capabilityId);
+  const authorize = args.str('authorize');
+  const result = await replay(capability, parsedArgs, {
+    baseUrl: args.str('base-url') ?? 'http://localhost:4173',
+    ...(args.str('tenant') ? { tenantId: args.str('tenant')! } : {}),
+    unattended: args.flag('unattended'),
+    ...(authorize ? { authorizeIrreversible: { by: 'invoke', reason: authorize } } : {}),
+    headless: args.headless(),
+    escalationTimeoutMs: 15_000,
+    ...(args.str('evidence-dir') ? { evidenceBaseDir: args.str('evidence-dir')! } : {}),
+  });
+
+  process.stdout.write(`${JSON.stringify(toAgentEnvelope(tool.name, result), null, 2)}\n`);
+  return result.status === 'success' ? 0 : 1;
+}
+
+/** The shape a calling agent sees. Deliberately small: outcome, outputs, or error. */
+function toAgentEnvelope(tool: string, result: Awaited<ReturnType<typeof replay>>) {
+  const base = { tool, runId: result.runId, evidence: result.evidenceDir };
+  switch (result.status) {
+    case 'success':
+      return { ok: true, ...base, outputs: result.outputs };
+    case 'business_outcome':
+      return {
+        ok: false,
+        ...base,
+        outcome: { code: result.outcome.code, message: result.outcome.description, retryable: result.outcome.retryable },
+      };
+    case 'escalated':
+      return {
+        ok: false,
+        ...base,
+        error: { code: 'ESCALATED', message: result.failure.message, step: result.failure.stepId, intervention: result.intervention.id },
+      };
+    default:
+      return {
+        ok: false,
+        ...base,
+        error: { code: result.failure.code, message: result.failure.message, step: result.failure.stepId, observed: result.failure.observed },
+      };
+  }
 }
 
 /**

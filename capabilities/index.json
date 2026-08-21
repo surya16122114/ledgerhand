@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-19T18:53:06.661Z",
+  "generatedAt": "2026-08-21T19:57:46.628Z",
   "capabilities": [
     {
       "id": "member.open-sub-account",
@@ -10,7 +10,7 @@
       "recordedTenantId": "meridian-cu",
       "state": "approved",
       "file": "capabilities/member.open-sub-account@1.0.0.json",
-      "digest": "sha256:8e4b3063cd3712b392a7cce47106ecad",
+      "digest": "sha256:f47305ade8901cc8bae268a44528ff9d",
       "inputs": [
         "memberId:string",
         "description:string",
@@ -28,6 +28,30 @@
       "tenantOverlays": []
     },
     {
+      "id": "member.read-profile-summary",
+      "version": "1.0.0",
+      "name": "Read Profile Summary",
+      "summary": "Signs on to the servicing console, looks up member {{input.memberId}}, and retrieves their account status and home branch from the member profile screen.",
+      "productId": "corepoint-servicing",
+      "recordedTenantId": "meridian-cu",
+      "state": "draft",
+      "file": "capabilities/member.read-profile-summary@1.0.0.json",
+      "digest": "sha256:b869d9e986280530141184c7396ac4ce",
+      "inputs": [
+        "memberId:string"
+      ],
+      "outputs": [
+        "accountStatus:string",
+        "homeBranch:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED"
+      ],
+      "tenantOverlays": []
+    },
+    {
       "id": "member.read-savings-balance",
       "version": "1.0.0",
       "name": "Read Savings Balance",
@@ -36,7 +60,7 @@
       "recordedTenantId": "meridian-cu",
       "state": "draft",
       "file": "capabilities/member.read-savings-balance@1.0.0.json",
-      "digest": "sha256:fbc2aabef3f518090490924017c9ecf9",
+      "digest": "sha256:0f743a9a7bf5e4b25bc65828342619da",
       "inputs": [
         "memberId:string"
       ],

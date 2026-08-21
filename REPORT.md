@@ -12,9 +12,10 @@ is genuinely hard, and I needed to be able to inject a session timeout, an
 unexpected interstitial, a permission denial and an exception page on demand. A
 public sandbox gives you neither.
 
-Two capabilities were discovered by a real model run (`openai:gpt-4.1`) and are in
-`/capabilities`. Evidence for both, plus fourteen replay scenarios, is in
-`/evidence`.
+Three capabilities were discovered by real model runs (`openai:gpt-4.1`) and are in
+`/capabilities` — two from goal presets and one from a free-form `--goal`, to show the
+loop is not wired to a fixed set of tasks. Evidence for all three, plus sixteen replay
+scenarios, is in `/evidence`.
 
 ---
 
@@ -140,6 +141,29 @@ name a human would use from the adjacent cell and records that it was *synthesis
 so downstream code knows to keep a fallback ready. It also deliberately matches
 authored labels, so a tenant that upgrades to a build with proper `<label for>`
 keeps working.
+
+Perception has three hard cases on these screens, and each one cost me a bug before it
+worked:
+
+| shape | how a value is addressed | the mistake it punishes |
+|---|---|---|
+| form field, no `<label for>` | `labelled-field` from the adjacent cell | trusting the browser's (empty) accessible name |
+| data grid | `table-cell` by row key + column header | naming a cell after its own contents, or by position |
+| label/value block | `role-name` from the nearest preceding label | anchoring on the row's first cell |
+
+The label/value case is the subtlest. The profile block is four columns wide with *two*
+label/value pairs per row, so anchoring on `cells[0]` makes the "Name" value report as
+"Member ID". But testing each cell's styling to decide "is this a label" is also wrong,
+because the app **bolds the value it most wants an operator to notice** — the new
+account number on a confirmation screen is bold, and a styling test discards the one
+field that capability exists to return. What works is walking backwards to the nearest
+label-like cell, and excluding cells that are themselves labels (trailing colon) so a
+name like "Status" is not claimed by two cells at once.
+
+None of this was reachable from a browser-free test, which is why
+`tests/browser/perception.test.ts` exists and why every assertion in it corresponds to
+one of these bugs. It runs under `npm run test:browser`, separately from the default
+suite, which stays browser-free and keyless.
 
 **2. The model does not author locators.** During discovery the model points at a
 `ref` from the observation it was just shown; the *system* looks that ref up in its
@@ -718,6 +742,24 @@ by hand through the UI.
    place.
 5. **Closing the resolve-then-act window** in `PolicyGate` by threading a resolution
    handle through `perform`, if the concurrency risk ever proved real.
+
+**Stretch goals, precisely.** Two of the six are complete, one is half-done and I would
+rather say so than round up:
+
+- *Agent-facing capability interface* — **done.** `catalog --json` emits the tool
+  definitions and `invoke <tool_name> --args '{...}'` calls one by that name, validating
+  against the advertised schema and returning an agent-shaped envelope where a business
+  outcome is data rather than an exception. README §6 shows all three outcomes.
+- *Canonicalisation / cross-tenant reuse* — **done.** Routes canonicalised, values
+  parameterised (`{{input.memberId}}-00`), and one recording replayed at a second tenant
+  with per-tenant overrides (scenario `09`).
+- *Multi-run stability* — **done.** `--times N` reports success rate and locator
+  fallbacks.
+- *Confidence & approval* — **half.** The approval gate is real and enforced
+  (`draft → approved`, unattended replay refuses a draft). The *scoring* half is not
+  persisted, for the reason given below.
+- *Code generation* and *assisted fallback* — **not attempted.** The brief says pick one
+  or two; I would rather the three above be solid.
 
 **Added after a self-review pass**, because a reviewer should know what a second look
 found: the frameset egress hole (§6), a handler that could never fire together with the

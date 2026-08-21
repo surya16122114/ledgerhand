@@ -1,0 +1,46 @@
+{
+  "updatedAt": "2026-08-21T20:05:05.836Z",
+  "interventions": [
+    {
+      "id": "int_574ed8e4",
+      "createdAt": "2026-08-21T20:04:55.810Z",
+      "reason": "handler-requested",
+      "headline": "Confirm before retrying: Submit the request to open a new sub-account for member {{input.memberId}} with the specified description and initial deposit.",
+      "detail": "Step '11-click-submit-request' is irreversible and its checkpoint did not hold. Retrying automatically could duplicate the action, so this needs a person to confirm what actually happened.\n\nobserved: failure code CHECKPOINT_FAILED",
+      "context": {
+        "runId": "replay-20260821T200429-b48724",
+        "runKind": "replay",
+        "capability": {
+          "id": "member.open-sub-account",
+          "version": "1.0.0",
+          "tenantId": "meridian-cu"
+        },
+        "step": {
+          "index": 10,
+          "id": "11-click-submit-request",
+          "intent": "Submit the request to open a new sub-account for member 30014 with the specified description and initial deposit."
+        },
+        "location": {
+          "url": "http://localhost:4173/console.aspx",
+          "title": "Meridian Credit Union - Member Servicing Console"
+        },
+        "visibleExcerpt": "Meridian Credit Union • Member Servicing Console Home | Member Servicing | Teller Ops | General Ledger | Administration Signed on: [secret] Sign Off CorePoint Servicing 4.2.118 | meridian-cu | UNCLASSIFIED – SYNTHETIC DATA ONLY\nMeridian Credit Union • Member Servicing Console OPEN SUB-ACCOUNT – REQUEST Member [pii:memberId] – Bramwell, Ilse Product Type: Sub-Share Savings Holiday Club Vacation Club Description: Initial Deposit: Minimum opening deposit is $25.00. Requests post same-day. CorePoint Servicing 4.2.118 | meridian-cu | UNCLASSIFIED – SYNTHETIC DATA ONLY",
+        "evidence": {
+          "screenshot": "evidence/replays/12-irreversible-slow-submit-retry-refused/replay-20260821T200429-b48724/screenshots/045-escalation-11-click-submit-request.png",
+          "snapshot": "evidence/replays/12-irreversible-slow-submit-retry-refused/replay-20260821T200429-b48724/snapshots/045-escalation-11-click-submit-request.html"
+        }
+      },
+      "status": "abandoned",
+      "humanActions": [],
+      "leaseTransitions": [
+        {
+          "at": "2026-08-21T20:04:55.811Z",
+          "from": "automation",
+          "to": "operator",
+          "by": "system",
+          "reason": "escalation int_574ed8e4: handler-requested"
+        }
+      ]
+    }
+  ]
+}

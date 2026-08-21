@@ -170,7 +170,19 @@ const SCENARIOS: Scenario[] = [
     expect: 'success',
   },
   {
-    slug: '14-business-outcome-validation',
+    slug: '14-free-form-goal-capability',
+    title: 'A capability discovered from a free-form goal, on a member with a different status',
+    why:
+      'member.read-profile-summary came from a free-form --goal rather than a preset, proving the loop is not wired to a ' +
+      'fixed set of tasks. Replayed here against a DORMANT member: the reads resolve by their on-screen labels, so the ' +
+      'current status comes back rather than the one seen at record time. Under the earlier data-bearing checkpoints ' +
+      'this is the exact case that would have failed.',
+    capability: 'member.read-profile-summary',
+    inputs: { memberId: '30014' },
+    expect: 'success',
+  },
+  {
+    slug: '15-business-outcome-validation',
     title: 'Business outcome: the application rejects the submitted values',
     why: 'A deposit below the product minimum is VALIDATION_REJECTED with retryable=true, not a crash.',
     capability: 'member.open-sub-account',
@@ -205,7 +217,7 @@ await mkdir(join(OUT, 'replays'), { recursive: true });
  * artifact changes, the next capture brings the new one along with its results.
  */
 await mkdir(join(OUT, 'capabilities'), { recursive: true });
-for (const ref of ['member.read-savings-balance', 'member.open-sub-account']) {
+for (const ref of ['member.read-savings-balance', 'member.open-sub-account', 'member.read-profile-summary']) {
   const cap = await loadCapability(ref);
   const file = join(OUT, 'capabilities', `${cap.id}@${cap.version}.json`);
   await writeFile(file, `${canonicalJson(cap)}\n`, 'utf8');
@@ -267,7 +279,7 @@ try {
     baseUrl: MERIDIAN,
     headless: true,
     unattended: true,
-    evidenceBaseDir: join(OUT, 'replays', '15-operator-console'),
+    evidenceBaseDir: join(OUT, 'replays', '16-operator-console'),
     escalationTimeoutMs: 60_000,
     onSurfaceReady: async ({ surface, lease, broker }) => {
       const console_ = await startOperatorConsole({ broker, lease, page: surface.livePage(), port: 4188 });
@@ -301,7 +313,7 @@ try {
   if (shot) {
     summary.push(
       [
-        '### 15-operator-console -- the operator console during a live escalation',
+        '### 16-operator-console -- the operator console during a live escalation',
         '',
         'A screenshot of the real console (`evidence/screenshots/operator-console.png`), taken while a replay was paused ' +
           'on an irreversible step. It shows the intervention context, the live view of the same session the automation ' +
