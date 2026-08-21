@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { capabilitySchema, type Capability } from '../src/artifact/schema.js';
+import { capabilitySchema, requiredSecretNames, type Capability } from '../src/artifact/schema.js';
 import { applyTransform, materialiseTarget, renderTemplate, renderUrlPattern, resolveValue, validateInputs } from '../src/replay/inputs.js';
 import { SecretVault } from '../src/policy/vault.js';
 
@@ -179,5 +179,55 @@ describe('materialiseTarget', () => {
 
   it('throws when a placeholder has no value, rather than sending the literal to the browser', () => {
     expect(() => materialiseTarget(target, {})).toThrow(/references input 'memberId'/);
+  });
+});
+
+describe('requiredSecretNames', () => {
+  it('lists the vault credentials a capability needs, deduplicated', () => {
+    // One definition, shared by the replay engine's pre-flight check and the catalog.
+    // Deriving it in only one of those places is how a missing credential came to be
+    // discovered halfway through a run instead of before it started.
+    const cap = capabilitySchema.parse({
+      schemaVersion: '1.0.0',
+      id: 'x.y',
+      version: '1.0.0',
+      name: 'X',
+      summary: 'x',
+      description: 'x',
+      target: { productId: 'p', recordedTenantId: 't', surfaceKind: 'legacy-web', entryUrl: '{{baseUrl}}/a' },
+      inputs: [],
+      outputs: [],
+      steps: [
+        {
+          id: '01-user',
+          intent: 'user',
+          action: { kind: 'fill', target: { description: 'u', strategies: [{ kind: 'labelled-field', label: 'User ID', labelMatch: 'normalized', role: 'textbox' }] }, value: { from: 'secret', name: 'coreOperatorUser' } },
+          risk: 'reversible',
+        },
+        {
+          id: '02-pass',
+          intent: 'pass',
+          action: { kind: 'fill', target: { description: 'p', strategies: [{ kind: 'labelled-field', label: 'Password', labelMatch: 'normalized', role: 'password' }] }, value: { from: 'secret', name: 'coreOperatorPassword' } },
+          risk: 'reversible',
+        },
+        {
+          id: '03-again',
+          intent: 'again',
+          action: { kind: 'fill', target: { description: 'u2', strategies: [{ kind: 'labelled-field', label: 'User ID', labelMatch: 'normalized', role: 'textbox' }] }, value: { from: 'secret', name: 'coreOperatorUser' } },
+          risk: 'reversible',
+        },
+        {
+          id: '04-literal',
+          intent: 'literal',
+          action: { kind: 'fill', target: { description: 'l', strategies: [{ kind: 'labelled-field', label: 'Note', labelMatch: 'normalized', role: 'textbox' }] }, value: { from: 'literal', value: 'x' } },
+          risk: 'reversible',
+        },
+      ],
+      success: { description: 'x', checkpoint: { kind: 'textPresent', pattern: 'x' } },
+      policy: { allowedUrlPatterns: ['^x'], allowedActions: ['fill'], maxRisk: 'reversible' },
+      provenance: { recordedAt: 'now', recordedBy: 't', discoveryRunId: 'd', model: 'm', modelTurns: 1, transcriptDigest: 'sha256:x', redactionApplied: true, toolVersion: 't' },
+    }) as Capability;
+
+    expect(requiredSecretNames(cap)).toEqual(['coreOperatorPassword', 'coreOperatorUser']);
   });
 });

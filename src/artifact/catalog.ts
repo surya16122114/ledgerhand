@@ -22,6 +22,7 @@
  *    similar things should be able to prefer the one that actually works.
  */
 
+import { requiredSecretNames } from './schema.js';
 import type { Capability, InputParam, OutputField } from './index-types.js';
 import { listCapabilities, loadCapabilityFile, type CapabilityIndexEntry } from './store.js';
 
@@ -123,13 +124,7 @@ export function toToolDefinition(cap: Capability): CapabilityToolDefinition {
       successRate: stability.runs > 0 ? Number((stability.successes / stability.runs).toFixed(3)) : null,
       fallbackHits: stability.fallbackHits,
     },
-    requiredSecrets: [
-      ...new Set(
-        cap.steps
-          .map((s) => ('value' in s.action && s.action.value.from === 'secret' ? s.action.value.name : undefined))
-          .filter((n): n is string => Boolean(n)),
-      ),
-    ],
+    requiredSecrets: requiredSecretNames(cap),
   };
 }
 

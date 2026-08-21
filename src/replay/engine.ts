@@ -44,7 +44,7 @@ import type {
 } from '../artifact/index-types.js';
 import { capabilityDigest } from '../artifact/store.js';
 import { effectiveCapability } from '../artifact/overlay.js';
-import { toSurfaceAction } from '../artifact/schema.js';
+import { requiredSecretNames, toSurfaceAction } from '../artifact/schema.js';
 import { describeTarget } from '../surface/matching.js';
 import type { ActionResult, RiskClass, Surface, TargetDescriptor } from '../surface/types.js';
 import { PlaywrightWebSurface } from '../surface/web/playwright-surface.js';
@@ -184,6 +184,23 @@ export async function replay(
     }
   } catch (err) {
     return await earlyFailure('TENANT_NOT_SUPPORTED', message(err));
+  }
+
+  // Credentials are checked before the browser launches, alongside the inputs.
+  //
+  // Found by cloning the repo fresh and running the documented replay without a .env:
+  // the run launched a browser, signed on halfway, failed at the first secret-backed
+  // fill, classified it as INTERNAL (the catch-all my own taxonomy calls a bug), then
+  // escalated and sat for fifteen minutes waiting for an operator who could not
+  // possibly have fixed it. A missing environment variable should cost a millisecond
+  // and name the variable.
+  const missingSecrets = requiredSecretNames(capability).filter((name) => !vault.has(name));
+  if (missingSecrets.length) {
+    return await earlyFailure(
+      'MISSING_CREDENTIAL',
+      `capability '${capability.id}' needs credential(s) that are not configured: ${missingSecrets.join(', ')}.\n` +
+        missingSecrets.map((n) => `  - set LEDGERHAND_SECRET_${screamingSnake(n)} (or see .env.example)`).join('\n'),
+    );
   }
 
   const validated = validateInputs(capability, providedInputs);
@@ -559,7 +576,10 @@ export async function replay(
         try {
           result = await performStep(step);
         } catch (err) {
-          const claimed = await claimFailure(step, index, trace, { code: 'INTERNAL', message: message(err) });
+          // Pre-flight should have caught a missing credential; if one still surfaces
+          // here, name it for what it is rather than filing it under INTERNAL.
+          const code: ReplayFailureCode = /secret '.*' is not available/.test(message(err)) ? 'MISSING_CREDENTIAL' : 'INTERNAL';
+          const claimed = await claimFailure(step, index, trace, { code, message: message(err) });
           if (claimed) return claimed.outcome;
           continue;
         }
@@ -728,6 +748,14 @@ export async function replay(
           return undefined;
         }
         return { outcome: handled };
+      }
+
+      // Configuration errors are never offered to a human. Handing an operator the
+      // live session so they can fix a missing environment variable wastes their time
+      // and, with no operator present, converts a one-line error into a fifteen-minute
+      // hang.
+      if (NOT_ESCALATABLE.includes(failure.code)) {
+        return { outcome: { kind: 'fail', failure: await hardFailure(step, index, failure) } };
       }
 
       // Nothing claimed it. Rather than fail immediately, offer it to a human --
@@ -1174,6 +1202,16 @@ function materialiseCapability(cap: Capability, inputs: Record<string, InputValu
  */
 function renderIntent(intent: string, inputs: Record<string, InputValue>): string {
   return intent.replace(/\{\{\s*input\.([a-zA-Z0-9_]+)\s*\}\}/g, (m, name: string) => String(inputs[name] ?? m));
+}
+
+/**
+ * Failures a human taking over the session cannot possibly resolve. These stop the run
+ * with a clear error instead of raising an intervention.
+ */
+const NOT_ESCALATABLE: ReplayFailureCode[] = ['MISSING_CREDENTIAL', 'INVALID_INPUT', 'NOT_APPROVED', 'TENANT_NOT_SUPPORTED'];
+
+function screamingSnake(s: string): string {
+  return s.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toUpperCase();
 }
 
 function lowerOf(a: RiskClass, b: RiskClass): RiskClass {

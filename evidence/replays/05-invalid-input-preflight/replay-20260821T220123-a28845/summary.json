@@ -1,0 +1,17 @@
+{
+  "runId": "replay-20260821T220123-a28845",
+  "kind": "replay",
+  "eventCounts": {
+    "replay.rejected": 1,
+    "run.end": 1,
+    "run.start": 1
+  },
+  "rejected": {
+    "code": "INVALID_INPUT",
+    "message": "inputs do not satisfy the capability contract:\n  - input 'memberId' does not match the required format /^\\d{1,10}$/"
+  },
+  "capability": {
+    "id": "member.read-savings-balance",
+    "version": "1.0.0"
+  }
+}

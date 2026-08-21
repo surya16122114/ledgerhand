@@ -62,7 +62,7 @@ artifact or a log — see [REPORT.md §6](REPORT.md#6-safety).
 Everything else works with no keys and no live services:
 
 ```bash
-npm test          # 169 unit tests, no browser, no network
+npm test          # 170 unit tests, no browser, no network, no key
 npm run typecheck
 ```
 

@@ -1,3 +1,0 @@
-{"seq":1,"at":"2026-08-21T20:01:19.568Z","runId":"replay-20260821T200119-4924fd","type":"run.start","kind":"replay"}
-{"seq":2,"at":"2026-08-21T20:01:19.569Z","runId":"replay-20260821T200119-4924fd","type":"replay.rejected","code":"INVALID_INPUT","message":"inputs do not satisfy the capability contract:\n  - input 'memberId' does not match the required format /^\\d{1,10}$/"}
-{"seq":3,"at":"2026-08-21T20:01:19.569Z","runId":"replay-20260821T200119-4924fd","type":"run.end"}

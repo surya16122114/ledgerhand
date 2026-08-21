@@ -11,7 +11,7 @@
   },
   "matchedExpectation": true,
   "result": {
-    "runId": "replay-20260821T200119-4924fd",
+    "runId": "replay-20260821T220123-a28845",
     "capability": {
       "id": "member.read-savings-balance",
       "version": "1.0.0",
@@ -19,14 +19,14 @@
       "lifecycleState": "draft"
     },
     "tenantId": "meridian-cu",
-    "startedAt": "2026-08-21T20:01:19.568Z",
-    "finishedAt": "2026-08-21T20:01:19.569Z",
-    "durationMs": 1,
+    "startedAt": "2026-08-21T22:01:23.144Z",
+    "finishedAt": "2026-08-21T22:01:23.146Z",
+    "durationMs": 2,
     "steps": [],
     "recoveries": [],
     "drift": [],
     "interventions": [],
-    "evidenceDir": "evidence/replays/05-invalid-input-preflight/replay-20260821T200119-4924fd",
+    "evidenceDir": "evidence/replays/05-invalid-input-preflight/replay-20260821T220123-a28845",
     "warnings": [],
     "status": "failed",
     "failure": {

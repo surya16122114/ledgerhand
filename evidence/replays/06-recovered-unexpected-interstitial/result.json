@@ -14,7 +14,7 @@
   },
   "matchedExpectation": true,
   "result": {
-    "runId": "replay-20260821T200119-1b406c",
+    "runId": "replay-20260821T220123-3e0dd9",
     "capability": {
       "id": "member.read-savings-balance",
       "version": "1.0.0",
@@ -22,9 +22,9 @@
       "lifecycleState": "draft"
     },
     "tenantId": "meridian-cu",
-    "startedAt": "2026-08-21T20:01:19.581Z",
-    "finishedAt": "2026-08-21T20:01:55.897Z",
-    "durationMs": 36316,
+    "startedAt": "2026-08-21T22:01:23.157Z",
+    "finishedAt": "2026-08-21T22:01:59.566Z",
+    "durationMs": 36409,
     "steps": [
       {
         "index": 0,
@@ -34,7 +34,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 971,
+        "durationMs": 966,
         "checkpoint": {
           "satisfied": true,
           "observed": "all 2 sub-conditions held"
@@ -48,7 +48,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 982,
+        "durationMs": 987,
         "target": "textbox \"User ID\" in OPERATOR SIGN ON (textbox labelled \"User ID\")",
         "strategy": {
           "kind": "labelled-field",
@@ -63,7 +63,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1006,
+        "durationMs": 1001,
         "target": "password \"Password\" in OPERATOR SIGN ON (password labelled \"Password\")",
         "strategy": {
           "kind": "labelled-field",
@@ -78,7 +78,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1339,
+        "durationMs": 1341,
         "target": "button \"Sign On\" in OPERATOR SIGN ON (button \"Sign On\")",
         "strategy": {
           "kind": "role-name",
@@ -97,7 +97,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1737,
+        "durationMs": 1742,
         "target": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console (link \"Member Servicing\" @navFrame)",
         "strategy": {
           "kind": "role-name",
@@ -116,7 +116,7 @@
         "risk": "reversible",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1346,
+        "durationMs": 1358,
         "target": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY (textbox labelled \"Member ID\" @bodyFrame)",
         "strategy": {
           "kind": "labelled-field",
@@ -131,7 +131,7 @@
         "risk": "safe",
         "status": "satisfied-externally",
         "attempts": 3,
-        "durationMs": 27237,
+        "durationMs": 27261,
         "target": "button \"Search\" in MEMBER SERVICING – INQUIRY (button \"Search\" @bodyFrame)",
         "strategy": {
           "kind": "role-name",
@@ -150,7 +150,7 @@
         "risk": "safe",
         "status": "ok",
         "attempts": 1,
-        "durationMs": 1381,
+        "durationMs": 1386,
         "target": "cell \"Current Balance\" in SHARE / DEPOSIT ACCOUNTS (cell [12345-00 / Current Balance] @bodyFrame)",
         "strategy": {
           "kind": "table-cell",
@@ -160,7 +160,7 @@
     ],
     "recoveries": [
       {
-        "at": "2026-08-21T20:01:39.126Z",
+        "at": "2026-08-21T22:01:42.784Z",
         "stepId": "07-click-search",
         "handler": "transient-slow-load",
         "action": "retryStep",
@@ -168,7 +168,7 @@
         "detail": "backing off 3000ms (attempt 1/1)"
       },
       {
-        "at": "2026-08-21T20:01:54.170Z",
+        "at": "2026-08-21T22:01:57.826Z",
         "stepId": "07-click-search",
         "handler": "system-notice-interstitial",
         "action": "dismiss",
@@ -178,7 +178,7 @@
     ],
     "drift": [],
     "interventions": [],
-    "evidenceDir": "evidence/replays/06-recovered-unexpected-interstitial/replay-20260821T200119-1b406c",
+    "evidenceDir": "evidence/replays/06-recovered-unexpected-interstitial/replay-20260821T220123-3e0dd9",
     "warnings": [],
     "status": "success",
     "outputs": {

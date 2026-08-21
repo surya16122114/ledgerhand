@@ -82,6 +82,13 @@ export interface DriftSignal {
 export type ReplayFailureCode =
   /** Inputs did not satisfy the declared contract. Detected before the browser starts. */
   | 'INVALID_INPUT'
+  /**
+   * A credential the capability declares is not in the vault. A configuration error,
+   * not a runtime condition -- and emphatically not something to escalate, because no
+   * amount of taking over the live session lets an operator supply a missing
+   * environment variable. Detected before the browser starts.
+   */
+  | 'MISSING_CREDENTIAL'
   /** Unattended replay of a capability that is not approved. */
   | 'NOT_APPROVED'
   /** No overlay for the requested tenant and adaptation was not waived. */

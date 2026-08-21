@@ -599,6 +599,24 @@ export function riskRank(r: RiskClass): number {
   return r === 'safe' ? 0 : r === 'reversible' ? 1 : 2;
 }
 
+/**
+ * The vault credentials a capability needs in order to run.
+ *
+ * One definition, used by the replay engine's pre-flight check and by the catalog's
+ * `requiredSecrets`. Previously the catalog derived this inline and the engine did not
+ * derive it at all, which is how a missing credential came to be discovered halfway
+ * through a run instead of before it started.
+ */
+export function requiredSecretNames(cap: Capability): string[] {
+  return [
+    ...new Set(
+      cap.steps
+        .map((s) => ('value' in s.action && s.action.value.from === 'secret' ? s.action.value.name : undefined))
+        .filter((n): n is string => Boolean(n)),
+    ),
+  ].sort();
+}
+
 /** Narrowing helper used by the replay engine and the policy gate. */
 export function stepTarget(action: StepAction): TargetDescriptor | undefined {
   return 'target' in action ? action.target : undefined;

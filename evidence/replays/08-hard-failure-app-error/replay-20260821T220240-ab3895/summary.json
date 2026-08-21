@@ -1,0 +1,157 @@
+{
+  "runId": "replay-20260821T220240-ab3895",
+  "kind": "replay",
+  "eventCounts": {
+    "evidence.captured": 1,
+    "handler.matched": 2,
+    "handler.retry": 1,
+    "policy": 8,
+    "policy.ceiling": 1,
+    "replay.entry": 1,
+    "replay.hardFailure": 1,
+    "replay.start": 1,
+    "run.end": 1,
+    "run.start": 1,
+    "step.end": 7,
+    "step.failed": 2,
+    "step.start": 7,
+    "step.value": 3
+  },
+  "steps": [
+    {
+      "index": 0,
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "action": "navigate",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 961,
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 1,
+      "id": "02-fill-user-id",
+      "intent": "Enter the operator user ID to begin sign on.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 985,
+      "target": "textbox \"User ID\" in OPERATOR SIGN ON (textbox labelled \"User ID\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 2,
+      "id": "03-fill-password",
+      "intent": "Enter the operator password to complete sign on.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1002,
+      "target": "password \"Password\" in OPERATOR SIGN ON (password labelled \"Password\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 3,
+      "id": "04-click-sign-on",
+      "intent": "Click the Sign On button to submit operator credentials and sign in to the servicing console.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1338,
+      "target": "button \"Sign On\" in OPERATOR SIGN ON (button \"Sign On\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 4,
+      "id": "05-click-member-servicing",
+      "intent": "Click the Member Servicing menu to begin looking up a member profile.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1756,
+      "target": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console (link \"Member Servicing\" @navFrame)",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 5,
+      "id": "06-fill-member-id",
+      "intent": "Enter the member ID to search for member {{input.memberId}}'s profile.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1355,
+      "target": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY (textbox labelled \"Member ID\" @bodyFrame)",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 6,
+      "id": "07-click-search",
+      "intent": "Click the Search button to look up member {{input.memberId}}'s profile.",
+      "action": "click",
+      "risk": "safe",
+      "status": "failed",
+      "attempts": 2,
+      "durationMs": 26105,
+      "target": "button \"Search\" in MEMBER SERVICING – INQUIRY (button \"Search\" @bodyFrame)",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": false,
+        "observed": "sub-condition 1 failed: /SHARE / DEPOSIT ACCOUNTS/ not found in 582 chars of visible text"
+      },
+      "error": {
+        "code": "DECLARED_FAILURE",
+        "message": "the application returned an unhandled exception page",
+        "observed": "matched \"UNHANDLED EXCEPTION\""
+      }
+    }
+  ],
+  "recoveries": [
+    {
+      "at": "2026-08-21T22:02:59.981Z",
+      "stepId": "07-click-search",
+      "handler": "transient-slow-load",
+      "action": "retryStep",
+      "attempt": 1,
+      "detail": "backing off 3000ms (attempt 1/1)"
+    }
+  ],
+  "drift": [],
+  "interventions": [],
+  "warnings": [],
+  "outputKeys": []
+}
