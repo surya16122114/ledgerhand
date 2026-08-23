@@ -20,7 +20,7 @@ let surface: PlaywrightWebSurface;
 const target = (description: string, strategies: TargetStrategy[], framePath?: string[]): TargetDescriptor =>
   framePath ? { description, strategies, framePath } : { description, strategies };
 
-const byLabel = (label: string, role: 'textbox' | 'password' = 'textbox'): TargetStrategy => ({
+const byLabel = (label: string, role: 'textbox' | 'password' | 'combobox' = 'textbox'): TargetStrategy => ({
   kind: 'labelled-field',
   label,
   labelMatch: 'normalized',
@@ -205,5 +205,61 @@ describe('frameset perception', () => {
     );
     expect(inNav.ok).toBe(true);
     if (inNav.ok) expect(inNav.control.container.framePath).toEqual(['navFrame']);
+  });
+});
+
+describe('action kinds no committed capability happens to use', () => {
+  // These are implemented in the driver and reachable from a hand-authored artifact,
+  // but the three discovered capabilities never needed them -- so until now they were
+  // code paths nobody had run. Untested surface on a system that drives banking screens
+  // is the same liability as declared-but-unenforced config, so they are pinned here.
+  beforeAll(async () => {
+    await gotoBody('/subaccount-new.aspx?mid=12345');
+  });
+
+  it('selects a dropdown option by its underlying value', async () => {
+    const result = await surface.perform({
+      kind: 'select',
+      target: target('Product Type', [byLabel('Product Type', 'combobox')], ['bodyFrame']),
+      value: 'HOLIDAY',
+    });
+    expect(result.ok).toBe(true);
+    const obs = await surface.observe();
+    expect(obs.controls.find((c) => c.role === 'combobox')?.value).toBe('HOLIDAY');
+  });
+
+  it('falls back to selecting by visible label when the value does not match', async () => {
+    // Tenants relabel options while keeping the underlying codes, so the code is tried
+    // first and the label second.
+    const result = await surface.perform({
+      kind: 'select',
+      target: target('Product Type', [byLabel('Product Type', 'combobox')], ['bodyFrame']),
+      value: 'Vacation Club',
+    });
+    expect(result.ok).toBe(true);
+    const obs = await surface.observe();
+    expect(obs.controls.find((c) => c.role === 'combobox')?.value).toBe('VACATION');
+  });
+
+  it('assert holds and fails without waiting', async () => {
+    expect((await surface.perform({ kind: 'assert', condition: { kind: 'textPresent', pattern: 'OPEN SUB-ACCOUNT' } })).ok).toBe(true);
+    const bad = await surface.perform({ kind: 'assert', condition: { kind: 'textPresent', pattern: 'NOT ON THIS SCREEN' } });
+    expect(bad.ok).toBe(false);
+    expect(bad.error?.code).toBe('CONDITION_TIMEOUT');
+  });
+
+  it('waitFor polls and reports what it saw on timeout', async () => {
+    expect((await surface.perform({ kind: 'waitFor', condition: { kind: 'textPresent', pattern: 'Minimum opening deposit' }, timeoutMs: 3000 })).ok).toBe(true);
+    const bad = await surface.perform({ kind: 'waitFor', condition: { kind: 'textPresent', pattern: 'NEVER APPEARS' }, timeoutMs: 1200 });
+    expect(bad.ok).toBe(false);
+    expect(bad.error?.observed).toContain('NEVER APPEARS');
+  });
+
+  it('press Enter submits the focused form -- which is why risk treats it as irreversible', async () => {
+    await surface.perform({ kind: 'fill', target: target('Description', [byLabel('Description')], ['bodyFrame']), value: 'Press Test' });
+    await surface.perform({ kind: 'fill', target: target('Initial Deposit', [byLabel('Initial Deposit')], ['bodyFrame']), value: '55' });
+    expect((await surface.perform({ kind: 'press', key: 'Enter' })).ok).toBe(true);
+    const obs = await surface.observe();
+    expect(obs.text).toContain('SUB-ACCOUNT OPENED');
   });
 });

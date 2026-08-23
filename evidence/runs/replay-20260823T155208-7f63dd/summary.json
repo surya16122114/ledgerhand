@@ -1,0 +1,17 @@
+{
+  "runId": "replay-20260823T155208-7f63dd",
+  "kind": "replay",
+  "eventCounts": {
+    "replay.rejected": 1,
+    "run.end": 1,
+    "run.start": 1
+  },
+  "rejected": {
+    "code": "TENANT_NOT_SUPPORTED",
+    "message": "capability 'member.open-sub-account' was recorded against tenant 'meridian-cu' and has no overlay for 'riverstone-fcu'; pass --allow-unadapted to run it anyway"
+  },
+  "capability": {
+    "id": "member.open-sub-account",
+    "version": "1.0.0"
+  }
+}

@@ -1,0 +1,3 @@
+{"seq":1,"at":"2026-08-23T15:52:08.249Z","runId":"replay-20260823T155208-7f63dd","type":"run.start","kind":"replay"}
+{"seq":2,"at":"2026-08-23T15:52:08.249Z","runId":"replay-20260823T155208-7f63dd","type":"replay.rejected","code":"TENANT_NOT_SUPPORTED","message":"capability 'member.open-sub-account' was recorded against tenant 'meridian-cu' and has no overlay for 'riverstone-fcu'; pass --allow-unadapted to run it anyway"}
+{"seq":3,"at":"2026-08-23T15:52:08.249Z","runId":"replay-20260823T155208-7f63dd","type":"run.end"}
