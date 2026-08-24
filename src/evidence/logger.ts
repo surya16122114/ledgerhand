@@ -17,7 +17,7 @@
  *    debuggable without reproducing it. Capturing them on every step would be
  *    both slow and a pile of regulated data at rest.
  *
- *  - **Writes are serialised through a promise chain.** Interleaved appends from
+ *  - **Writes are serialized through a promise chain.** Interleaved appends from
  *    concurrent awaits would corrupt the ordering that makes the stream readable.
  */
 

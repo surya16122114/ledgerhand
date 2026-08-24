@@ -4,7 +4,7 @@
  *
  * The fault is armed on the target app's side channel, not via a query string on
  * the app's own URLs, so the capability being replayed is byte-identical to the
- * happy-path run. Only the application's behaviour differs. See
+ * happy-path run. Only the application's behavior differs. See
  * target-app/faults.ts.
  *
  *   npx tsx scripts/fault-replay.ts <fault-kind> <pathContains> [memberId] [delayMs] [method] [capability]

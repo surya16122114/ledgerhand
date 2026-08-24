@@ -62,7 +62,7 @@ replay options
   --tenant <tenantId>       selects the overlay; default = the recorded tenant
   --allow-unadapted         run against a tenant with no overlay anyway
   --unattended              refuse drafts, require --authorize for irreversible steps
-  --authorize "<reason>"    pre-authorise this run's irreversible steps
+  --authorize "<reason>"    pre-authorize this run's irreversible steps
   --times <n>               replay n times and report a stability signal
 
 common options

@@ -6,7 +6,7 @@
  * recorded capability's navigation steps, so the artifact would encode "the run
  * where we broke the app on purpose." Arming faults on a side channel keeps the
  * artifact honest -- the replay under test is byte-identical to the happy-path
- * replay, and only the app's behaviour differs.
+ * replay, and only the app's behavior differs.
  */
 
 export type FaultKind =

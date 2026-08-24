@@ -7,7 +7,7 @@
  * and the recorder can all be exercised in CI with no API key and no network.
  *
  * It is not a mock of the model's *reasoning* -- it is the real reasoning from a
- * real run, decoupled from the API call. If the loop's behaviour changes such
+ * real run, decoupled from the API call. If the loop's behavior changes such
  * that it would no longer send the same tool call, the transcript stops lining up
  * and the test fails, which is exactly the signal wanted.
  */

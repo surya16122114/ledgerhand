@@ -73,7 +73,7 @@ function candidatesFor(controls: PerceivedControl[], strategy: TargetStrategy): 
 
     case 'labelled-field': {
       // Matches on the field's *effective* label regardless of whether that
-      // label was authored (`<label for>`) or synthesised from an adjacent cell.
+      // label was authored (`<label for>`) or synthesized from an adjacent cell.
       // That is deliberate: it means a capability recorded against the legacy
       // build keeps working if a tenant upgrades to a build that finally wires
       // up its labels properly.

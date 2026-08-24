@@ -16,7 +16,7 @@
  *     recording.
  *
  *  3. **Recording.** Every action that succeeds is appended with the before/after
- *     state needed to synthesise a checkpoint later. The recording is a
+ *     state needed to synthesize a checkpoint later. The recording is a
  *     consequence of the run rather than something the model is asked to produce,
  *     which is why a run cannot end with a plausible-looking artifact that does
  *     not match what happened.
@@ -220,7 +220,7 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
       pruneObservations();
 
       const response = await opts.provider.complete({ system, messages, tools, temperature: 0 });
-      // Tool calls are parameterised on the way into the transcript, not redacted.
+      // Tool calls are parameterized on the way into the transcript, not redacted.
       //
       // Both keep member data out of a committed file, but they are not equivalent:
       // a redacted transcript is unreplayable, because replaying it types the literal
@@ -343,16 +343,16 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
 
       if (!result.ok && result.error?.code === 'POLICY_AUTHORIZATION_REQUIRED') {
         const reason = `the agent wants to ${built.intent}, which is classified irreversible: ${result.error.observed ?? ''}`;
-        const decided = await raiseIntervention('authorization-required', `Authorise: ${truncate(built.intent, 60)}`, reason);
+        const decided = await raiseIntervention('authorization-required', `Authorize: ${truncate(built.intent, 60)}`, reason);
         humanInterventions++;
         if (decided.decision === 'abort') {
           return { status: 'escalated', runId, evidenceDir, reason, interventionId: decided.id, decision: decided.decision, turns };
         }
         if (decided.decision === 'authorize-and-resume') {
-          gate.authorizeNextIrreversible(decided.by, decided.note ?? 'authorised at the operator console');
+          gate.authorizeNextIrreversible(decided.by, decided.note ?? 'authorized at the operator console');
           result = await surface.perform(surfaceAction);
           if (!result.ok) {
-            reply(`Even after authorisation the action failed: ${result.error?.message}. Try something else.`);
+            reply(`Even after authorization the action failed: ${result.error?.message}. Try something else.`);
             observation = await surface.observe();
             pushObservation(observation);
             continue;

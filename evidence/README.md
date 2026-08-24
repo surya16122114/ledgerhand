@@ -33,7 +33,7 @@ Three capabilities, all discovered by `openai:gpt-4.1` driving the live applicat
 | capability | turns | note |
 |---|---|---|
 | `member.read-savings-balance` | 9 | read-only; from a goal preset |
-| `member.open-sub-account` | 13 | contains an irreversible write; **escalated to a human for authorisation** |
+| `member.open-sub-account` | 13 | contains an irreversible write; **escalated to a human for authorization** |
 | `member.read-profile-summary` | 11 | from a **free-form `--goal`**, not a preset |
 
 Two things in these logs are worth opening:
@@ -49,7 +49,7 @@ the model corrected to `MEMBER PROFILE`. The next line is
 **The irreversible step stopped the run.** In the `open-sub-account` log, search
 `escalation.raised`. The policy gate classified `Submit Request` as irreversible and
 refused it; the intervention was raised, the control lease was ceded to the operator,
-a human authorised it, and the run resumed. `interventions.json` in that directory
+a human authorized it, and the run resumed. `interventions.json` in that directory
 has the full record including the lease transitions.
 
 ## Replays
@@ -65,12 +65,12 @@ the result contract deliberately:
   important one. Ground truth: the stalled POST *had* landed, and exactly one
   sub-account exists where an automatic retry would have created two.
 - **pre-flight rejection** — a malformed member id, refused before a browser launches
-- **policy** — an irreversible step refused without authorisation, then completed with it
+- **policy** — an irreversible step refused without authorization, then completed with it
 - **cross-tenant** — the Meridian recording replayed against Riverstone
 
 Faults are armed on the target app's side channel (`POST /__fault/arm`), never via
 query strings on the app's own URLs. That matters: the capability under test is
-byte-identical to the happy-path run, and only the application's behaviour differs.
+byte-identical to the happy-path run, and only the application's behavior differs.
 
 Regenerate all of it (discovery excluded, since it costs a real model call and the
 committed runs are meant to stay as they happened):
@@ -90,11 +90,11 @@ Being precise about what that stands in for: the console server, the interventio
 broker, the control lease, the CDP screencast and the intervention record are all
 the real ones, and the two HTTP calls the script makes are exactly the two the
 console's own "Claim & take control" and "Abort run" buttons issue. What is
-substituted is the **human's judgement**, not the mechanism.
+substituted is the **human's judgment**, not the mechanism.
 
 The handoff was also exercised by hand through the browser, which is how the
 remote-input path was verified end to end: an operator clicked into the live view,
-typed into the Description field, and authorised the submit — after which the
+typed into the Description field, and authorized the submit — after which the
 application stored `HOLIDAY CLUBVACATION CLUB`, the operator's text, proving the
 keystrokes reached the same live session the automation had been driving. That is
 described in `REPORT.md §5`; the run itself is not committed here because it was
@@ -113,14 +113,14 @@ runnable with no API key.
 
 You can see the limitation the digest design exists for. The rejected success phrase
 in `member.read-savings-balance`'s transcript contains a member *name* the model read
-off the profile screen. Declared inputs are parameterised out and identifier shapes
+off the profile screen. Declared inputs are parameterized out and identifier shapes
 are scrubbed, but a name is neither — no regex fixes that, which is exactly why a
 real deployment keeps the transcript in access-controlled storage and ships only the
 digest.
 
 ## Driving the loop with no API key
 
-Tool calls in a transcript are stored **parameterised**, not redacted:
+Tool calls in a transcript are stored **parameterized**, not redacted:
 
 ```json
 { "name": "fill_field", "args": { "ref": "bodyFrame|13:0", "value": "{{input.memberId}}" } }

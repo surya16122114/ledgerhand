@@ -165,7 +165,7 @@ describe('materialiseTarget', () => {
   };
 
   it('substitutes an input into a table row key', () => {
-    // Without this the capability is parameterised in name only: the row key still
+    // Without this the capability is parameterized in name only: the row key still
     // names the member used at record time.
     const out = materialiseTarget(target, { memberId: '20881' });
     expect(out.strategies[0]).toMatchObject({ rowKey: '20881-00' });

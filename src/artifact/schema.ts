@@ -416,7 +416,7 @@ export const capabilityPolicySchema = z.object({
   maxRisk: riskClassSchema,
   /**
    * When true, an unattended replay refuses to run irreversible steps unless the
-   * caller passes an explicit authorisation. See replay/engine.ts.
+   * caller passes an explicit authorization. See replay/engine.ts.
    */
   requiresApprovalForIrreversible: z.boolean().default(true),
 });
@@ -587,7 +587,7 @@ export const capabilitySchema = z
 
     // Note on what is deliberately NOT checked here: whether a capability that
     // required human intervention during discovery should be allowed to reach the
-    // 'approved' state. That is a review judgement, and encoding it as a schema
+    // 'approved' state. That is a review judgment, and encoding it as a schema
     // error would make such an artifact unparseable -- so it could never be
     // approved at all, no matter what a reviewer decided. It belongs in the linter,
     // which advises, not in validation, which refuses. See lintCapability.

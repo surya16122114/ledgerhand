@@ -322,7 +322,7 @@ async function dispatch(cdp: CDPSession, msg: Record<string, unknown>): Promise<
       // the focused node lives in a child document, so it inserts nothing. A bare
       // `char` event is not reliable either. What does work is the full
       // keyDown/keyUp pair with `text` set and a virtual key code -- the same
-      // sequence Playwright synthesises for `keyboard.type` -- because that is what
+      // sequence Playwright synthesizes for `keyboard.type` -- because that is what
       // the renderer's input pipeline expects before it will route a key to the
       // focused element in a subframe.
       //

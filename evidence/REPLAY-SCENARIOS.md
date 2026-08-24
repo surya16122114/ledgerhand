@@ -14,7 +14,7 @@ expected `success`, got `success` -- match
 
 ### 02-success-different-member -- Success on a member with a different account mix
 
-Proves the capability is genuinely parameterised rather than parameterised in name only. The savings row is addressed as {{input.memberId}}-00, so it resolves via the primary strategy with no drift.
+Proves the capability is genuinely parameterized rather than parameterized in name only. The savings row is addressed as {{input.memberId}}-00, so it resolves via the primary strategy with no drift.
 
 ```
 SUCCESS  member.read-savings-balance@1.0.0  outputs={"savingsBalance":312.05}  10805ms
@@ -111,9 +111,9 @@ recoveries:
 
 expected `success`, got `success` -- match
 
-### 10-irreversible-blocked-unauthorised -- An irreversible step with no authorisation is refused
+### 10-irreversible-blocked-unauthorised -- An irreversible step with no authorization is refused
 
-The run is approved and unattended but carries no authorisation, so the risk ceiling is held below the capability's declared maximum and the submit is refused. With no operator available the escalation times out, which is reported as an abort -- nobody said it was safe.
+The run is approved and unattended but carries no authorization, so the risk ceiling is held below the capability's declared maximum and the submit is refused. With no operator available the escalation times out, which is reported as an abort -- nobody said it was safe.
 
 ```
 ESCALATED human-decision -> abort  at step 11-click-submit-request
@@ -121,7 +121,7 @@ ESCALATED human-decision -> abort  at step 11-click-submit-request
 
 expected `escalated`, got `escalated` -- match
 
-### 11-irreversible-authorised -- The same step, with the run authorised
+### 11-irreversible-authorized -- The same step, with the run authorized
 
 Completes the write and returns the new account number and confirmation reference, both read by their on-screen labels.
 

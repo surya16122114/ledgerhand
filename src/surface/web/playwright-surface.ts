@@ -582,7 +582,7 @@ function hydrate(rc: RawControl, framePath: string[]): PerceivedControl {
 
 /**
  * The build step (esbuild, via tsx) rewrites named inner functions as
- * `__name(fn, "fn")` to preserve `Function.prototype.name`. When we serialise
+ * `__name(fn, "fn")` to preserve `Function.prototype.name`. When we serialize
  * `perceiveInPage` into the page, those `__name` calls come along and there is
  * no such helper in page scope, so perception throws before it reads anything.
  *

@@ -97,7 +97,7 @@ export function renderObservation(input: {
   lines.push('', 'Controls:');
 
   // Grouped by frame then section, because that is how the screen is actually
-  // organised and an ungrouped list of forty controls is hard for anyone to read.
+  // organized and an ungrouped list of forty controls is hard for anyone to read.
   const groups = new Map<string, typeof input.controls>();
   for (const c of input.controls) {
     if (c.role === 'heading') continue;

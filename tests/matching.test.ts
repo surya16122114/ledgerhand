@@ -19,7 +19,7 @@ describe('normalizeText', () => {
 describe('matchTarget', () => {
   const controls = [memberIdField, searchButton, savingsBalanceCell, checkingBalanceCell, navHomeLink, bodyHomeLink];
 
-  it('resolves a legacy form field by its synthesised adjacent-cell label', () => {
+  it('resolves a legacy form field by its synthesized adjacent-cell label', () => {
     const res = matchTarget(controls, {
       description: 'member id field',
       strategies: [{ kind: 'labelled-field', label: 'Member ID', labelMatch: 'normalized', role: 'textbox' }],

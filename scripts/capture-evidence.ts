@@ -49,7 +49,7 @@ const SCENARIOS: Scenario[] = [
     slug: '02-success-different-member',
     title: 'Success on a member with a different account mix',
     why:
-      'Proves the capability is genuinely parameterised rather than parameterised in name only. ' +
+      'Proves the capability is genuinely parameterized rather than parameterized in name only. ' +
       'The savings row is addressed as {{input.memberId}}-00, so it resolves via the primary strategy with no drift.',
     capability: 'member.read-savings-balance',
     inputs: { memberId: '20881' },
@@ -124,9 +124,9 @@ const SCENARIOS: Scenario[] = [
   },
   {
     slug: '10-irreversible-blocked-unauthorised',
-    title: 'An irreversible step with no authorisation is refused',
+    title: 'An irreversible step with no authorization is refused',
     why:
-      'The run is approved and unattended but carries no authorisation, so the risk ceiling is held below the ' +
+      'The run is approved and unattended but carries no authorization, so the risk ceiling is held below the ' +
       "capability's declared maximum and the submit is refused. With no operator available the escalation times out, " +
       'which is reported as an abort -- nobody said it was safe.',
     capability: 'member.open-sub-account',
@@ -135,8 +135,8 @@ const SCENARIOS: Scenario[] = [
     expect: 'escalated',
   },
   {
-    slug: '11-irreversible-authorised',
-    title: 'The same step, with the run authorised',
+    slug: '11-irreversible-authorized',
+    title: 'The same step, with the run authorized',
     why: 'Completes the write and returns the new account number and confirmation reference, both read by their on-screen labels.',
     capability: 'member.open-sub-account',
     inputs: { memberId: '12345', description: 'Holiday Club', initialDeposit: 250 },

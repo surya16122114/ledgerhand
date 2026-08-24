@@ -54,8 +54,8 @@ tree.
 
 | action | UIA | AX |
 |---|---|---|
-| `click` | `InvokePattern`, else `LegacyIAccessible.DoDefaultAction`, else synthesised click at the bounding rect centre | `AXPress` |
-| `fill` | `ValuePattern.SetValue`, else focus + synthesised keystrokes | `AXValue` set, else keystrokes |
+| `click` | `InvokePattern`, else `LegacyIAccessible.DoDefaultAction`, else synthesized click at the bounding rect centre | `AXPress` |
+| `fill` | `ValuePattern.SetValue`, else focus + synthesized keystrokes | `AXValue` set, else keystrokes |
 | `select` | `SelectionItemPattern.Select` | `AXValue` on the popup |
 | `readText` | `Name` / `ValuePattern.Value` / `TextPattern` | `AXValue` / `AXTitle` |
 | `navigate` | not meaningful; a desktop capability's `entryUrl` becomes a launch command | same |

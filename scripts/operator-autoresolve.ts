@@ -5,11 +5,17 @@
  * at the browser. This is not a mock of the escalation mechanism: the broker, the
  * control lease, the intervention record and the console server are all the real
  * ones, and these are the exact two requests the "Claim & take control" and
- * "Authorize & resume" buttons issue. What is stood in for is the human's judgement,
+ * "Authorize & resume" buttons issue. What is stood in for is the human's judgment,
  * which is stated plainly in evidence/README.md rather than implied.
  *
  *   npx tsx scripts/operator-autoresolve.ts <decision> [note]
  */
+
+// This file has no imports, which under ESM means TypeScript does not treat it as a
+// module -- and top-level `await` is only legal in a module. It runs correctly under
+// tsx either way, which is exactly why the error went unnoticed: `scripts/` was missing
+// from tsconfig's `include`, so nothing ever typechecked it.
+export {};
 
 const [decision = 'authorize-and-resume', note = 'reviewed at the console; opening a sub-account is expected for this task'] = process.argv.slice(2);
 const base = `http://127.0.0.1:${process.env.OPERATOR_PORT ?? 4180}`;

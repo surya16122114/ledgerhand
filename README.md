@@ -130,7 +130,7 @@ all** in the markup. Perception recovered their labels from the adjacent table c
 # a legitimate business outcome, not an error
 npm run replay -- member.read-savings-balance --input memberId=99999
 
-# a different member — proves the capability is really parameterised
+# a different member — proves the capability is really parameterized
 npm run replay -- member.read-savings-balance --input memberId=20881
 
 # rejected before a browser is even launched
@@ -180,7 +180,7 @@ npm run cli -- approve member.open-sub-account --by "Your Name <you@example.test
 npm run replay -- member.open-sub-account --unattended \
   --input memberId=12345 --input description="Holiday Club" --input initialDeposit=250
 
-# authorised -> completes the write
+# authorized -> completes the write
 npm run replay -- member.open-sub-account --unattended --authorize "batch LH-4471" \
   --input memberId=12345 --input description="Holiday Club" --input initialDeposit=250
 ```
@@ -297,7 +297,7 @@ src/
   artifact/         the capability
     schema.ts         zod schema + referential integrity
     store.ts          load/save, canonical digest, lint (verifies redaction)
-    overlay.ts        per-tenant specialisation, deterministic
+    overlay.ts        per-tenant specialization, deterministic
     product-profiles.ts  runtime conditions a happy-path run cannot observe
     catalog.ts        projection into agent-callable tool definitions
   agent/            discovery (model in the loop)

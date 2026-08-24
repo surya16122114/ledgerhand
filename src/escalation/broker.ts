@@ -27,7 +27,7 @@ import type { Redactor } from '../policy/redact.js';
 export type EscalationReason =
   /** Discovery could not find a way forward within its budget. */
   | 'discovery-stuck'
-  /** An irreversible action needs a person to authorise it. */
+  /** An irreversible action needs a person to authorize it. */
   | 'authorization-required'
   /** Replay hit a condition with no declared handler. */
   | 'unhandled-condition'

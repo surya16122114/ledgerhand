@@ -3,7 +3,7 @@
  *
  * The observations here are hand-written to mirror what perception actually
  * returns from the target app, including the parts that matter: fields whose names
- * were synthesised from an adjacent cell, controls with the same name in two
+ * were synthesized from an adjacent cell, controls with the same name in two
  * frames, and table cells addressed by row key and column header.
  */
 

@@ -2,25 +2,25 @@
  * Compiling a discovery run into a capability artifact.
  *
  * The artifact is deliberately *not* a transcript of what the model did. It is a
- * derived, normalised description of the flow, and the normalisation is where the
+ * derived, normalized description of the flow, and the normalization is where the
  * value is:
  *
  *  - **Targets come from perception, not from the model.** The model pointed at a
  *    ref; the recorder writes the ordered strategy list that perception computed
  *    for that control. The artifact's robustness is therefore a property of the
  *    perception layer, which is deterministic and testable, rather than of a model's
- *    judgement on the day.
+ *    judgment on the day.
  *
  *  - **Literals become parameters.** A value the model typed that equals a task
  *    parameter is rewritten as `{ from: 'input' }`. Without this, every capability
  *    would be hard-wired to the member used during recording.
  *
- *  - **Checkpoints are synthesised from observed state change.** After each action
+ *  - **Checkpoints are synthesized from observed state change.** After each action
  *    the recorder diffs the visible text and picks a phrase that appeared. That is
  *    a better checkpoint than anything the model would volunteer, because it is
  *    grounded in what actually changed.
  *
- *  - **Cross-cutting behaviour comes from the product profile.** See
+ *  - **Cross-cutting behavior comes from the product profile.** See
  *    product-profiles.ts: the interrupts and business outcomes a successful run
  *    cannot have observed are inherited rather than invented.
  *
@@ -42,7 +42,7 @@ export interface RecordedStep {
   intent: string;
   action: StepAction;
   risk: RiskClass;
-  /** Visible text before and after, used to synthesise a checkpoint. */
+  /** Visible text before and after, used to synthesize a checkpoint. */
   textBefore: string;
   textAfter: string;
   /** Url of the top document after the action. */
@@ -139,7 +139,7 @@ export function compileCapability(input: CompileInput): Capability {
 
   input.steps.forEach((rec, i) => {
     const id = stepId(rec, i);
-    const action = parameterise(rec.action, paramByValue, input.baseUrl);
+    const action = parameterize(rec.action, paramByValue, input.baseUrl);
     const handlers: Handler[] = [];
 
     // Step-scoped business outcomes, chosen by what the step just did rather than
@@ -168,7 +168,7 @@ export function compileCapability(input: CompileInput): Capability {
     // 16-second stall the handler never triggered and the run escalated.
     //
     // Retrying is safe here specifically because the step loop re-evaluates the
-    // checkpoint before any re-attempt, so a load that has since landed is recognised
+    // checkpoint before any re-attempt, so a load that has since landed is recognized
     // as already satisfied and the click is not repeated. And `retryStep` refuses
     // outright to re-attempt an irreversible step.
     if (rec.action.kind === 'click' || rec.action.kind === 'navigate') {
@@ -310,7 +310,7 @@ export function compileCapability(input: CompileInput): Capability {
  * its own replay on the recorded inputs, and quietly resolves to the wrong row for
  * anyone else.
  */
-function parameterise(action: StepAction, paramByValue: Map<string, { name: string }>, baseUrl: string): StepAction {
+function parameterize(action: StepAction, paramByValue: Map<string, { name: string }>, baseUrl: string): StepAction {
   // Every navigate url gets the host templated out, not only `target.entryUrl`.
   // Missing this leaves the recorded environment baked into step one, so the
   // capability is portable everywhere except the very first action -- which then
@@ -390,7 +390,7 @@ function parameteriseTarget(target: TargetDescriptor, paramByValue: Map<string, 
 }
 
 /**
- * Synthesise a checkpoint from what actually changed on screen.
+ * Synthesize a checkpoint from what actually changed on screen.
  *
  * The whole difficulty here is separating *screen structure* from *this run's
  * data*. A naive "pick the longest new line" picks

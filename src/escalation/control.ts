@@ -12,7 +12,7 @@
  * to check it. Automation physically cannot act while the operator holds the
  * lease.
  *
- * The human is deliberately *not* routed through the guard. An authorised
+ * The human is deliberately *not* routed through the guard. An authorized
  * employee taking over their own institution's application is not subject to the
  * agent's allowlist; they are subject to the app's own entitlements, which is
  * where that decision belongs. What we owe in exchange is a record of what they

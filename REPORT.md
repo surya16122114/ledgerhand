@@ -38,7 +38,7 @@ from it.
 
 **The load-bearing decision is the `Surface` seam.** Nothing above `src/surface/`
 mentions Playwright, a CSS selector, or a pixel coordinate. Everything above it
-speaks in normalised control roles, semantic target strategies, and declarative
+speaks in normalized control roles, semantic target strategies, and declarative
 conditions. `src/surface/matching.ts` — which answers "find the control this
 artifact is describing" — is a pure function over `PerceivedControl[]`, so it is
 shared by any driver and unit-tested without a browser.
@@ -137,7 +137,7 @@ ordered strategy list:
 Playwright's `ariaSnapshot()`. A legacy form puts its label in a sibling `<td>` with
 no `for=`, so the browser correctly computes an **empty** accessible name and a
 role+name matcher has nothing to match. `src/surface/web/perceive.ts` recovers the
-name a human would use from the adjacent cell and records that it was *synthesised*,
+name a human would use from the adjacent cell and records that it was *synthesized*,
 so downstream code knows to keep a fallback ready. It also deliberately matches
 authored labels, so a tenant that upgrades to a build with proper `<label for>`
 keeps working.
@@ -207,10 +207,10 @@ live banking screen.
 mentioning: I first encoded "approved despite human-intervened discovery" as a
 schema error, which made such an artifact unparseable — so it could never be
 approved at all, whatever a reviewer decided. Structural validity belongs in
-validation; review judgement belongs in lint.
+validation; review judgment belongs in lint.
 
 The linter also **verifies** redaction rather than trusting
-`provenance.redactionApplied`: it scans the serialised artifact for
+`provenance.redactionApplied`: it scans the serialized artifact for
 credential- and PII-shaped literals *including the live values from the vault*, and
 refuses to save on a hit.
 
@@ -231,7 +231,7 @@ a retry policy: a 9-second stall on a step with a 10-second budget is absorbed b
 polling with `attempts=1` and no handler involved at all. Only a load that *overruns*
 the budget needs the failure-code-guarded retry described below, and even then the
 re-attempt first re-checks the checkpoint — so a load that has since landed is
-recognised as already satisfied and the click is not repeated
+recognized as already satisfied and the click is not repeated
 (`evidence/replays/13-recovered-slow-load`).
 
 That distinction came out of a real bug. Clicking a submit button does not navigate
@@ -258,12 +258,12 @@ read that is wasteful; for "Open Sub-Account" it opens two accounts.
 
 **Checkpoints assert structure, not data.** This was the hardest thing to get right
 and it went through three iterations. The naive "pick the longest new line on screen"
-synthesised `BR-014 NORTHGATE Member Since:` — the branch of the member used during
+synthesized `BR-014 NORTHGATE Member Since:` — the branch of the member used during
 recording. Filtering anything containing digits then produced `ACTIVE Tax ID:`, which
 reads like a heading and is in fact one member's account *status*, so the capability
 would have failed outright for a dormant member. The fix was to stop guessing from
 strings: the perception layer already identifies headings by *styling* (these apps
-have no `<h1>`, they have a bold grey table cell), so checkpoints are synthesised
+have no `<h1>`, they have a bold grey table cell), so checkpoints are synthesized
 from a heading that appeared, and only fall back to text heuristics when nothing
 structural changed. The committed artifacts checkpoint on `OPERATOR SIGN ON`,
 `DAILY OPERATIONS SUMMARY`, `MEMBER SERVICING – INQUIRY`, `SHARE / DEPOSIT ACCOUNTS`
@@ -278,7 +278,7 @@ MEMBER PROFILE Member ID: {{input.memberId}} Name: Ashgrove, Dolores Status: ACT
 
 which was rejected as record-time data — it names one member and would only ever hold
 for that member. (The member id reads as a placeholder because tool calls are
-parameterised on the way into the committed transcript; at runtime the model wrote the
+parameterized on the way into the committed transcript; at runtime the model wrote the
 concrete id, which is what the guard matched on.) It corrected to
 
 ```
@@ -292,9 +292,9 @@ row, not merely that the profile page loaded. Both turns are in
 `evidence/discovery/*/run.jsonl` as `discovery.finishRejected` and
 `discovery.finishClaimed`.
 
-**Parameterisation reaches into targets, not just values.** A capability whose fill
-values are parameterised but whose `table-cell` row key still reads `12345-00` is
-parameterised in name only. Its failure mode is the nasty one: for a different
+**Parameterization reaches into targets, not just values.** A capability whose fill
+values are parameterized but whose `table-cell` row key still reads `12345-00` is
+parameterized in name only. Its failure mode is the nasty one: for a different
 member the primary strategy misses, a weaker one resolves, and it returns a
 *neighbouring account's* balance — real, plausible, and wrong. So the recorder
 rewrites parameter values inside targets to `{{input.memberId}}-00`, and the engine
@@ -407,7 +407,7 @@ Two quieter signals sit alongside it, both cases of "resolved, but only just":
   moment it is free (the observation already exists). Faults are
 armed on a side channel (`POST /__fault/arm`) rather than via query strings on the
 app's own URLs, so the capability under test is byte-identical to the happy-path
-run and only the application's behaviour differs.
+run and only the application's behavior differs.
 
 ---
 
@@ -547,7 +547,7 @@ The operator resolves with one of four decisions, and each means something diffe
 to the engine:
 
 - `resume` — "I fixed the state, carry on"
-- `authorize-and-resume` — grants a one-shot authorisation for the irreversible step
+- `authorize-and-resume` — grants a one-shot authorization for the irreversible step
 - `skip-step` — "not needed here"
 - `abort` — stop; reported as `status: 'escalated'`, never as success
 
@@ -598,7 +598,7 @@ would make the whole guardrail decorative.
 
 **Irreversible actions need a decision from a person.** Discovery escalates them.
 Replay holds the effective risk ceiling *below* the capability's declared maximum
-unless the caller passes an authorisation, and the grant is one-shot and consumed on
+unless the caller passes an authorization, and the grant is one-shot and consumed on
 use. This is where I made — and caught — the most serious bug in the project: I
 originally set the ceiling to `capability.policy.maxRisk`, which for a write
 capability *is* `irreversible`, so the check passed on every run and the approval
@@ -658,17 +658,17 @@ rather than complete, and §7 says what would close it.
   read member records but not accounts flagged restricted". That belongs in the
   application's own entitlements, which is why `PERMISSION_DENIED` is a first-class
   business outcome rather than something the guardrail tries to prevent.
-- **The human is not policed.** An authorised employee operating their own
+- **The human is not policed.** An authorized employee operating their own
   institution's application is subject to the app's entitlements, not the agent's
   allowlist. What we owe in exchange is a record of what they did, which the
   human-action recorder provides.
 - **Redaction shape patterns will both over- and under-match.** A nine-digit product
   code becomes `[pii:account-number]`; a novel identifier format would pass. The
-  exact-value layer is the reliable one; shapes are defence in depth.
+  exact-value layer is the reliable one; shapes are defense in depth.
 
 - **A model transcript can quote anything on the screen, and no shape rule catches a
   name.** In `evidence/discovery/*/transcript.json` the model's rejected success
-  phrase contains a member name it read off the profile screen. Parameterisation
+  phrase contains a member name it read off the profile screen. Parameterization
   removes declared inputs and the shape rules remove identifier-shaped values, but
   "Ashgrove, Dolores" is neither. This is not a gap I can close with a better regex,
   and it is the whole reason the artifact stores only
@@ -708,7 +708,7 @@ rather than complete, and §7 says what would close it.
 - **A "capability needs re-recording" workflow.** Drift is detected and reported;
   acting on it is manual.
 
-**Mocked, at a stated seam:** the human's *judgement* in the committed evidence.
+**Mocked, at a stated seam:** the human's *judgment* in the committed evidence.
 `scripts/operator-autoresolve.ts` issues exactly the two HTTP requests the console's
 own buttons issue; the broker, lease, intervention record and console server are all
 real. The console screenshot and the ground-truth handoff described in §5 were done
@@ -750,8 +750,8 @@ rather say so than round up:
   definitions and `invoke <tool_name> --args '{...}'` calls one by that name, validating
   against the advertised schema and returning an agent-shaped envelope where a business
   outcome is data rather than an exception. README §6 shows all three outcomes.
-- *Canonicalisation / cross-tenant reuse* — **done.** Routes canonicalised, values
-  parameterised (`{{input.memberId}}-00`), and one recording replayed at a second tenant
+- *Canonicalisation / cross-tenant reuse* — **done.** Routes canonicalized, values
+  parameterized (`{{input.memberId}}-00`), and one recording replayed at a second tenant
   with per-tenant overrides (scenario `09`).
 - *Multi-run stability* — **done.** `--times N` reports success rate and locator
   fallbacks.
@@ -773,7 +773,7 @@ browser.
 
 **What I'd change if I started again:** I would build the checkpoint-synthesis
 problem before the discovery loop. Three of the four hardest bugs in this project
-(data-bearing checkpoints, un-parameterised row keys, frameset URL assertions) are
+(data-bearing checkpoints, un-parameterized row keys, frameset URL assertions) are
 the same bug wearing different clothes — record-time data leaking into something
 that looks like structure — and I found them one at a time by replaying against a
 second member and a second tenant. A "replay this against different inputs and a

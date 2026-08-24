@@ -12,7 +12,7 @@
  * observations before and after: a diff cannot tell a click from a keystroke, and
  * loses the order.
  *
- * The script is a plain string rather than a serialised function, which sidesteps
+ * The script is a plain string rather than a serialized function, which sidesteps
  * the build-helper problem described in playwright-surface.ts and keeps the
  * injected payload readable in a code review.
  */

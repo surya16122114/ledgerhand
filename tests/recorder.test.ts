@@ -148,7 +148,7 @@ describe('compileCapability', () => {
     expect(cap.steps.filter((s) => s.partOfAuth).some((s) => s.id.includes('search'))).toBe(false);
   });
 
-  it('synthesises a checkpoint from text that actually appeared', () => {
+  it('synthesizes a checkpoint from text that actually appeared', () => {
     const step = cap.steps.find((s) => s.id.includes('sign-on'))!;
     expect(JSON.stringify(step.checkpoint)).toContain('DAILY OPERATIONS SUMMARY');
   });
@@ -185,7 +185,7 @@ describe('compileCapability', () => {
     expect(JSON.stringify(step.checkpoint)).not.toContain('12345');
   });
 
-  it('does not synthesise a checkpoint for a fill, which changes no screen state', () => {
+  it('does not synthesize a checkpoint for a fill, which changes no screen state', () => {
     const step = cap.steps.find((s) => s.id.endsWith('fill-member-id'))!;
     expect(step.checkpoint).toBeUndefined();
   });

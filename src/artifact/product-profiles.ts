@@ -12,7 +12,7 @@
  * are properties of the *vendor product*. Every screen in CorePoint Servicing
  * bounces to the same sign-on page with the same wording when a session dies.
  * That is worth writing down exactly once, by an engineer who has read the
- * product's behaviour, and inheriting into every capability recorded against it.
+ * product's behavior, and inheriting into every capability recorded against it.
  *
  * So the division of labour is:
  *

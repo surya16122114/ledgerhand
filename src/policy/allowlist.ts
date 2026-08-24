@@ -25,7 +25,7 @@ export interface AllowlistConfig {
   maxRisk: RiskClass;
   /**
    * When false, an irreversible action is refused outright rather than escalated.
-   * Discovery sets this true (a human can authorise in the moment); unattended
+   * Discovery sets this true (a human can authorize in the moment); unattended
    * replay of a draft capability sets it false.
    */
   allowEscalationForIrreversible?: boolean;

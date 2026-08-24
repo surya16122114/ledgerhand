@@ -8,7 +8,7 @@
  *
  * It is a provider seam, not an agent framework. The loop, the tool definitions,
  * the stall detection and the recording all live in this repo, because those are
- * the parts whose behaviour has to be defensible.
+ * the parts whose behavior has to be defensible.
  */
 
 export interface JsonSchema {

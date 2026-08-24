@@ -14,7 +14,7 @@
  *    it once is how a hand-edited step ends up executing.
  *
  *  - **Redaction is verified, not asserted.** `provenance.redactionApplied` is a
- *    claim; `lintCapability` re-derives it by scanning the serialised artifact
+ *    claim; `lintCapability` re-derives it by scanning the serialized artifact
  *    for credential- and PII-shaped literals, including the live values from the
  *    secret vault. A recorder bug that leaked a password would otherwise be
  *    invisible until an audit.
@@ -107,10 +107,10 @@ const FORBIDDEN_LITERALS: { code: string; re: RegExp; what: string }[] = [
  */
 export function lintCapability(cap: Capability, knownSecrets: string[] = []): LintFinding[] {
   const findings: LintFinding[] = [];
-  const serialised = canonicalJson(cap);
+  const serialized = canonicalJson(cap);
 
   for (const { code, re, what } of FORBIDDEN_LITERALS) {
-    const hit = re.exec(serialised);
+    const hit = re.exec(serialized);
     if (hit) {
       findings.push({
         severity: 'error',
@@ -124,7 +124,7 @@ export function lintCapability(cap: Capability, knownSecrets: string[] = []): Li
   }
 
   for (const secret of knownSecrets) {
-    if (secret.length >= 4 && serialised.includes(secret)) {
+    if (secret.length >= 4 && serialized.includes(secret)) {
       findings.push({
         severity: 'error',
         code: 'VAULT_SECRET_LEAKED',

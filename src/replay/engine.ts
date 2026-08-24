@@ -86,7 +86,7 @@ export interface ReplayOptions {
    * refused, and irreversible steps need `authorizeIrreversible`.
    */
   unattended?: boolean;
-  /** Caller-side authorisation for the capability's irreversible steps. */
+  /** Caller-side authorization for the capability's irreversible steps. */
   authorizeIrreversible?: { by: string; reason: string };
   headless?: boolean;
   evidenceBaseDir?: string;
@@ -244,15 +244,15 @@ export async function replay(
   try {
     web = await PlaywrightWebSurface.launch({ headless: opts.headless ?? process.env.HEADLESS !== 'false' });
 
-    const authorised = Boolean(opts.authorizeIrreversible);
+    const authorized = Boolean(opts.authorizeIrreversible);
     const effectiveCeiling =
-      capability.policy.requiresApprovalForIrreversible && !authorised
+      capability.policy.requiresApprovalForIrreversible && !authorized
         ? lowerOf(capability.policy.maxRisk, 'reversible')
         : capability.policy.maxRisk;
     logger.event('policy.ceiling', {
       declaredMaxRisk: capability.policy.maxRisk,
       effectiveMaxRisk: effectiveCeiling,
-      authorised,
+      authorized,
       requiresApprovalForIrreversible: capability.policy.requiresApprovalForIrreversible,
     });
 
@@ -261,7 +261,7 @@ export async function replay(
         allowedUrlPatterns: capability.policy.allowedUrlPatterns.map((p) => renderUrlPattern(p, opts.baseUrl)),
         allowedActions: capability.policy.allowedActions,
         // The ceiling is raised to the capability's declared max ONLY when the
-        // caller has authorised this run. Otherwise it is held at 'reversible', so
+        // caller has authorized this run. Otherwise it is held at 'reversible', so
         // the irreversible step trips the gate rather than sailing through.
         //
         // Setting the ceiling to the capability's own maxRisk unconditionally is the
@@ -273,7 +273,7 @@ export async function replay(
         maxRisk: effectiveCeiling,
         // Stopping at the step rather than at load time is deliberate: a read-only
         // prefix of a write capability still returns its outputs, and the caller
-        // gets a precise "this step needs authorisation" instead of a flat refusal.
+        // gets a precise "this step needs authorization" instead of a flat refusal.
         allowEscalationForIrreversible: !opts.unattended || Boolean(opts.authorizeIrreversible),
       },
       onEvent: (e) => logger.event('policy', e as unknown as Record<string, unknown>),
@@ -338,7 +338,7 @@ export async function replay(
       recorder?.detach();
 
       if (resolution.decision === 'authorize-and-resume') {
-        gate.authorizeNextIrreversible(resolution.by, resolution.note ?? 'authorised at the operator console');
+        gate.authorizeNextIrreversible(resolution.by, resolution.note ?? 'authorized at the operator console');
       }
       if (gate.isTripped()) gate.resetAfterHumanReview(resolution.by);
 
@@ -587,18 +587,18 @@ export async function replay(
         if (!result.ok) {
           const code = mapSurfaceError(result.error?.code);
           if (result.error?.code === 'POLICY_AUTHORIZATION_REQUIRED') {
-            // An irreversible step with no standing authorisation is exactly the
+            // An irreversible step with no standing authorization is exactly the
             // case the human-in-the-loop path exists for.
             const decided = await escalate({
               reason: 'authorization-required',
-              headline: `Authorise: ${step.intent}`,
+              headline: `Authorize: ${step.intent}`,
               detail: `Step '${step.id}' is classified irreversible and needs a person to approve it before it runs.\n\n${result.error.observed ?? ''}`,
               step: { index, step },
               attempt: { action: `${step.action.kind} ${trace.target ?? ''}`.trim(), observed: result.error.observed, errorCode: result.error.code },
             });
             const routed = await applyDecision(decided, step, index, trace, {
               code: 'POLICY_DENIED',
-              message: `irreversible step '${step.id}' was not authorised`,
+              message: `irreversible step '${step.id}' was not authorized`,
               observed: result.error.observed,
             });
             if (routed.kind !== 'continue') return routed;
@@ -762,16 +762,16 @@ export async function replay(
       // this is the "replay hit a condition it cannot recover from" path.
       //
       // A denial for exceeding the risk ceiling is labelled for what it is. An
-      // unattended run with no authorisation reaches this line rather than the
+      // unattended run with no authorization reaches this line rather than the
       // POLICY_AUTHORIZATION_REQUIRED branch above, and calling it "stuck" would
       // send an operator looking for a fault when what is actually needed is a
       // decision.
       const needsAuthorisation = failure.code === 'POLICY_DENIED' && (failure.observed ?? '').includes('RISK_EXCEEDS_CEILING');
       const decided = await escalate({
         reason: needsAuthorisation ? 'authorization-required' : 'unhandled-condition',
-        headline: needsAuthorisation ? `Authorise: ${step.intent}` : `Replay stuck: ${step.intent}`,
+        headline: needsAuthorisation ? `Authorize: ${step.intent}` : `Replay stuck: ${step.intent}`,
         detail: needsAuthorisation
-          ? `Step '${step.id}' is classified ${step.risk} and this run carries no authorisation for it.\n\n${failure.observed ?? ''}`
+          ? `Step '${step.id}' is classified ${step.risk} and this run carries no authorization for it.\n\n${failure.observed ?? ''}`
           : `Step '${step.id}' failed with ${failure.code} and no declared handler matched the current state.\n\nexpected: ${failure.expected ?? '(none)'}\nobserved: ${failure.observed ?? '(none)'}`,
         step: { index, step },
         attempt: { action: `${step.action.kind} ${trace.target ?? ''}`.trim(), expected: failure.expected, observed: failure.observed, errorCode: failure.code },

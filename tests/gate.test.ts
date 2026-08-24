@@ -129,7 +129,7 @@ describe('PolicyGate egress check', () => {
 });
 
 describe('PolicyGate risk ceiling', () => {
-  it('requests authorisation for an irreversible action instead of silently allowing it', async () => {
+  it('requests authorization for an irreversible action instead of silently allowing it', async () => {
     const inner = stub({ controlName: 'Submit Request' });
     const gate = gateOver(inner);
     const result = await gate.perform({ kind: 'click', target });
@@ -139,7 +139,7 @@ describe('PolicyGate risk ceiling', () => {
     expect(inner.performed).toHaveLength(0);
   });
 
-  it('honours a one-shot authorisation and consumes it', async () => {
+  it('honours a one-shot authorization and consumes it', async () => {
     const inner = stub({ controlName: 'Submit Request' });
     const gate = gateOver(inner);
     gate.authorizeNextIrreversible('operator@console', 'reviewed at the console');

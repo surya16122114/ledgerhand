@@ -150,13 +150,13 @@ export function renderTemplate(template: string, ctx: { baseUrl: string; inputs:
  * Necessary because record-time data leaks into *targets*, not only into values.
  * A table cell addressed as "the Current Balance column of the row whose key is
  * 12345-00" embeds the member used during recording. Parameterising fill values but
- * not targets produces a capability that is parameterised in name only.
+ * not targets produces a capability that is parameterized in name only.
  *
  * Its absence has a specific and nasty failure mode. With the row key pinned to one
  * member, replay for a different member falls through to a weaker strategy and can
  * resolve to a *neighbouring account's* cell -- returning a number that is real,
  * plausible, and wrong. Failing is much better than that, and being correctly
- * parameterised is better still.
+ * parameterized is better still.
  */
 export function materialiseTarget(target: TargetDescriptor, inputs: Record<string, InputValue>): TargetDescriptor {
   const sub = (s: string): string =>

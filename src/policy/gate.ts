@@ -13,7 +13,7 @@
  *   2. For a navigation, the destination URL is on the allowlist.
  *   3. The action's risk class -- computed here from the *resolved* control, not
  *      taken from anything the model wrote -- is within the ceiling. Irreversible
- *      actions either fail closed or request authorisation, depending on config.
+ *      actions either fail closed or request authorization, depending on config.
  *   4. After the action, the resulting location is still on the allowlist. This
  *      is the check that catches what a pre-flight check cannot: a click that
  *      redirects somewhere the agent was never permitted to be. A violation here
@@ -71,7 +71,7 @@ export class PolicyGate implements Surface {
   private onEvent: (event: PolicyEvent) => void;
   /** Latched when a post-action location check fails. */
   private tripped?: { code: string; reason: string };
-  /** One-shot authorisation for a single irreversible action. */
+  /** One-shot authorization for a single irreversible action. */
   private authorization?: { grantedBy: string; reason: string };
 
   constructor(
@@ -185,7 +185,7 @@ export class PolicyGate implements Surface {
           target: targetLabel,
           decision: 'allow',
           risk: assessment.risk,
-          reason: `irreversible action authorised by ${granted.grantedBy}: ${granted.reason}`,
+          reason: `irreversible action authorized by ${granted.grantedBy}: ${granted.reason}`,
         });
       } else if (escalatable) {
         this.emit({
@@ -201,7 +201,7 @@ export class PolicyGate implements Surface {
           ok: false,
           error: {
             code: 'POLICY_AUTHORIZATION_REQUIRED',
-            message: `'${targetLabel ?? action.kind}' is irreversible and needs human authorisation`,
+            message: `'${targetLabel ?? action.kind}' is irreversible and needs human authorization`,
             observed: assessment.reason,
           },
         };

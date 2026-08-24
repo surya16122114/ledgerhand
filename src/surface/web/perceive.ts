@@ -1,7 +1,7 @@
 /**
  * In-page perception.
  *
- * `perceiveInPage` is serialised and executed inside each frame of the target
+ * `perceiveInPage` is serialized and executed inside each frame of the target
  * document. It cannot reference anything from module scope, so every helper is
  * nested. It returns plain data; all matching and decision-making happens back
  * in Node (see ../matching.ts) where it is typed and unit-testable.
@@ -15,7 +15,7 @@
  * function adds over the built-in snapshot is precisely the synthesis step: when
  * the authored accessible name is missing, recover the name a human operator
  * would use by reading the label out of the adjacent cell or the preceding text
- * on the same line, and record that the name was synthesised so downstream code
+ * on the same line, and record that the name was synthesized so downstream code
  * knows to keep a fallback ready.
  */
 
@@ -394,7 +394,7 @@ export function perceiveInPage(generation: number): RawPerception {
     if (el.querySelector('input, select, textarea, button, a[href], table')) continue;
     // A column header names a column, not a section. Counting them attributed every
     // data cell in a grid to whichever column header came last in the document
-    // ("Opened"), and let a checkpoint be synthesised from a column name.
+    // ("Opened"), and let a checkpoint be synthesized from a column name.
     const owningRow = el.closest('tr') as HTMLTableRowElement | null;
     const owningTable = el.closest('table') as HTMLTableElement | null;
     if (owningRow && owningTable && headerRowOf(owningTable) === owningRow) continue;

@@ -20,7 +20,7 @@ import type { Action, PerceivedControl, RiskClass } from '../surface/types.js';
 /** Names that indicate durable state change or money movement. */
 const IRREVERSIBLE_VERBS = [
   'submit', 'confirm', 'post', 'transfer', 'send', 'pay', 'withdraw', 'deposit',
-  'delete', 'remove', 'close', 'void', 'reverse', 'approve', 'authorize', 'authorise',
+  'delete', 'remove', 'close', 'void', 'reverse', 'approve', 'authorize', 'authorize',
   'issue', 'disburse', 'charge', 'refund', 'wire', 'commit', 'finalize', 'finalise',
   'open account', 'create', 'save', 'apply', 'accept', 'sign off',
 ];

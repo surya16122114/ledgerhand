@@ -2,7 +2,7 @@
  * The surface seam.
  *
  * Everything above this file -- the discovery agent, the capability artifact,
- * the replay engine -- speaks only in the vocabulary defined here: normalised
+ * the replay engine -- speaks only in the vocabulary defined here: normalized
  * control roles, semantic target strategies, declarative conditions, and
  * surface-agnostic actions. Nothing above this file may mention Playwright, a
  * CSS selector, or a pixel coordinate.
@@ -23,7 +23,7 @@
 export type SurfaceKind = 'web' | 'legacy-web' | 'desktop';
 
 /**
- * Normalised control roles. Intentionally a small closed set: this is the
+ * Normalized control roles. Intentionally a small closed set: this is the
  * intersection of what a browser accessibility tree, a legacy DOM, and a
  * platform accessibility API can all reliably report. Anything richer would not
  * survive the jump to desktop.
@@ -50,7 +50,7 @@ export type ControlRole = (typeof CONTROL_ROLES)[number];
 /**
  * How a control's name was arrived at. Recorded because it is the single best
  * predictor of how durable a `role-name` target will be: a name from `aria-label`
- * is authored and stable; a name synthesised from an adjacent table cell is a
+ * is authored and stable; a name synthesized from an adjacent table cell is a
  * guess, and replay should keep a fallback ready.
  */
 export type NameSource =
@@ -63,11 +63,11 @@ export type NameSource =
   | 'placeholder'
   | 'title'
   | 'alt'
-  /** Synthesised: label text sat in a sibling table cell with no `for=`. */
+  /** Synthesized: label text sat in a sibling table cell with no `for=`. */
   | 'adjacent-cell'
-  /** Synthesised: nearest preceding text on the same visual line. */
+  /** Synthesized: nearest preceding text on the same visual line. */
   | 'preceding-text'
-  /** Synthesised from the table column this cell sits under. */
+  /** Synthesized from the table column this cell sits under. */
   | 'column-header'
   | 'none';
 
@@ -212,7 +212,7 @@ export interface Observation {
    * stable strings on a screen and the best basis for a checkpoint.
    */
   headings: string[];
-  /** Visible text of the surface, normalised. Used for `textPresent` conditions. */
+  /** Visible text of the surface, normalized. Used for `textPresent` conditions. */
   text: string;
 }
 
@@ -260,7 +260,7 @@ export type RiskClass =
   | 'safe'
   /** Changes UI state but nothing durable, e.g. typing into a field. */
   | 'reversible'
-  /** Writes durable state or moves money. Requires explicit authorisation. */
+  /** Writes durable state or moves money. Requires explicit authorization. */
   | 'irreversible';
 
 export type Action =
@@ -318,7 +318,7 @@ export type SurfaceErrorCode =
    * without passing through the gate.
    */
   | 'POLICY_DENIED'
-  /** Irreversible action that a human has not authorised. Distinct from a flat denial. */
+  /** Irreversible action that a human has not authorized. Distinct from a flat denial. */
   | 'POLICY_AUTHORIZATION_REQUIRED';
 
 // ---------------------------------------------------------------------------
