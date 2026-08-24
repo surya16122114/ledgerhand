@@ -141,7 +141,7 @@ function narrow(
 ): { chosen?: PerceivedControl; rest: PerceivedControl[]; note?: string } {
   let pool = matched;
 
-  // Rule 1: honour the frame the artifact recorded. On a frameset app the same
+  // Rule 1: honor the frame the artifact recorded. On a frameset app the same
   // control name legitimately exists in the nav frame and the body frame.
   if (target.framePath) {
     const inFrame = pool.filter((c) => samePath(c.container.framePath, target.framePath));

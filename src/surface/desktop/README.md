@@ -54,7 +54,7 @@ tree.
 
 | action | UIA | AX |
 |---|---|---|
-| `click` | `InvokePattern`, else `LegacyIAccessible.DoDefaultAction`, else synthesized click at the bounding rect centre | `AXPress` |
+| `click` | `InvokePattern`, else `LegacyIAccessible.DoDefaultAction`, else synthesized click at the bounding rect center | `AXPress` |
 | `fill` | `ValuePattern.SetValue`, else focus + synthesized keystrokes | `AXValue` set, else keystrokes |
 | `select` | `SelectionItemPattern.Select` | `AXValue` on the popup |
 | `readText` | `Name` / `ValuePattern.Value` / `TextPattern` | `AXValue` / `AXTitle` |

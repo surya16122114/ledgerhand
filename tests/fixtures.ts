@@ -41,7 +41,7 @@ export function observation(controls: PerceivedControl[], overrides: Partial<Obs
   };
 }
 
-/** A search form field whose label came from the neighbouring table cell. */
+/** A search form field whose label came from the neighboring table cell. */
 export const memberIdField = withTargeting(
   control({
     ref: 'bodyFrame|1:0',

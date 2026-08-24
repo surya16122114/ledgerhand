@@ -24,7 +24,7 @@ servicing console, deliberately built the way these applications actually are.
 - Table-based layout, `<font>` tags, no semantic classes
 - WebForms control ids (`name="ctl00$MainContent$txtMemberId"`)
 - **No** `data-testid`, no `aria-*`, and no `<label for>` — every field's label sits
-  in a neighbouring `<td>`, so the browser computes an **empty accessible name** for
+  in a neighboring `<td>`, so the browser computes an **empty accessible name** for
   every text input
 - Injectable runtime faults: session expiry, an unexpected interstitial, a slow load,
   an exception page

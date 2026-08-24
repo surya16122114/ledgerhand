@@ -154,7 +154,7 @@ export function renderTemplate(template: string, ctx: { baseUrl: string; inputs:
  *
  * Its absence has a specific and nasty failure mode. With the row key pinned to one
  * member, replay for a different member falls through to a weaker strategy and can
- * resolve to a *neighbouring account's* cell -- returning a number that is real,
+ * resolve to a *neighboring account's* cell -- returning a number that is real,
  * plausible, and wrong. Failing is much better than that, and being correctly
  * parameterized is better still.
  */

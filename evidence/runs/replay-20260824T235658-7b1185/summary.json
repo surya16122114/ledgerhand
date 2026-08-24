@@ -1,0 +1,173 @@
+{
+  "runId": "replay-20260824T235658-7b1185",
+  "kind": "replay",
+  "eventCounts": {
+    "policy": 9,
+    "policy.ceiling": 1,
+    "replay.entry": 1,
+    "replay.start": 1,
+    "run.end": 1,
+    "run.start": 1,
+    "step.captured": 2,
+    "step.end": 9,
+    "step.start": 9,
+    "step.value": 3,
+    "success.checkpoint": 1
+  },
+  "steps": [
+    {
+      "index": 0,
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "action": "navigate",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 978,
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 1,
+      "id": "02-fill-user-id",
+      "intent": "Enter the operator user ID to sign on to the servicing console.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1001,
+      "target": "textbox \"User ID\" in OPERATOR SIGN ON (textbox labelled \"User ID\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 2,
+      "id": "03-fill-password",
+      "intent": "Enter the operator password to sign on to the servicing console.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 995,
+      "target": "password \"Password\" in OPERATOR SIGN ON (password labelled \"Password\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 3,
+      "id": "04-click-sign-on",
+      "intent": "Click the Sign On button to log in to the servicing console with the entered credentials.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1341,
+      "target": "button \"Sign On\" in OPERATOR SIGN ON (button \"Sign On\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 4,
+      "id": "05-click-member-servicing",
+      "intent": "Click Member Servicing to begin looking up a member profile.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1753,
+      "target": "link \"Member Servicing\" in Meridian Credit Union • Member Servicing Console (link \"Member Servicing\" @navFrame)",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 5,
+      "id": "06-fill-member-id",
+      "intent": "Enter the member ID to search for member {{input.memberId}}'s profile.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1366,
+      "target": "textbox \"Member ID\" in MEMBER SERVICING – INQUIRY (textbox labelled \"Member ID\" @bodyFrame)",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 6,
+      "id": "07-click-search",
+      "intent": "Click the Search button to look up member {{input.memberId}}'s profile.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1718,
+      "target": "button \"Search\" in MEMBER SERVICING – INQUIRY (button \"Search\" @bodyFrame)",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 7,
+      "id": "08-read-account-status",
+      "intent": "Read the member's account status from their profile.",
+      "action": "readText",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1367,
+      "target": "cell \"Status\" in MEMBER PROFILE (cell \"Status\" @bodyFrame)",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      }
+    },
+    {
+      "index": 8,
+      "id": "09-read-home-branch",
+      "intent": "Read the member's home branch from their profile.",
+      "action": "readText",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1365,
+      "target": "cell \"Branch\" in MEMBER PROFILE (cell \"Branch\" @bodyFrame)",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      }
+    }
+  ],
+  "recoveries": [],
+  "drift": [],
+  "interventions": [],
+  "warnings": [],
+  "outputKeys": [
+    "accountStatus",
+    "homeBranch"
+  ]
+}

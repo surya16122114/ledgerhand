@@ -539,7 +539,7 @@ export async function replay(
         // Before *re*-attempting a step, check whether its effect is already
         // visible.
         //
-        // This is a safety property, not an optimisation. A step can be
+        // This is a safety property, not an optimization. A step can be
         // re-attempted after a recovery fired (an interstitial was dismissed, and
         // this application's notice page resubmits the request it interrupted) or
         // after a human did the work by hand. In both cases the state the step was

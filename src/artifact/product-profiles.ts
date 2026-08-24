@@ -14,7 +14,7 @@
  * That is worth writing down exactly once, by an engineer who has read the
  * product's behavior, and inheriting into every capability recorded against it.
  *
- * So the division of labour is:
+ * So the division of labor is:
  *
  *   discovery run   -> the steps, the targets, the outputs, the success condition
  *   product profile -> the runtime conditions and business outcomes of the product

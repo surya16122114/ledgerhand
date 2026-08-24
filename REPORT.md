@@ -6,7 +6,7 @@ the artifact replays deterministically afterwards with no model in the loop.
 
 The target is a stand-in I built rather than a public demo site — a frameset-based
 credit-union servicing console with WebForms-style control ids, no test ids, table
-layouts, and inputs whose labels sit in a neighbouring `<td>` with no `for`
+layouts, and inputs whose labels sit in a neighboring `<td>` with no `for`
 attribute. Building it was a deliberate choice: I needed a surface where perception
 is genuinely hard, and I needed to be able to inject a session timeout, an
 unexpected interstitial, a permission denial and an exception page on demand. A
@@ -244,7 +244,7 @@ including the redirect chain and a frameset's children — to go quiet.
 
 **Ambiguity fails.** A target matching two controls stops the run rather than
 picking one. Narrowing is limited to three rules I'd defend in a post-incident
-review: honour the recorded frame, prefer an exact name match over a loose one,
+review: honor the recorded frame, prefer an exact name match over a loose one,
 prefer an enabled control over a disabled one. "Pick the first" is not on the list —
 that is how automation clicks the wrong Submit on a screen with two forms. Nor does
 resolution fall through to a *weaker* strategy after an ambiguous match: a vaguer
@@ -252,7 +252,7 @@ description cannot resolve an ambiguity a more precise one could not.
 
 **Checkpoints after every state change**, and a step is never re-attempted when its
 effect is already visible. That second property is a safety rule, not an
-optimisation: a step can be retried after a recovery fired or after a human did the
+optimization: a step can be retried after a recovery fired or after a human did the
 work by hand, and blindly re-running it would submit the same request twice. For a
 read that is wasteful; for "Open Sub-Account" it opens two accounts.
 
@@ -296,7 +296,7 @@ row, not merely that the profile page loaded. Both turns are in
 values are parameterized but whose `table-cell` row key still reads `12345-00` is
 parameterized in name only. Its failure mode is the nasty one: for a different
 member the primary strategy misses, a weaker one resolves, and it returns a
-*neighbouring account's* balance — real, plausible, and wrong. So the recorder
+*neighboring account's* balance — real, plausible, and wrong. So the recorder
 rewrites parameter values inside targets to `{{input.memberId}}-00`, and the engine
 materialises them before anything runs. Relatedly, `section-ordinal` is deliberately
 **not** offered for data cells: "the 6th cell in SHARE / DEPOSIT ACCOUNTS" is
@@ -375,7 +375,7 @@ work on the day they were recorded.
 Those conditions are properties of the **vendor product**, not of a capability.
 `src/artifact/product-profiles.ts` declares them once for CorePoint Servicing —
 written by an engineer who has read how the product behaves — and every capability
-recorded against that product inherits them. The division of labour:
+recorded against that product inherits them. The division of labor:
 
 | authored by | contributes |
 |---|---|
@@ -460,7 +460,7 @@ Meridian replays successfully against Riverstone, which has different routes
 acceptable-use gate Meridian does not have. Every locator resolved via its
 **primary** strategy — zero drift — and the compliance gate was absorbed by the
 product profile's `terms-acknowledgement-gate` interrupt rather than by the overlay,
-which is the division of labour working as intended. See
+which is the division of labor working as intended. See
 `evidence/replays/09-cross-tenant-overlay/`.
 
 Two deliberate refusals:
@@ -672,7 +672,7 @@ rather than complete, and §7 says what would close it.
   removes declared inputs and the shape rules remove identifier-shaped values, but
   "Ashgrove, Dolores" is neither. This is not a gap I can close with a better regex,
   and it is the whole reason the artifact stores only
-  `provenance.transcriptDigest`: the transcript is the one artefact that must be
+  `provenance.transcriptDigest`: the transcript is the one artifact that must be
   assumed to contain member data, so it belongs in access-controlled storage while
   the digest — which proves *which* transcript produced a capability — is what travels
   between environments. The transcripts are committed here only because every member
@@ -743,14 +743,13 @@ by hand through the UI.
 5. **Closing the resolve-then-act window** in `PolicyGate` by threading a resolution
    handle through `perform`, if the concurrency risk ever proved real.
 
-**Stretch goals, precisely.** Two of the six are complete, one is half-done and I would
-rather say so than round up:
+**Stretch goals.** Three of the six are complete and one is half-done:
 
 - *Agent-facing capability interface* — **done.** `catalog --json` emits the tool
   definitions and `invoke <tool_name> --args '{...}'` calls one by that name, validating
   against the advertised schema and returning an agent-shaped envelope where a business
   outcome is data rather than an exception. README §6 shows all three outcomes.
-- *Canonicalisation / cross-tenant reuse* — **done.** Routes canonicalized, values
+- *Canonicalization / cross-tenant reuse* — **done.** Routes canonicalized, values
   parameterized (`{{input.memberId}}-00`), and one recording replayed at a second tenant
   with per-tenant overrides (scenario `09`).
 - *Multi-run stability* — **done.** `--times N` reports success rate and locator

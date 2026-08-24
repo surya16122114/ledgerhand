@@ -519,7 +519,7 @@ export function perceiveInPage(generation: number): RawPerception {
     // "the 6th cell in SHARE / DEPOSIT ACCOUNTS" is meaningless the moment a member
     // has a different number of accounts, and its failure mode is the worst one
     // available: it resolves successfully to the wrong row and returns a
-    // neighbouring account's balance. A read that cannot be addressed by row and
+    // neighboring account's balance. A read that cannot be addressed by row and
     // column should fail, not guess.
     if (section && role !== 'cell') {
       const sameSection = controls.filter((c) => c.section === section && c.role === role).length;

@@ -21,7 +21,7 @@ import type { Action, PerceivedControl, RiskClass } from '../surface/types.js';
 const IRREVERSIBLE_VERBS = [
   'submit', 'confirm', 'post', 'transfer', 'send', 'pay', 'withdraw', 'deposit',
   'delete', 'remove', 'close', 'void', 'reverse', 'approve', 'authorize', 'authorize',
-  'issue', 'disburse', 'charge', 'refund', 'wire', 'commit', 'finalize', 'finalise',
+  'issue', 'disburse', 'charge', 'refund', 'wire', 'commit', 'finalize', 'finalize',
   'open account', 'create', 'save', 'apply', 'accept', 'sign off',
 ];
 
