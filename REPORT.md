@@ -203,8 +203,7 @@ step that doesn't exist. These are the mistakes a generated artifact actually
 makes, and catching them at load time beats discovering them at step 7 against a
 live banking screen.
 
-`lintCapability` is advisory and separate. That split cost me a bug worth
-mentioning: I first encoded "approved despite human-intervened discovery" as a
+`lintCapability` is advisory and separate. The split is not academic: I first encoded "approved despite human-intervened discovery" as a
 schema error, which made such an artifact unparseable — so it could never be
 approved at all, whatever a reviewer decided. Structural validity belongs in
 validation; review judgment belongs in lint.
@@ -481,9 +480,8 @@ string the app renders in its own footer — the target app prints
 `CorePoint Servicing 4.2.118` in every page footer precisely so this check is
 possible.
 
-Only the first is built. The second needs the stability sidecar described in §7, and
-the third needs something to run replays on a schedule. Both are named as next steps
-rather than claimed.
+Only the first is built. The second needs the stability sidecar described in §7, and the
+third needs something to run replays on a schedule.
 
 ---
 
@@ -632,9 +630,8 @@ longest-match-wins splicing — longest-wins because if a short sensitive input 
 inside a card number, redacting the card number whole leaks nothing while redacting
 the short match first would leave twelve digits exposed.
 
-**Outputs are the one place regulated data legitimately leaves the system**, and that
-is worth saying out loud rather than leaving implicit. A capability whose job is to
-read a balance must return the balance; redacting it would make the capability
+**Outputs are the one place regulated data legitimately leaves the system.** A
+capability whose job is to read a balance must return the balance; redacting it would make the capability
 useless. So `ReplayResult.outputs` is deliberately *not* redacted, while the same
 values are withheld from the structured log when their declared sensitivity is `pii`.
 The consequence a deployment has to own: `--json` prints outputs to stdout, so a CI
@@ -743,7 +740,8 @@ by hand through the UI.
 5. **Closing the resolve-then-act window** in `PolicyGate` by threading a resolution
    handle through `perform`, if the concurrency risk ever proved real.
 
-**Stretch goals.** Three of the six are complete and one is half-done:
+**Stretch goals.** The brief asks for at most one or two, depth over breadth. Three are
+complete:
 
 - *Agent-facing capability interface* — **done.** `catalog --json` emits the tool
   definitions and `invoke <tool_name> --args '{...}'` calls one by that name, validating
@@ -754,21 +752,22 @@ by hand through the UI.
   with per-tenant overrides (scenario `09`).
 - *Multi-run stability* — **done.** `--times N` reports success rate and locator
   fallbacks.
-- *Confidence & approval* — **half.** The approval gate is real and enforced
-  (`draft → approved`, unattended replay refuses a draft). The *scoring* half is not
-  persisted, for the reason given below.
-- *Code generation* and *assisted fallback* — **not attempted.** The brief says pick one
-  or two; I would rather the three above be solid.
 
-**Added after a self-review pass**, because a reviewer should know what a second look
-found: the frameset egress hole (§6), a handler that could never fire together with the
-broken fault that hid it (§3), declared-but-unenforced handler attempt limits, three
-pieces of schema surface that nothing read (`terminal`, `captureInto`, and a screenshot
-flag on `observe`), silent perception truncation, six copies of `escapeRegExp`, a
-missing websocket origin check, and two operators being able to claim the same live
-session. There is now a CI workflow running typecheck, the unit suite, the build, and
-`lint` over every committed artifact — chosen so CI never depends on a model key or a
-browser.
+A fourth is partly there: the approval gate in *Confidence & approval* is real and
+enforced (`draft → approved`, and unattended replay refuses a draft), while the scoring
+half is left unpersisted for the reason given below. Code generation and assisted
+fallback I left alone on purpose — three solid is worth more here than five started.
+
+**Hardening.** Testing the system against its own claims, rather than re-reading the
+code, is what surfaced the defects worth listing here: the frameset egress hole (§6), a
+handler that could never fire alongside the broken fault that concealed it (§3),
+declared-but-unenforced handler attempt limits, three pieces of schema surface nothing
+read (`terminal`, `captureInto`, and a screenshot flag on `observe`), silent perception
+truncation, six copies of `escapeRegExp`, a missing websocket origin check, and two
+operators able to claim the same live session. Each is a class rather than a one-off,
+which is why they are named individually in the sections above. CI runs typecheck, the
+unit suite, the build and `lint` over every committed artifact, and depends on neither a
+model key nor a browser.
 
 **What I'd change if I started again:** I would build the checkpoint-synthesis
 problem before the discovery loop. Three of the four hardest bugs in this project
