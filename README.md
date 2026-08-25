@@ -43,7 +43,7 @@ npm run cli -- replay member.read-savings-balance --input memberId=99999
 npx tsx scripts/fault-replay.ts session-expiry member-detail
 
 # the SAME recording at a second institution — different routes, labels and a
-# compliance gate — via a 20-line overlay
+# compliance gate — via an overlay of four label and four route aliases
 npm run cli -- replay member.read-savings-balance --tenant riverstone-fcu \
   --base-url http://localhost:4174 --input memberId=12345
 ```
@@ -96,7 +96,7 @@ OPENAI_MODEL=gpt-4.1
 
 The operator credentials in `.env.example` are the stand-in app's own fake
 credentials. They are loaded into a secret vault at runtime and never written to an
-artifact or a log — see [REPORT.md §6](REPORT.md#6-safety).
+artifact or a log — see [REPORT.md Section 6](REPORT.md#6-safety).
 
 Everything else works with no keys and no live services:
 
@@ -198,8 +198,9 @@ npm run replay -- member.read-savings-balance \
 ```
 
 Riverstone has different routes, calls the key field `Account Holder #`, calls the
-button `Find`, and forces an acceptable-use gate Meridian does not have. A 20-line
-overlay handles the renames; the compliance gate is absorbed by the product profile.
+button `Find`, and forces an acceptable-use gate Meridian does not have. An overlay of
+four label aliases and four route aliases handles the renames; the compliance gate is
+absorbed by the product profile.
 
 ### 5. Human-in-the-loop on an irreversible action
 

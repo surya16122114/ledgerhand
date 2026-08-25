@@ -73,7 +73,7 @@ worth noting as a real seam violation rather than glossing over.
   `resolve` re-perceives before every action by design. A desktop driver would need
   a cache keyed on a window-change event rather than the current
   perceive-every-time approach, which trades away some of the determinism argument
-  in `REPORT.md §3`.
+  in `REPORT.md Section 3`.
 - **Screencast for the operator handoff.** There is no CDP equivalent. The
   handoff would need per-frame window capture plus `SendInput`, or an existing remote
   desktop transport. The `ControlLease` and `InterventionBroker` do not change; only

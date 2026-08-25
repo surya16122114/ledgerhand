@@ -97,12 +97,12 @@ remote-input path was verified end to end: an operator clicked into the live vie
 typed into the Description field, and authorized the submit — after which the
 application stored `HOLIDAY CLUBVACATION CLUB`, the operator's text, proving the
 keystrokes reached the same live session the automation had been driving. That is
-described in `REPORT.md §5`; the run itself is not committed here because it was
+described in `REPORT.md Section 5`; the run itself is not committed here because it was
 driven interactively.
 
 ## Why the transcripts are committed at all
 
-`REPORT.md §2` argues that a discovery transcript should *not* travel with an
+`REPORT.md Section 2` argues that a discovery transcript should *not* travel with an
 artifact — the artifact carries only `provenance.transcriptDigest`, because a
 transcript is the one thing guaranteed to contain whatever the model read off the
 screen. Committing transcripts here is a deliberate exception, not a contradiction:

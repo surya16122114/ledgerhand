@@ -36,12 +36,24 @@ from it.
   surface/                     perceive and act — the only Playwright-aware layer
 ```
 
-**The load-bearing decision is the `Surface` seam.** Nothing above `src/surface/`
-mentions Playwright, a CSS selector, or a pixel coordinate. Everything above it
-speaks in normalized control roles, semantic target strategies, and declarative
-conditions. `src/surface/matching.ts` — which answers "find the control this
-artifact is describing" — is a pure function over `PerceivedControl[]`, so it is
-shared by any driver and unit-tested without a browser.
+**The load-bearing decision is the `Surface` seam.** No layer above `src/surface/`
+*reasons* about Playwright, a CSS selector, or a pixel coordinate: the artifact, the
+matcher, the condition evaluator, the replay engine and the policy gate all speak only in
+normalized control roles, semantic target strategies, and declarative conditions.
+`src/surface/matching.ts` — which answers "find the control this artifact is describing"
+— is a pure function over `PerceivedControl[]`, so it is shared by any driver and
+unit-tested without a browser.
+
+Three places above the seam do name the concrete driver, and they are worth stating
+rather than glossing, because a reviewer will grep for them:
+
+| where | why |
+|---|---|
+| `agent/loop.ts`, `replay/engine.ts` | the composition root has to construct *some* driver; it is the only thing either file knows about Playwright, and swapping surfaces means changing that one line |
+| `escalation/operator-server.ts`, `human-recorder.ts` | the operator handoff holds a real `Page`, because CDP screencast and input forwarding have no surface-agnostic equivalent — a desktop handoff needs a different transport entirely (see Section 4) |
+
+Everything else — schema, matching, conditions, the step loop, the error taxonomy, policy
+— is driver-agnostic, and that is the property the seam exists to buy.
 
 **Guardrails are decorators, not helper functions.** `PolicyGate` and `LeaseGuard`
 both *implement* `Surface` and wrap the real one:
@@ -79,7 +91,7 @@ infrastructure, and I didn't.
 
 - **`dom-hint` exists at all.** A recorded CSS path is the least durable thing in
   the artifact and I record it anyway, as the last fallback, because when it fires
-  it tells you something (see drift, §3). Overlays drop it for other tenants, where
+  it tells you something (see drift, Section 3). Overlays drop it for other tenants, where
   it is worse than useless.
 
 ---
@@ -219,11 +231,15 @@ refuses to save on a hit.
 
 ### How replay is deterministic
 
-**Conditions, not sleeps.** Every transition is gated on a declared `Condition`,
-polled against fresh perception until its budget expires. There is no `sleep(n)` in
-the step loop. The only two timers in the action path are inside
-`PlaywrightWebSurface.settle()` and neither is load-bearing: correctness comes from
-the conditions, `settle` only reduces how many polls they need.
+**Conditions, not sleeps.** Every transition is gated on a declared `Condition`, polled
+against fresh perception until its budget expires. Nothing advances because a timer
+elapsed.
+
+There are exactly three waits in the whole execution path, and none of them decides
+whether a step succeeded: two inside `PlaywrightWebSurface.settle()`, which only reduce
+how many times a condition has to poll, and one `sleep(backoffMs)` in the `retryStep`
+handler, which is a back-off before re-attempting — the checkpoint still has to hold
+afterwards. Correctness comes from the conditions in all three cases.
 
 This is also how **transient slowness** is handled, and the answer is more boring than
 a retry policy: a 9-second stall on a step with a 10-second budget is absorbed by
@@ -452,7 +468,7 @@ the same vendor build what differs is overwhelmingly wording and routing rather 
 flow structure.
 
 This is demonstrated, not asserted. `overlays/corepoint-servicing.riverstone-fcu.json`
-is 20 lines — four labels, four routes. With it, the capability recorded against
+declares four label aliases and four route aliases, and nothing else. With it, the capability recorded against
 Meridian replays successfully against Riverstone, which has different routes
 (`/signon.aspx`, `/servicing/find-member.aspx`), a differently named key field
 (`Account Holder #`), a differently named button (`Find`), and a mandatory
@@ -480,7 +496,7 @@ string the app renders in its own footer — the target app prints
 `CorePoint Servicing 4.2.118` in every page footer precisely so this check is
 possible.
 
-Only the first is built. The second needs the stability sidecar described in §7, and the
+Only the first is built. The second needs the stability sidecar described in Section 7, and the
 third needs something to run replays on a schedule.
 
 ---
@@ -581,7 +597,7 @@ saw `console.aspx` forever. I pointed the agent at the **Administration** link, 
 on the *deny* list, and it went straight there: the body frame landed on `/admin.aspx`,
 the gate allowed the click, and nothing tripped. The seam now reports
 `frameUrls` alongside `url` and the gate checks all of them
-(`tests/gate.test.ts` pins it). It is the same root cause as the checkpoint bug in §3 —
+(`tests/gate.test.ts` pins it). It is the same root cause as the checkpoint bug in Section 3 —
 on a frameset, the thing you naturally reach for never changes — which is why that
 pattern is worth naming rather than just fixing twice.
 
@@ -642,7 +658,7 @@ and the schema tells them exactly which fields it applies to.
 stops remote attackers, not local pages: without an origin check, any page the operator
 had open in another tab could connect to the live channel and — whenever the lease
 happened to sit with the operator — drive a signed-on banking session. Proportionate
-rather than complete, and §7 says what would close it.
+rather than complete, and Section 7 says what would close it.
 
 ### Limits of the model, stated plainly
 
@@ -708,7 +724,7 @@ rather than complete, and §7 says what would close it.
 **Mocked, at a stated seam:** the human's *judgment* in the committed evidence.
 `scripts/operator-autoresolve.ts` issues exactly the two HTTP requests the console's
 own buttons issue; the broker, lease, intervention record and console server are all
-real. The console screenshot and the ground-truth handoff described in §5 were done
+real. The console screenshot and the ground-truth handoff described in Section 5 were done
 by hand through the UI.
 
 **With more time, in order:**
@@ -746,7 +762,7 @@ complete:
 - *Agent-facing capability interface* — **done.** `catalog --json` emits the tool
   definitions and `invoke <tool_name> --args '{...}'` calls one by that name, validating
   against the advertised schema and returning an agent-shaped envelope where a business
-  outcome is data rather than an exception. README §6 shows all three outcomes.
+  outcome is data rather than an exception. README Section 6 shows all three outcomes.
 - *Canonicalization / cross-tenant reuse* — **done.** Routes canonicalized, values
   parameterized (`{{input.memberId}}-00`), and one recording replayed at a second tenant
   with per-tenant overrides (scenario `09`).
@@ -759,8 +775,8 @@ half is left unpersisted for the reason given below. Code generation and assiste
 fallback I left alone on purpose — three solid is worth more here than five started.
 
 **Hardening.** Testing the system against its own claims, rather than re-reading the
-code, is what surfaced the defects worth listing here: the frameset egress hole (§6), a
-handler that could never fire alongside the broken fault that concealed it (§3),
+code, is what surfaced the defects worth listing here: the frameset egress hole (Section 6), a
+handler that could never fire alongside the broken fault that concealed it (Section 3),
 declared-but-unenforced handler attempt limits, three pieces of schema surface nothing
 read (`terminal`, `captureInto`, and a screenshot flag on `observe`), silent perception
 truncation, six copies of `escapeRegExp`, a missing websocket origin check, and two
