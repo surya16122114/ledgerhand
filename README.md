@@ -129,10 +129,14 @@ npm run demo:discover
 ```
 
 The agent signs on, navigates to Member Servicing, searches for a member, and reads
-their savings balance — then the run is compiled into
-`capabilities/member.read-savings-balance@1.0.0.json`, linted, and saved as a
-`draft`. Runs headed by default so you can watch. Takes about a minute and costs
-cents.
+their savings balance — then the run is compiled into a capability artifact, linted, and
+saved as a `draft`. Runs headed by default so you can watch. Takes about a minute and
+costs cents.
+
+The committed artifacts are what `/evidence` was produced against, so a rediscovery will
+**not** overwrite one: it saves the run's evidence, then stops and tells you to bump the
+version or pass `--force`. Discovery is non-deterministic, so a second run of the same
+goal will not produce a byte-identical artifact.
 
 Inspect what was recorded:
 
@@ -267,7 +271,15 @@ npm run cli -- discover \
 
 It returns `ACTIVE / BR-014 NORTHGATE` for member 12345 and `DORMANT / BR-014 NORTHGATE`
 for member 30014 — the reads resolve by their on-screen labels, not by the values that
-happened to be there at record time.
+happened to be there at record time. Try it without the model:
+
+```bash
+npm run cli -- invoke member_read_profile_summary --args '{"memberId":"30014"}'
+```
+
+(That exact command re-discovers a capability that already exists, so it will refuse to
+save over it. Use a different `--capability-id`, or add `--force` if replacing it is what
+you want.)
 
 ---
 

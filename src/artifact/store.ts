@@ -21,6 +21,7 @@
  */
 
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
@@ -263,9 +264,36 @@ export function parseCapability(raw: unknown, file = '<memory>'): Capability {
   return cap;
 }
 
-export async function saveCapability(cap: Capability, dir = DEFAULT_CAPABILITY_DIR): Promise<{ file: string; digest: string }> {
+export class CapabilityExistsError extends Error {
+  constructor(readonly file: string, readonly id: string, readonly version: string) {
+    super(
+      `${file} already exists. A discovery run will not silently replace a saved capability: ` +
+        `the committed artifact is what the evidence was produced against, and its content digest is what makes ` +
+        `"has this approved capability changed?" answerable. Bump the version, or pass --force to overwrite deliberately.`,
+    );
+    this.name = 'CapabilityExistsError';
+  }
+}
+
+/**
+ * @param overwrite required to replace an existing file.
+ *
+ * Defaults to false because the obvious behaviour is the dangerous one. Following the
+ * README's own demo path used to overwrite the committed artifacts -- the exact files
+ * /evidence references by digest and the replay scenarios ran against -- so a reviewer
+ * evaluating the submission destroyed part of it just by trying the demo. `approve` and
+ * `overlay` legitimately rewrite an artifact in place and opt in.
+ */
+export async function saveCapability(
+  cap: Capability,
+  dir = DEFAULT_CAPABILITY_DIR,
+  opts: { overwrite?: boolean } = {},
+): Promise<{ file: string; digest: string }> {
   const validated = parseCapability(cap);
   const file = join(dir, capabilityFilename(validated));
+  if (!opts.overwrite && existsSync(file)) {
+    throw new CapabilityExistsError(file, validated.id, validated.version);
+  }
   await mkdir(dirname(file), { recursive: true });
   await writeFile(file, `${canonicalJson(validated)}\n`, 'utf8');
   await rebuildIndex(dir);

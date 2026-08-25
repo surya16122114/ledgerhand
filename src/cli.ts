@@ -55,6 +55,7 @@ discover options
   --provider <openai|transcript>   default from LLM_PROVIDER, else openai
   --transcript <file>       for --provider transcript
   --no-save                 do not write the artifact to ${DEFAULT_CAPABILITY_DIR}/
+  --force                   overwrite an existing capability of the same id@version
 
 replay options
   --input <name=value>      repeatable
@@ -213,8 +214,14 @@ async function cmdDiscover(args: Args): Promise<number> {
   }
 
   if (!args.flag('no-save')) {
-    const { file, digest } = await saveCapability(cap);
-    process.stdout.write(`saved ${file}\n  digest ${digest}\n\nnext: npm run replay -- ${cap.id} --input ${cap.inputs.map((i) => `${i.name}=<value>`).join(' --input ')}\n`);
+    try {
+      const { file, digest } = await saveCapability(cap, DEFAULT_CAPABILITY_DIR, { overwrite: args.flag('force') });
+      process.stdout.write(`saved ${file}\n  digest ${digest}\n\nnext: npm run replay -- ${cap.id} --input ${cap.inputs.map((i) => `${i.name}=<value>`).join(' --input ')}\n`);
+    } catch (err) {
+      process.stderr.write(`\n${err instanceof Error ? err.message : String(err)}\n`);
+      process.stderr.write(`\nThe run itself succeeded; its evidence is in ${result.evidenceDir}.\n`);
+      return 1;
+    }
   }
   if (args.flag('json')) process.stdout.write(`${JSON.stringify({ status: 'success', capability: cap.id, version: cap.version, runId: result.runId }, null, 2)}\n`);
   return 0;
@@ -407,7 +414,8 @@ async function cmdApprove(args: Args): Promise<number> {
   cap.lifecycle.state = 'approved';
   cap.lifecycle.approvedBy = by;
   cap.lifecycle.approvedAt = new Date().toISOString();
-  const { file, digest } = await saveCapability(cap);
+  // Rewriting the same artifact in place is the whole point of approving it.
+  const { file, digest } = await saveCapability(cap, DEFAULT_CAPABILITY_DIR, { overwrite: true });
   process.stdout.write(`approved ${cap.id}@${cap.version} by ${by}\n  ${file}\n  digest ${digest}\n`);
   return 0;
 }
@@ -606,7 +614,8 @@ async function cmdOverlay(args: Args): Promise<number> {
   const { audit } = applyOverlay(cap, overlay);
 
   cap.overlays = [...cap.overlays.filter((o) => o.tenantId !== overlay.tenantId), overlay];
-  const { file: written, digest } = await saveCapability(cap);
+  // Attaching an overlay edits the existing artifact by design.
+  const { file: written, digest } = await saveCapability(cap, DEFAULT_CAPABILITY_DIR, { overwrite: true });
 
   process.stdout.write(
     [

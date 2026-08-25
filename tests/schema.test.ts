@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
+import { existsSync } from 'node:fs';
+import { readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { ARTIFACT_SCHEMA_VERSION, capabilitySchema, type Capability } from '../src/artifact/schema.js';
-import { canonicalJson, capabilityDigest, lintCapability, parseCapability } from '../src/artifact/store.js';
+import { canonicalJson, capabilityDigest, lintCapability, parseCapability, saveCapability } from '../src/artifact/store.js';
 
 /**
  * A minimal but valid capability, built by a helper so each test can perturb one
@@ -305,5 +310,43 @@ describe('approval of human-intervened discovery', () => {
     const findings = lintCapability(cap);
     expect(findings.map((f) => f.code)).toContain('HUMAN_INTERVENED_DISCOVERY');
     expect(findings.find((f) => f.code === 'HUMAN_INTERVENED_DISCOVERY')?.severity).toBe('warn');
+  });
+});
+
+describe('saveCapability does not clobber', () => {
+  // Regression: the README's own demo path told a reviewer to run `discover`, which
+  // silently overwrote the committed artifacts -- the files /evidence references by
+  // digest and every replay scenario ran against. Evaluating the submission destroyed
+  // part of it.
+  const dir = join(tmpdir(), `lh-save-${randomUUID().slice(0, 8)}`);
+  const cap = () => capabilitySchema.parse(base()) as Capability;
+
+  afterAll(async () => {
+    await rm(dir, { recursive: true, force: true });
+  });
+
+  it('writes a capability that does not exist yet', async () => {
+    const { file } = await saveCapability(cap(), dir);
+    expect(existsSync(file)).toBe(true);
+  });
+
+  it('refuses to replace an existing id@version, and says what to do instead', async () => {
+    await expect(saveCapability(cap(), dir)).rejects.toThrow(/already exists/);
+    await expect(saveCapability(cap(), dir)).rejects.toThrow(/Bump the version, or pass --force/);
+  });
+
+  it('replaces it when overwrite is explicit -- which is how approve and overlay work', async () => {
+    const changed = cap();
+    changed.lifecycle.state = 'approved';
+    const { file } = await saveCapability(changed, dir, { overwrite: true });
+    const written = JSON.parse(await readFile(file, 'utf8')) as Capability;
+    expect(written.lifecycle.state).toBe('approved');
+  });
+
+  it('allows a different version alongside the first', async () => {
+    const next = cap();
+    next.version = '1.1.0';
+    const { file } = await saveCapability(next, dir);
+    expect(file).toContain('@1.1.0');
   });
 });
