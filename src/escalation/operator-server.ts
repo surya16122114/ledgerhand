@@ -132,6 +132,13 @@ export async function startOperatorConsole(opts: OperatorConsoleOptions): Promis
     void attachLiveSession(socket, page, lease, log);
   });
 
+  // A WebSocketServer attached to an http server re-emits that server's errors, and an
+  // EventEmitter 'error' with no listener throws. Registering this *after* listen()
+  // therefore left a window where a failed bind crashed the whole run -- which is
+  // exactly the failure this block claims to prevent. It goes on before listen, not
+  // after.
+  wss.on('error', (err) => log('operator.console.error', { error: err.message }));
+
   // Bind failures must not take the run down with them.
   //
   // Without this, an EADDRINUSE surfaces as an unhandled 'error' event on the
@@ -159,7 +166,6 @@ export async function startOperatorConsole(opts: OperatorConsoleOptions): Promis
   });
   // Past the bind, a socket-level error should be logged, not thrown.
   server.on('error', (err) => log('operator.console.error', { error: err.message }));
-  wss.on('error', (err) => log('operator.console.error', { error: err.message }));
 
   const url = `http://127.0.0.1:${port}/`;
   log('operator.console.started', { url });

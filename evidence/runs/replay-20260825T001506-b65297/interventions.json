@@ -1,0 +1,78 @@
+{
+  "updatedAt": "2026-08-25T00:19:22.871Z",
+  "interventions": [
+    {
+      "id": "int_f240ce05",
+      "createdAt": "2026-08-25T00:15:10.003Z",
+      "reason": "unhandled-condition",
+      "headline": "Replay stuck: Open the servicing console entry screen",
+      "detail": "Step '01-open-entry' failed with SURFACE_FAULT and no declared handler matched the current state.\n\nexpected: (none)\nobserved: (none)",
+      "context": {
+        "runId": "replay-20260825T001506-b65297",
+        "runKind": "replay",
+        "capability": {
+          "id": "member.read-savings-balance",
+          "version": "1.0.0",
+          "tenantId": "meridian-cu"
+        },
+        "step": {
+          "index": 0,
+          "id": "01-open-entry",
+          "intent": "Open the servicing console entry screen"
+        },
+        "location": {
+          "url": "chrome-error://chromewebdata/",
+          "title": "localhost"
+        },
+        "visibleExcerpt": "This site can’t be reached localhost refused to connect. Try: Checking the connection Checking the proxy and the firewall ERR_CONNECTION_REFUSED Reload Details",
+        "evidence": {
+          "screenshot": "evidence/runs/replay-20260825T001506-b65297/screenshots/008-escalation-01-open-entry.png",
+          "snapshot": "evidence/runs/replay-20260825T001506-b65297/snapshots/008-escalation-01-open-entry.html"
+        },
+        "attempt": {
+          "action": "navigate",
+          "errorCode": "SURFACE_FAULT"
+        }
+      },
+      "status": "pending",
+      "humanActions": [
+        {
+          "at": "2026-08-25T00:15:14.791Z",
+          "kind": "navigate",
+          "url": "chrome-error://chromewebdata/"
+        },
+        {
+          "at": "2026-08-25T00:15:44.870Z",
+          "kind": "navigate",
+          "url": "chrome-error://chromewebdata/"
+        },
+        {
+          "at": "2026-08-25T00:16:44.940Z",
+          "kind": "navigate",
+          "url": "chrome-error://chromewebdata/"
+        },
+        {
+          "at": "2026-08-25T00:19:20.782Z",
+          "kind": "navigate",
+          "url": "chrome-error://chromewebdata/"
+        },
+        {
+          "at": "2026-08-25T00:19:22.871Z",
+          "kind": "click",
+          "control": "User ID",
+          "role": "textbox",
+          "url": "http://localhost:4173/login.aspx"
+        }
+      ],
+      "leaseTransitions": [
+        {
+          "at": "2026-08-25T00:15:10.003Z",
+          "from": "automation",
+          "to": "operator",
+          "by": "system",
+          "reason": "escalation int_f240ce05: unhandled-condition"
+        }
+      ]
+    }
+  ]
+}
