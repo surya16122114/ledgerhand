@@ -14,6 +14,45 @@ runs is in **[evidence/](evidence/)**.
 
 ---
 
+## Prove it works — 2 minutes, no API key
+
+```bash
+npm install && npx playwright install chromium && cp .env.example .env
+npm test                 # 172 tests: no browser, no network, no key
+npm run target-app       # leave running; serves two tenants on 4173 and 4174
+```
+
+Then in a second terminal:
+
+```bash
+npm run demo:replay
+```
+
+```
+SUCCESS  member.read-savings-balance@1.0.0  outputs={"savingsBalance":8241.77}  11313ms
+```
+
+That is a capability an LLM discovered once, replaying with **no model in the loop**.
+Three commands prove the rest of the thesis:
+
+```bash
+# "no such member" is a business outcome the caller handles, not a crash
+npm run cli -- replay member.read-savings-balance --input memberId=99999
+
+# the session dies mid-run: re-authenticates, returns to the right screen, finishes
+npx tsx scripts/fault-replay.ts session-expiry member-detail
+
+# the SAME recording at a second institution — different routes, labels and a
+# compliance gate — via a 20-line overlay
+npm run cli -- replay member.read-savings-balance --tenant riverstone-fcu \
+  --base-url http://localhost:4174 --input memberId=12345
+```
+
+The full walkthrough, including a real discovery run and the human-in-the-loop handoff,
+is under [Demo path](#demo-path) below.
+
+---
+
 ## The target application
 
 There is no public sandbox that exercises the interesting problems, so this repo
