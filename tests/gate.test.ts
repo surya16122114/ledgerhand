@@ -97,6 +97,32 @@ describe('PolicyGate egress check', () => {
     expect(gate.trippedReason()?.code).toBe('URL_NOT_ALLOWED');
   });
 
+  it('does not trip on a FAILED navigation, which is a load problem not an escape', async () => {
+    // Regression. Chromium parks a frame whose navigation stalled or failed on
+    // chrome-error://chromewebdata/. Treating that as egress latched the session shut on
+    // a loaded machine after a click on a perfectly permitted link, turning a transient
+    // load failure into a security incident and aborting the run.
+    const inner = stub({ frameUrls: ['http://localhost:4173/console.aspx', 'chrome-error://chromewebdata/'] });
+    const gate = gateOver(inner);
+    expect((await gate.perform({ kind: 'click', target })).ok).toBe(true);
+    expect(gate.isTripped()).toBe(false);
+  });
+
+  it('ignores other browser-internal schemes', async () => {
+    const inner = stub({ frameUrls: ['http://localhost:4173/console.aspx', 'data:text/html,x', 'devtools://devtools/x', 'chrome://newtab'] });
+    const gate = gateOver(inner);
+    expect((await gate.perform({ kind: 'click', target })).ok).toBe(true);
+    expect(gate.isTripped()).toBe(false);
+  });
+
+  it('still catches a real off-allowlist http navigation alongside an errored frame', async () => {
+    // The loosening must not blunt the check it exists for.
+    const inner = stub({ frameUrls: ['http://localhost:4173/console.aspx', 'chrome-error://chromewebdata/', 'https://evil.example/x'] });
+    const gate = gateOver(inner);
+    expect((await gate.perform({ kind: 'click', target })).ok).toBe(false);
+    expect(gate.trippedReason()?.reason).toContain('evil.example');
+  });
+
   it('does not trip on an unloaded frame', async () => {
     // A frame that has not navigated yet is not an egress.
     const inner = stub({ frameUrls: ['http://localhost:4173/console.aspx', 'about:blank', ''] });

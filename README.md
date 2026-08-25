@@ -18,7 +18,7 @@ runs is in **[evidence/](evidence/)**.
 
 ```bash
 npm install && npx playwright install chromium && cp .env.example .env
-npm test                 # 172 tests: no browser, no network, no key
+npm test                 # 179 tests: no browser, no network, no key
 npm run target-app       # leave running; serves two tenants on 4173 and 4174
 ```
 
@@ -101,7 +101,7 @@ artifact or a log — see [REPORT.md §6](REPORT.md#6-safety).
 Everything else works with no keys and no live services:
 
 ```bash
-npm test          # 170 unit tests, no browser, no network, no key
+npm test          # 179 unit tests, no browser, no network, no key
 npm run typecheck
 ```
 

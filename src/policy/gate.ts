@@ -230,10 +230,18 @@ export class PolicyGate implements Surface {
     // check passes. Verified against the target app: the agent reached /admin.aspx,
     // a route on the deny list, and the gate allowed it.
     const { frameUrls, url: topUrl } = await this.inner.location();
-    const candidates = [topUrl, ...frameUrls]
-      // about:blank and empty urls are not navigations to content -- a frame that
-      // has not loaded anything yet must not trip the guardrail.
-      .filter((u) => u && !u.startsWith('about:') && !u.startsWith('blob:'));
+    // Only real web navigations are egress. Everything else a frame url can hold is a
+    // browser state, not a place the agent went.
+    //
+    // This distinction is load-bearing, and getting it wrong is worse than having no
+    // check. A frame whose navigation stalls or fails is left on
+    // `chrome-error://chromewebdata/`, which is not `about:` and not `blob:` -- so an
+    // allowlist test that only skips those two reads a *failed page load* as an attempt
+    // to escape, latches the session shut, and escalates. Observed exactly that on a
+    // loaded machine: a click on a permitted menu link timed out, retried, and tripped
+    // the guardrail. A slow load is a job for the checkpoint and the retry handler; the
+    // policy latch is for the agent actually reaching a forbidden place.
+    const candidates = [topUrl, ...frameUrls].filter((u) => /^https?:\/\//i.test(u));
     const offending = candidates.find((u) => !this.allowlist.checkUrl(u).allowed);
     const after = offending ? this.allowlist.checkUrl(offending) : { allowed: true as const };
     if (!after.allowed) {
