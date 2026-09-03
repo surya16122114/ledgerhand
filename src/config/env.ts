@@ -24,8 +24,24 @@ export async function loadEnvFile(path: string): Promise<void> {
     const key = trimmed.slice(0, eq).trim();
     if (process.env[key] !== undefined) continue;
     let value = trimmed.slice(eq + 1).trim();
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    const quoted =
+      (value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"));
+    if (quoted) {
       value = value.slice(1, -1);
+    } else {
+      // Strip a trailing inline comment from an unquoted value.
+      //
+      // `.env.example` documents each variable inline -- `LLM_PROVIDER=openai  # openai
+      // | anthropic | replay` -- and the README's first setup step is
+      // `cp .env.example .env`. Without this, following the documented setup makes the
+      // provider name the entire string including the comment, and discovery fails with
+      // "unknown provider 'openai            # openai | ...'".
+      //
+      // Only ` #` (whitespace then hash) counts as a comment, so a value that legitimately
+      // contains a hash -- a password, a URL fragment -- survives intact. Quoted values are
+      // never touched.
+      const comment = value.search(/\s#/);
+      if (comment !== -1) value = value.slice(0, comment).trimEnd();
     }
     process.env[key] = value;
   }
