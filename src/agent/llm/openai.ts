@@ -35,6 +35,8 @@ export class OpenAiProvider implements LlmProvider {
   private model: string;
   private maxRetries: number;
   private retryBudgetMs: number;
+  /** Cleared the first time a model rejects an explicit temperature. */
+  private temperatureSupported = true;
 
   constructor(opts: OpenAiProviderOptions = {}) {
     const apiKey = opts.apiKey ?? process.env.OPENAI_API_KEY;
@@ -84,7 +86,12 @@ export class OpenAiProvider implements LlmProvider {
             function: { name: t.name, description: t.description, parameters: t.parameters as unknown as Record<string, unknown> },
           })),
           tool_choice: 'auto',
-          temperature: request.temperature ?? 0,
+          // Discovery asks for temperature 0, because a recording is worth more when
+          // the run that produced it was as close to reproducible as the API allows.
+          // Some newer models refuse any value but their default and reject the
+          // request outright, so the preference is dropped rather than allowed to
+          // fail the run -- see supportsTemperature below.
+          ...(this.temperatureSupported ? { temperature: request.temperature ?? 0 } : {}),
           max_completion_tokens: request.maxOutputTokens ?? 1200,
         });
 
@@ -102,6 +109,15 @@ export class OpenAiProvider implements LlmProvider {
         };
       } catch (err) {
         lastError = err;
+        // A model that refuses a non-default temperature says so explicitly. Honour
+        // the constraint and retry once rather than treating a documented API
+        // restriction as a failure -- this is the difference between the provider
+        // working on any model and working on the ones it was written against.
+        if (this.temperatureSupported && /temperature.*does not support|Unsupported value: 'temperature'/i.test(message(err))) {
+          this.temperatureSupported = false;
+          continue;
+        }
+
         const status = (err as { status?: number }).status;
         const retryable = status === 429 || status === 408 || (typeof status === 'number' && status >= 500);
         if (!retryable || attempt === this.maxRetries || waited >= this.retryBudgetMs) {
