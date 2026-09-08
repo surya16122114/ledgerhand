@@ -14,10 +14,13 @@ runs is in **[evidence/](evidence)**.
 
 ---
 
-## Prove it works — 2 minutes, no API key
+## Local setup and replay
 
 ```bash
-npm install && npx playwright install chromium && cp .env.example .env
+npm ci
+npx playwright install chromium
+# Only create .env if it does not already exist:
+test -f .env || cp .env.example .env
 npm test                 # unit/API tests: no browser, no network, no key
 npm run target-app       # leave running; serves two tenants on 4173 and 4174
 ```
@@ -33,7 +36,7 @@ SUCCESS  member.read-savings-balance@1.0.0  outputs={"savingsBalance":8241.77}  
 ```
 
 That is a capability an LLM discovered once, replaying with **no model in the loop**.
-Three commands prove the rest of the thesis:
+Additional examples cover a missing member, session recovery and a second tenant:
 
 ```bash
 # "no such member" is a business outcome the caller handles, not a crash
@@ -42,7 +45,7 @@ npm run cli -- replay member.read-savings-balance --input memberId=99999
 # the session dies mid-run: re-authenticates, returns to the right screen, finishes
 npx tsx scripts/fault-replay.ts session-expiry member-detail
 
-# the SAME recording at a second institution — different routes, labels and a
+# the same recording at a second institution — different routes, labels and a
 # compliance gate — via an overlay of four label and four route aliases
 npm run cli -- replay member.read-savings-balance --tenant riverstone-fcu \
   --base-url http://localhost:4174 --input memberId=12345
@@ -280,7 +283,7 @@ npm run cli -- invoke member_read_profile_summary --args '{"memberId":"30014"}'
 
 ---
 
-### 8. The live target: MERIDIAN CORE, an application this system had never seen
+### 8. Assignment 2: hosted MERIDIAN CORE
 
 Everything above runs against a target in this repo. The same system was then
 pointed at a hosted servicing console it did not know existed —

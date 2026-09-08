@@ -19,3 +19,9 @@ evidence/shared-engine/
 evidence/assignment-2/past-verifications/review-boundary-runs/
 evidence/assignment-2/past-verifications/review-boundary.json
 evidence/assignment-2/original-recordings/exploratory/
+
+# Local Claude tooling settings
+.claude/
+
+# Local JetBrains IDE configuration
+.idea/
