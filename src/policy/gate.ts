@@ -59,6 +59,7 @@ export interface PolicyEvent {
 
 export interface PolicyGateOptions {
   allowlist: AllowlistConfig;
+  irreversibleVerbs?: string[];
   /** Every decision, allow or deny, is emitted. An audit log with only denials is not an audit log. */
   onEvent?: (event: PolicyEvent) => void;
 }
@@ -68,6 +69,7 @@ export class PolicyGate implements Surface {
   readonly sessionId: string;
 
   private allowlist: Allowlist;
+  private irreversibleVerbs: string[];
   private onEvent: (event: PolicyEvent) => void;
   /** Latched when a post-action location check fails. */
   private tripped?: { code: string; reason: string };
@@ -81,6 +83,7 @@ export class PolicyGate implements Surface {
     this.kind = inner.kind;
     this.sessionId = inner.sessionId;
     this.allowlist = new Allowlist(opts.allowlist);
+    this.irreversibleVerbs = opts.irreversibleVerbs ?? [];
     this.onEvent = opts.onEvent ?? (() => {});
   }
 
@@ -167,12 +170,13 @@ export class PolicyGate implements Surface {
     if ('target' in action) {
       targetLabel = action.target.description;
       const res = await this.inner.resolve(action.target);
-      if (res.ok) control = res.control;
+      if (!res.ok) return { ok: false, error: { code: res.code, message: 'target could not be resolved before policy assessment', observed: JSON.stringify(res.attempts) } };
+      control = res.control;
       // A target that will not resolve is the inner surface's error to report,
       // with its per-strategy detail. Failing here would lose that.
     }
 
-    const assessment = classifyRisk(action, control);
+    const assessment = classifyRisk(action, control, this.irreversibleVerbs);
     const riskCheck = this.allowlist.checkRisk(assessment.risk, assessment.reason);
     if (!riskCheck.allowed) {
       const escalatable = assessment.risk === 'irreversible' && this.allowlist.config.allowEscalationForIrreversible;

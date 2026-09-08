@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-09-06T13:29:13.608Z",
+  "rows": [
+    {
+      "name": "bad login",
+      "runId": "replay-20260906T132907-439287",
+      "status": "failed",
+      "code": "AUTHENTICATION_FAILED",
+      "passed": true
+    }
+  ]
+}

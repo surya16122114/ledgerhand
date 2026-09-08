@@ -1,0 +1,22 @@
+{
+  "runId": "discovery-20260904T181258-a090f8",
+  "kind": "discovery",
+  "eventCounts": {
+    "action.ok": 14,
+    "discovery.captured": 1,
+    "discovery.compiled": 1,
+    "discovery.entry": 1,
+    "discovery.finishClaimed": 2,
+    "discovery.finishRejected": 1,
+    "discovery.start": 1,
+    "model.turn": 16,
+    "policy": 15,
+    "policy.preauthorized": 1,
+    "run.end": 1,
+    "run.start": 1
+  },
+  "turns": 16,
+  "recordedSteps": 15,
+  "humanInterventions": 0,
+  "model": "openai:gpt-4.1"
+}

@@ -1,0 +1,143 @@
+{
+  "runId": "replay-20260906T132907-439287",
+  "kind": "replay",
+  "sanitizedEvidenceVersion": 1,
+  "evidenceWriteFailures": 0,
+  "eventCounts": {
+    "evidence.captured": 1,
+    "policy": 5,
+    "policy.ceiling": 1,
+    "policy.preauthorized": 1,
+    "replay.entry": 1,
+    "replay.hardFailure": 1,
+    "replay.start": 1,
+    "run.end": 1,
+    "run.start": 1,
+    "step.end": 5,
+    "step.start": 5,
+    "step.value": 3
+  },
+  "steps": [
+    {
+      "index": 0,
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "action": "navigate",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1314,
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 1,
+      "id": "02-fill-operator-id",
+      "intent": "Enter the operator ID to begin signing on.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1009,
+      "target": "textbox \"Operator ID\" in [pii:record] (textbox labelled \"Operator ID\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 2,
+      "id": "03-fill-[secret]",
+      "intent": "Enter the operator [secret] to continue signing on.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1007,
+      "target": "[secret] \"Password\" in Password=[secret] labelled \"Password\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 3,
+      "id": "04-select-branch",
+      "intent": "Select the correct branch as required for sign on.",
+      "action": "select",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 965,
+      "target": "combobox \"Branch\" in [pii:record] (combobox labelled \"Branch\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 4,
+      "id": "05-click-sign-on",
+      "intent": "Click Sign On to submit the operator credentials and branch for sign on.",
+      "action": "click",
+      "risk": "safe",
+      "status": "failed",
+      "attempts": 1,
+      "durationMs": 1392,
+      "target": "button \"Sign On\" in [pii:record] (button \"Sign On\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "error": {
+        "code": "DECLARED_FAILURE",
+        "message": "The target rejected the operator credentials. Check the configured vault identity before retrying.",
+        "observed": "matched \"Invalid operator ID or [secret]\""
+      }
+    }
+  ],
+  "recoveries": [],
+  "drift": [],
+  "interventions": [],
+  "warnings": [],
+  "outputKeys": [],
+  "status": "failed",
+  "capability": {
+    "id": "session.sign-on",
+    "version": "1.0.0",
+    "digest": "sha256:766b80adef3a8061cf57fc3e206075d8"
+  },
+  "inputDetails": {
+    "branch": {
+      "type": "string",
+      "sensitivity": "internal",
+      "supplied": true
+    }
+  },
+  "outputDetails": {
+    "signedOnOperator": {
+      "type": "string",
+      "sensitivity": "pii",
+      "produced": false
+    },
+    "signedOnBranch": {
+      "type": "string",
+      "sensitivity": "pii",
+      "produced": false
+    }
+  },
+  "inputs": {
+    "branch": "[withheld]"
+  },
+  "outputs": {
+    "signedOnOperator": "[withheld]",
+    "signedOnBranch": "[withheld]"
+  },
+  "error": {
+    "code": "DECLARED_FAILURE",
+    "step": "05-click-sign-on"
+  },
+  "durationMs": 5804
+}

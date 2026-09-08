@@ -5,3 +5,17 @@ dist/
 *.log
 evidence/runs/*/screenshots/*.tmp.png
 .DS_Store
+
+# Local working notes for editor tooling; not part of the submission.
+CLAUDE.md
+
+# Raw tool output. Curated evidence lives in evidence/assignment-1/original-submission/discovery, evidence/assignment-1/original-submission/replays
+# and evidence/assignment-2/original-recordings; this is the scratch directory those were selected from.
+evidence/runs/
+
+# Regenerated rehearsal batches; original submission evidence is retained separately.
+evidence/assignment-1/past-verifications/
+evidence/shared-engine/
+evidence/assignment-2/past-verifications/review-boundary-runs/
+evidence/assignment-2/past-verifications/review-boundary.json
+evidence/assignment-2/original-recordings/exploratory/

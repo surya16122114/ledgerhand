@@ -1,0 +1,314 @@
+{
+  "runId": "replay-20260906T140606-dc650b",
+  "kind": "replay",
+  "sanitizedEvidenceVersion": 1,
+  "evidenceWriteFailures": 0,
+  "eventCounts": {
+    "handler.matched": 1,
+    "policy": 14,
+    "policy.ceiling": 1,
+    "policy.preauthorized": 1,
+    "replay.entry": 1,
+    "replay.start": 1,
+    "run.end": 1,
+    "run.start": 1,
+    "step.end": 14,
+    "step.failed": 1,
+    "step.start": 14,
+    "step.value": 7
+  },
+  "steps": [
+    {
+      "index": 0,
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "action": "navigate",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1293,
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 1,
+      "id": "02-fill-operator-id",
+      "intent": "Enter the operator ID to sign on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 982,
+      "target": "textbox \"Operator ID\" in [pii:record] (textbox labelled \"Operator ID\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 2,
+      "id": "03-fill-[secret]",
+      "intent": "Enter the [secret] to sign on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 998,
+      "target": "[secret] \"Password\" in Password=[secret] labelled \"Password\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 3,
+      "id": "04-click-sign-on",
+      "intent": "Click Sign On to log in to Meridian Core with the entered operator credentials and branch.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1511,
+      "target": "button \"Sign On\" in [pii:record] (button \"Sign On\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 4,
+      "id": "05-click-member-inquiry",
+      "intent": "Go to Member Inquiry to look up the member by member [pii:surface-value].",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1778,
+      "target": "link \"Member Inquiry\" (link \"Member Inquiry\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 5,
+      "id": "06-fill-value",
+      "intent": "Enter the member [pii:surface-value] to look up the member for the funds transfer.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1315,
+      "target": "textbox \"Value\" in [pii:record] (textbox labelled \"Value\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 6,
+      "id": "07-click-search",
+      "intent": "Search for the member using the entered member [pii:surface-value] to access their account details for the funds transfer.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1739,
+      "target": "button \"Search\" in [pii:record] (button \"Search\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 7,
+      "id": "08-click-select",
+      "intent": "Select the member to access their account details and initiate a funds transfer.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1803,
+      "target": "link \"Select\" in [pii:record] (link \"Select\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 8,
+      "id": "09-click-funds-transfer",
+      "intent": "Open the Funds Transfer screen to initiate a transfer between the member's shares.",
+      "action": "click",
+      "risk": "irreversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 2065,
+      "target": "link \"Funds Transfer\" in [pii:record] (link \"Funds Transfer\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 9,
+      "id": "10-select-from-share",
+      "intent": "Select the source share {{input.fromShare}} for the funds transfer.",
+      "action": "select",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1326,
+      "target": "combobox \"From Share\" in [pii:record] (combobox labelled \"From Share\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 10,
+      "id": "11-select-to-share",
+      "intent": "Select the destination share {{input.toShare}} for the funds transfer.",
+      "action": "select",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1309,
+      "target": "combobox \"To Share\" in [pii:record] (combobox labelled \"To Share\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 11,
+      "id": "12-fill-amount",
+      "intent": "Enter the amount to transfer between the selected shares.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1255,
+      "target": "textbox \"Amount\" in [pii:record] (textbox labelled \"Amount\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 12,
+      "id": "13-fill-memo",
+      "intent": "Enter the memo for the funds transfer as specified in the task parameters.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1275,
+      "target": "textbox \"Memo\" in [pii:record] (textbox labelled \"Memo\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 13,
+      "id": "14-click-continue",
+      "intent": "Continue to the confirmation screen to review the funds transfer details before posting.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 11919,
+      "target": "button \"Continue\" in [pii:record] (button \"Continue\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": false,
+        "observed": "sub-condition 1 failed: /CONFIRM [pii:surface-value]/ not found in 373 chars of visible text"
+      }
+    }
+  ],
+  "recoveries": [],
+  "drift": [],
+  "interventions": [],
+  "warnings": [],
+  "outputKeys": [],
+  "status": "business_outcome",
+  "capability": {
+    "id": "member.transfer-funds",
+    "version": "1.0.0",
+    "digest": "sha256:00a3daabc7baa56103e7a2090fa829c7"
+  },
+  "inputDetails": {
+    "memberId": {
+      "type": "string",
+      "sensitivity": "pii",
+      "supplied": true
+    },
+    "fromShare": {
+      "type": "string",
+      "sensitivity": "internal",
+      "supplied": true
+    },
+    "toShare": {
+      "type": "string",
+      "sensitivity": "internal",
+      "supplied": true
+    },
+    "amount": {
+      "type": "money",
+      "sensitivity": "internal",
+      "supplied": true
+    },
+    "memo": {
+      "type": "string",
+      "sensitivity": "internal",
+      "supplied": true
+    }
+  },
+  "outputDetails": {
+    "confirmationReference": {
+      "type": "string",
+      "sensitivity": "pii",
+      "produced": false
+    }
+  },
+  "inputs": {
+    "memberId": "[withheld]",
+    "fromShare": "[withheld]",
+    "toShare": "[withheld]",
+    "amount": "[withheld]",
+    "memo": "[withheld]"
+  },
+  "outputs": {
+    "confirmationReference": "[withheld]"
+  },
+  "outcome": {
+    "code": "SOURCE_SHARE_RESTRICTED"
+  },
+  "durationMs": 30671
+}

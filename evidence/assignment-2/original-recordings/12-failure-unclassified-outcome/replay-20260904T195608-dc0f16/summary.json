@@ -1,0 +1,279 @@
+{
+  "runId": "replay-20260904T195608-dc0f16",
+  "kind": "replay",
+  "eventCounts": {
+    "escalation.raised": 1,
+    "escalation.timeout": 1,
+    "evidence.captured": 2,
+    "handler.matched": 1,
+    "handler.retry": 1,
+    "policy": 15,
+    "policy.ceiling": 1,
+    "policy.preauthorized": 1,
+    "replay.entry": 1,
+    "replay.hardFailure": 1,
+    "replay.start": 1,
+    "run.end": 1,
+    "run.start": 1,
+    "step.end": 14,
+    "step.failed": 2,
+    "step.start": 14,
+    "step.value": 7
+  },
+  "steps": [
+    {
+      "index": 0,
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "action": "navigate",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1293,
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 1,
+      "id": "02-fill-operator-id",
+      "intent": "Enter the operator ID to sign on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 886,
+      "target": "textbox \"Operator ID\" in Operator ID: (textbox labelled \"Operator ID\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 2,
+      "id": "03-fill-[secret]",
+      "intent": "Enter the [secret] to sign on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 861,
+      "target": "[secret] \"Password\" in Password=[secret] labelled \"Password\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 3,
+      "id": "04-click-sign-on",
+      "intent": "Click Sign On to log in to Meridian Core with the provided operator credentials.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1391,
+      "target": "button \"Sign On\" in Branch: (button \"Sign On\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 4,
+      "id": "05-click-member-inquiry",
+      "intent": "Go to Member Inquiry to look up the member by member number.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1814,
+      "target": "link \"Member Inquiry\" (link \"Member Inquiry\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 5,
+      "id": "06-fill-value",
+      "intent": "Enter the member number to search for the member record.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1318,
+      "target": "textbox \"Value\" in Value: (textbox labelled \"Value\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 6,
+      "id": "07-click-search",
+      "intent": "Search for the member using the entered member number to access their account details.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1783,
+      "target": "button \"Search\" in Value: (button \"Search\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 7,
+      "id": "08-click-select",
+      "intent": "Select the member record to view account details and initiate a funds transfer.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1817,
+      "target": "link \"Select\" in Value: (link \"Select\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 8,
+      "id": "09-click-funds-transfer",
+      "intent": "Open the Funds Transfer screen to initiate a transfer between shares for this member.",
+      "action": "click",
+      "risk": "irreversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 2083,
+      "target": "link \"Funds Transfer\" in Address: (link \"Funds Transfer\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 9,
+      "id": "10-select-from-share",
+      "intent": "Select the source share (fromShare) for the funds transfer as specified in the task parameters.",
+      "action": "select",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1336,
+      "target": "combobox \"From Share\" in From Share: (combobox labelled \"From Share\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 10,
+      "id": "11-select-to-share",
+      "intent": "Select the destination share (toShare) for the funds transfer as specified in the task parameters.",
+      "action": "select",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1321,
+      "target": "combobox \"To Share\" in To Share: (combobox labelled \"To Share\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 11,
+      "id": "12-fill-amount",
+      "intent": "Enter the transfer amount as specified in the task parameters.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1330,
+      "target": "textbox \"Amount\" in Amount: (textbox labelled \"Amount\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 12,
+      "id": "13-fill-memo",
+      "intent": "Enter the memo for the funds transfer as specified in the task parameters.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1322,
+      "target": "textbox \"Memo\" in Memo: (textbox labelled \"Memo\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 13,
+      "id": "14-click-continue",
+      "intent": "Continue to the confirmation screen to review the funds transfer details before posting.",
+      "action": "click",
+      "risk": "safe",
+      "status": "failed",
+      "attempts": 2,
+      "durationMs": 41521,
+      "target": "button \"Continue\" in Memo: (button \"Continue\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": false,
+        "observed": "sub-condition 1 failed: /CONFIRM FUNDS TRANSFER/ not found in 373 chars of visible text"
+      },
+      "error": {
+        "code": "TARGET_NOT_FOUND",
+        "message": "could not resolve button \"Continue\" in Memo: (button \"Continue\")",
+        "observed": "role-name: 0 match(es) | text: 0 match(es) | section-ordinal: section 'Memo:' had 0 button control(s), index 0 out of range | dom-hint: 0 match(es)"
+      }
+    }
+  ],
+  "recoveries": [
+    {
+      "at": "2026-09-04T19:56:39.460Z",
+      "stepId": "14-click-continue",
+      "handler": "transient-slow-load",
+      "action": "retryStep",
+      "attempt": 1,
+      "detail": "backing off 3000ms (attempt 1/1)"
+    }
+  ],
+  "drift": [],
+  "interventions": [
+    "int_fc5492b9"
+  ],
+  "warnings": [],
+  "outputKeys": []
+}

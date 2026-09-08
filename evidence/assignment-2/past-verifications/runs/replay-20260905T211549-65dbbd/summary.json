@@ -1,0 +1,149 @@
+{
+  "runId": "replay-20260905T211549-65dbbd",
+  "kind": "replay",
+  "sanitizedEvidenceVersion": 1,
+  "eventCounts": {
+    "policy": 7,
+    "policy.ceiling": 1,
+    "replay.entry": 1,
+    "replay.start": 1,
+    "run.end": 1,
+    "run.start": 1,
+    "step.captured": 2,
+    "step.end": 7,
+    "step.start": 7,
+    "step.value": 3,
+    "success.checkpoint": 1
+  },
+  "steps": [
+    {
+      "index": 0,
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "action": "navigate",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1186,
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 1,
+      "id": "02-fill-operator-id",
+      "intent": "Enter the operator ID to begin signing on.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 851,
+      "target": "textbox \"Operator ID\" in [pii:record] (textbox labelled \"Operator ID\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 2,
+      "id": "03-fill-[secret]",
+      "intent": "Enter the operator [secret] to continue signing on.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 851,
+      "target": "[secret] \"Password\" in Password=[secret] labelled \"Password\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 3,
+      "id": "04-select-branch",
+      "intent": "Select the correct branch as required for sign on.",
+      "action": "select",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 807,
+      "target": "combobox \"Branch\" in [pii:record] (combobox labelled \"Branch\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 4,
+      "id": "05-click-sign-on",
+      "intent": "Click Sign On to submit the operator credentials and branch for sign on.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1403,
+      "target": "button \"Sign On\" in [pii:record] (button \"Sign On\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 5,
+      "id": "06-read-signed-on-operator",
+      "intent": "Read the signed-on operator from the status line at the bottom of the screen.",
+      "action": "readText",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1323,
+      "target": "text \"OPR | BR | SID\" in 9. (text \"OPR | BR | SID\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      }
+    },
+    {
+      "index": 6,
+      "id": "07-read-signed-on-branch",
+      "intent": "Read the signed-on branch from the status line at the bottom of the screen.",
+      "action": "readText",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1319,
+      "target": "text \"OPR | BR | SID\" in 9. (text \"OPR | BR | SID\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      }
+    }
+  ],
+  "recoveries": [],
+  "drift": [],
+  "interventions": [],
+  "warnings": [],
+  "outputKeys": [
+    "signedOnOperator",
+    "signedOnBranch"
+  ],
+  "status": "success",
+  "capability": {
+    "id": "session.sign-on",
+    "version": "1.0.0"
+  },
+  "inputs": {
+    "branch": "[withheld]"
+  },
+  "outputs": {
+    "signedOnOperator": "[withheld]",
+    "signedOnBranch": "[withheld]"
+  },
+  "durationMs": 8238
+}

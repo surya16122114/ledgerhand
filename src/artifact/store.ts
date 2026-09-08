@@ -26,6 +26,7 @@ import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { z } from 'zod';
 import { ARTIFACT_SCHEMA_VERSION, capabilitySchema, type Capability } from './schema.js';
+import { abnormalPhrases } from './product-profiles.js';
 
 export const DEFAULT_CAPABILITY_DIR = 'capabilities';
 
@@ -99,8 +100,66 @@ const FORBIDDEN_LITERALS: { code: string; re: RegExp; what: string }[] = [
   { code: 'LONG_DIGIT_RUN', re: /\b\d{12,}\b/, what: 'a 12+ digit run (account number?)' },
   { code: 'BEARER_TOKEN', re: /\b(?:bearer\s+[A-Za-z0-9._-]{16,}|eyJ[A-Za-z0-9._-]{20,})/i, what: 'a bearer token or JWT' },
   { code: 'API_KEY', re: /\b(?:sk|pk|api[_-]?key|secret)[-_=:\s]*[A-Za-z0-9]{16,}/i, what: 'an API-key-shaped value' },
-  { code: 'PASSWORD_ASSIGNMENT', re: /\b(?:password|passwd|pwd)\s*[=:]\s*\S+/i, what: 'an inline password assignment' },
+  // The negative lookahead is what stops this firing on a *label*. Meridian
+  // renders its field labels with the colon included -- the cell reads
+  // "Password:" -- and the perception layer puts that label into the target
+  // description, so `Password:"` appeared to be an assignment whose value was a
+  // quote character. CorePoint's colon-less "Password" never tripped it, which is
+  // why this survived until a second app was recorded.
+  { code: 'PASSWORD_ASSIGNMENT', re: /\b(?:password|passwd|pwd)\s*[=:]\s*(?!["'\\\\,}\\]])\S{3,}/i, what: 'an inline password assignment' },
 ];
+
+/**
+ * Keys whose values come from a fixed vocabulary rather than from the app or the
+ * model: schema enums, match modes, lifecycle states.
+ *
+ * They are excluded from every literal scan because a schema enum is not data.
+ * `role: 'password'` is the case that forced this: it is present in any artifact
+ * that signs on to anything, and on a host whose demo password is the word
+ * "password" it made the secret-leak check fire on every single capability --
+ * including ones already committed and approved. Schema enums are identifiers
+ * wearing prose clothing; they are never data.
+ */
+const STRUCTURAL_KEYS = new Set([
+  'kind',
+  'role',
+  'nameMatch',
+  'labelMatch',
+  'rowKeyMatch',
+  'textMatch',
+  'state',
+  'do',
+  'severity',
+  'sensitivity',
+  'type',
+  'surfaceKind',
+  'risk',
+]);
+
+/**
+ * Keys that carry a literal a caller or the app supplied. A credential sitting in
+ * one of these is a genuine leak: it is what replay would type, or what a
+ * checkpoint would assert.
+ */
+const VALUE_KEYS = new Set(['value', 'pattern', 'url', 'css', 'text']);
+
+interface Leaf {
+  path: string;
+  key: string;
+  text: string;
+}
+
+/** Every string leaf in the artifact, with the key it hangs off. */
+function stringLeaves(value: unknown, path = '', key = ''): Leaf[] {
+  if (typeof value === 'string') return [{ path, key, text: value }];
+  if (Array.isArray(value)) return value.flatMap((v, i) => stringLeaves(v, `${path}[${i}]`, key));
+  if (value && typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>).flatMap(([k, v]) =>
+      stringLeaves(v, path ? `${path}.${k}` : k, k),
+    );
+  }
+  return [];
+}
 
 /**
  * @param knownSecrets live values from the vault. Passed in rather than read
@@ -108,28 +167,59 @@ const FORBIDDEN_LITERALS: { code: string; re: RegExp; what: string }[] = [
  */
 export function lintCapability(cap: Capability, knownSecrets: string[] = []): LintFinding[] {
   const findings: LintFinding[] = [];
-  const serialized = canonicalJson(cap);
+
+  // Scanning the serialized blob was the original approach and it does not
+  // survive a second product. It cannot tell a schema enum from data, so the
+  // moment a vault holds a secret whose value is an ordinary word, every artifact
+  // fails to save -- see STRUCTURAL_KEYS.
+  const leaves = stringLeaves(cap).filter((l) => !STRUCTURAL_KEYS.has(l.key));
+  const valueLeaves = leaves.filter((l) => VALUE_KEYS.has(l.key));
 
   for (const { code, re, what } of FORBIDDEN_LITERALS) {
-    const hit = re.exec(serialized);
+    const hit = leaves.find((l) => re.test(l.text));
     if (hit) {
       findings.push({
         severity: 'error',
         code,
         message: `artifact contains ${what}; capabilities must reference inputs or secrets, never literals`,
-        // The match itself is not echoed -- reporting a leak by printing it is
-        // not an improvement.
-        where: `offset ${hit.index}`,
+        // The path, never the match: reporting a leak by printing it is not an
+        // improvement. The path alone is enough to find it.
+        where: hit.path,
       });
     }
   }
 
-  for (const secret of knownSecrets) {
-    if (secret.length >= 4 && serialized.includes(secret)) {
+  for (const secret of new Set(knownSecrets)) {
+    if (secret.length < 4) continue;
+
+    // A credential sitting where replay would type it, or where a checkpoint
+    // would assert it. This is the leak that matters and it stays an error.
+    const inValue = valueLeaves.find((l) => l.text.includes(secret));
+    if (inValue) {
       findings.push({
         severity: 'error',
         code: 'VAULT_SECRET_LEAKED',
         message: 'artifact contains a literal that matches a value held in the secret vault',
+        where: inValue.path,
+      });
+      continue;
+    }
+
+    // A credential quoted in prose -- an intent, a summary, a perceived target
+    // description. Worth surfacing, but it cannot be an error: a description of a
+    // password field legitimately contains the word "password", and on a host
+    // where that *is* the password there is no way to tell the two apart by
+    // matching. Erroring here would block every capability and teach whoever hit
+    // it to pass --force, which is worse than a warning nobody can act on.
+    const inProse = leaves.find((l) => l.text.includes(secret));
+    if (inProse) {
+      findings.push({
+        severity: 'warn',
+        code: 'VAULT_SECRET_IN_PROSE',
+        message:
+          'a vault value appears in descriptive text rather than in a value position; ' +
+          'harmless if the secret is an ordinary word, a leak if it is not',
+        where: inProse.path,
       });
     }
   }
@@ -178,6 +268,63 @@ export function lintCapability(cap: Capability, knownSecrets: string[] = []): Li
     }
   });
 
+  // An input the caller must supply that no step ever consumes.
+  //
+  // This is how a capability ends up not doing the thing it is named after. A
+  // contact update was recorded against a member whose e-mail already happened to
+  // equal the target value, so the model looked at the record, saw the goal
+  // satisfied, and finished -- compiling a nine-step artifact that signs on, looks
+  // the member up, reads the existing e-mail back, and declares success. It still
+  // advertised an `email` input and a `savedEmail` output. Replayed with a
+  // different address it would report success and return the old one.
+  //
+  // The declared contract is the thing that lies here, and an unconsumed input is
+  // the cheapest way to catch it: an input nobody reads cannot possibly affect
+  // what the capability does.
+  const consumedInputs = new Set<string>();
+  const noteValue = (value: unknown): void => {
+    if (!value || typeof value !== 'object') return;
+    const v = value as { from?: string; name?: string };
+    if (v.from === 'input' && v.name) consumedInputs.add(v.name);
+  };
+  const noteTemplates = (text: string): void => {
+    for (const m of text.matchAll(/\{\{\s*input\.([A-Za-z0-9_]+)\s*\}\}/g)) consumedInputs.add(m[1]!);
+  };
+  // Prose is not consumption. Scanning the whole step counted a step *intent*
+  // reading "Select the correct branch ({{input.branch}})" as a use, while the
+  // action beneath it selected a hardcoded literal -- so the check passed on
+  // exactly the artifact it exists to catch.
+  const withoutProse = (value: unknown): unknown => {
+    if (Array.isArray(value)) return value.map(withoutProse);
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .filter(([k]) => k !== 'description' && k !== 'intent' && k !== 'summary')
+          .map(([k, v]) => [k, withoutProse(v)]),
+      );
+    }
+    return value;
+  };
+  for (const step of cap.steps) {
+    if ('value' in step.action) noteValue(step.action.value);
+    // Targets and conditions can carry `{{input.x}}` too -- a parameterized row
+    // key is the whole point of `materialiseTarget`.
+    noteTemplates(JSON.stringify(withoutProse(step.action)));
+    if (step.checkpoint) noteTemplates(JSON.stringify(withoutProse(step.checkpoint)));
+  }
+  noteTemplates(JSON.stringify(withoutProse(cap.success)));
+  for (const input of cap.inputs) {
+    if (consumedInputs.has(input.name)) continue;
+    findings.push({
+      severity: 'error',
+      code: 'UNUSED_INPUT',
+      message:
+        `input '${input.name}' is declared in the contract but no step reads it, so it cannot affect what this capability does. ` +
+        `Most often this means the goal was already satisfied when the run was recorded.`,
+      where: `inputs/${input.name}`,
+    });
+  }
+
   // Conditions that quote record-time data. The recorder now avoids producing
   // these, but an artifact can also be hand-edited, and a checkpoint pinned to one
   // member's data is the failure mode that passes review and then only ever works
@@ -198,11 +345,48 @@ export function lintCapability(cap: Capability, knownSecrets: string[] = []): Li
   for (const { where, pattern } of conditionPatterns) {
     // Digits in an asserted phrase on these screens mean a member number, a
     // balance, a branch code or a date -- not screen structure.
-    if (/\d{3,}/.test(pattern)) {
+    //
+    // The digit rule alone let two artifacts through, because neither piece of
+    // record-time data had a digit in it: a contact update asserting the e-mail it
+    // had just written, and a sign-on asserting "J. TELLER". Both would have
+    // succeeded only for the run that recorded them.
+    const dataShapes: [RegExp, string][] = [
+      [/\d{3,}/, 'a number'],
+      [/[^\s@]+@[^\s@]+\.[A-Za-z]{2,}/, 'an e-mail address'],
+      [/\b[A-Z]\.\s*[A-Z][A-Za-z]+\b/, 'a person name'],
+      [/[$£€]\s*\d/, 'a currency amount'],
+    ];
+    // Tested against the unescaped text, not the stored pattern. These are regexes
+    // built by `escapeRegExp`, so "J. TELLER" is stored as "J\. TELLER" -- and a
+    // shape written the readable way silently fails to match its own escaped form.
+    const asText = pattern.replace(/\\(?=[^A-Za-z0-9])/g, '');
+    const shape = dataShapes.find(([re]) => re.test(asText));
+    if (shape) {
       findings.push({
         severity: 'warn',
         code: 'DATA_IN_CONDITION',
-        message: `condition asserts a phrase containing record-time data, so it will only hold for the record it was recorded against`,
+        message: `condition asserts a phrase containing ${shape[1]}, which is record-time data, so it will only hold for the record it was recorded against`,
+        where,
+      });
+    }
+
+    // A checkpoint may not assert a phrase the product profile declares as an
+    // interrupt or a business outcome. It is a contradiction: the capability
+    // would report success exactly when the product says something went wrong.
+    //
+    // An error rather than a warning, because the artifact is not merely weak, it
+    // is inverted -- and the run that produced one looked completely successful.
+    const abnormal = abnormalPhrases(cap.target.productId).find(
+      (phrase) => phrase === pattern || pattern.includes(phrase) || phrase.split('|').some((alt) => alt && pattern.includes(alt)),
+    );
+    if (abnormal) {
+      findings.push({
+        severity: 'error',
+        code: 'CHECKPOINT_ASSERTS_ABNORMAL_CONDITION',
+        message:
+          `condition asserts /${pattern}/, which this product declares as an interrupt or business outcome. ` +
+          `The capability would report success when the application is reporting a fault. ` +
+          `This usually means discovery ran while a fault was injected -- re-record against a healthy host.`,
         where,
       });
     }
@@ -290,7 +474,11 @@ export async function saveCapability(
   opts: { overwrite?: boolean } = {},
 ): Promise<{ file: string; digest: string }> {
   const validated = parseCapability(cap);
-  const file = join(dir, capabilityFilename(validated));
+  const existing = (await listCapabilities(dir)).find(entry => entry.id === validated.id && entry.version === validated.version);
+  if (existing && !opts.overwrite) throw new CapabilityExistsError(existing.file, validated.id, validated.version);
+  const productDir = resolve(dir) === resolve(DEFAULT_CAPABILITY_DIR)
+    ? join(dir, validated.target.productId === 'meridian-core' ? 'assignment-2' : validated.target.productId === 'corepoint-servicing' ? 'assignment-1' : 'other') : dir;
+  const file = existing?.file ?? join(productDir, capabilityFilename(validated));
   if (!opts.overwrite && existsSync(file)) {
     throw new CapabilityExistsError(file, validated.id, validated.version);
   }
@@ -330,13 +518,23 @@ export async function loadCapability(ref: string, dir = DEFAULT_CAPABILITY_DIR):
 export async function listCapabilities(dir = DEFAULT_CAPABILITY_DIR): Promise<CapabilityIndexEntry[]> {
   let files: string[];
   try {
-    files = (await readdir(dir)).filter((f) => f.endsWith('.json') && f !== 'index.json');
+    const scan = async (folder: string): Promise<string[]> => {
+      const entries = await readdir(folder, { withFileTypes: true });
+      const found: string[] = [];
+      for (const entry of entries) {
+        const path = join(folder, entry.name);
+        if (entry.isDirectory()) found.push(...await scan(path));
+        else if (entry.isFile() && entry.name.endsWith('.json') && entry.name !== 'index.json') found.push(path);
+      }
+      return found;
+    };
+    files = await scan(dir);
   } catch {
     return [];
   }
   const out: CapabilityIndexEntry[] = [];
   for (const f of files) {
-    const file = join(dir, f);
+    const file = f;
     try {
       const cap = await loadCapabilityFile(file);
       out.push(toIndexEntry(cap, file));

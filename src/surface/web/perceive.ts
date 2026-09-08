@@ -409,6 +409,35 @@ export function perceiveInPage(generation: number): RawPerception {
     headings.push({ el, text });
   }
 
+  /**
+   * The "status line" idiom: several label/value pairs crammed into one element,
+   * separated by a delimiter.
+   *
+   *   OPR TELLER1 | BR MAIN-001 | 09/03/2026 23:38:07 | SID 3CAB058F
+   *
+   * No heading, no label, no accessible name -- so nothing else in this file
+   * collects it, and the model could read the operator and branch in the page text
+   * while having no ref to point at. It guessed at the nearest control instead and
+   * captured the menu's "1.".
+   *
+   * Returns the *labels* only. They are the line's shape, and naming the control
+   * after its shape rather than its contents is what keeps a record-time operator
+   * id and session id out of the artifact. The values live in `value`.
+   */
+  function statusLineLabels(text: string): string[] | undefined {
+    const segments = text.split('|').map((seg) => seg.trim()).filter(Boolean);
+    if (segments.length < 3 || text.length > 200) return undefined;
+    const labels: string[] = [];
+    for (const seg of segments) {
+      // A short screaming-case token followed by something else: "OPR TELLER1".
+      // The timestamp segment has no label and is deliberately skipped, which is
+      // consistent between runs and so keeps the name stable.
+      const m = /^([A-Z][A-Z0-9_-]{1,15})\s+\S/.exec(seg);
+      if (m) labels.push(m[1]!);
+    }
+    return labels.length >= 2 ? labels : undefined;
+  }
+
   // ------------------------------------------------------------------ collect
   const INTERACTIVE = 'a[href], button, input, select, textarea, [role=button], [role=link], [onclick]';
   const candidates: Element[] = [];
@@ -426,6 +455,7 @@ export function perceiveInPage(generation: number): RawPerception {
   // Cells that are themselves labels are skipped; only the values are collected.
   for (const table of Array.from(document.querySelectorAll('table'))) {
     const header = headerRowOf(table as HTMLTableElement);
+    if (header && isVisible(table)) candidates.push(table);
     for (const row of Array.from((table as HTMLTableElement).rows)) {
       if (row === header) continue;
       for (const cell of Array.from(row.cells)) {
@@ -433,10 +463,33 @@ export function perceiveInPage(generation: number): RawPerception {
         if (cell.querySelector('table, input, select, textarea')) continue;
         const txt = norm(cell.textContent);
         if (!txt || txt.length > 120) continue;
+        // A cell that is nothing but a wrapper around one link or button is not a
+        // value; it is that control, perceived twice.
+        //
+        // The search results put `<a href="/members/103001">Select</a>` in its own
+        // cell, so the model was offered both a `link "Select"` -- with role-name,
+        // text and section-ordinal strategies -- and a `cell "Select"` carrying
+        // only a positional dom-hint. Picking the cell clicks the td, lands in its
+        // padding, and navigates nowhere, three times, until the run escalates.
+        // Nothing distinguished the two from the model's side.
+        //
+        // Only a *pure* wrapper is dropped: a cell holding a link plus other text
+        // is still a value somebody may need to read.
+        const soleControl = cell.querySelector('a[href], button');
+        if (soleControl && norm(soleControl.textContent) === txt) continue;
         if (!header && !valueCellLabel(cell)) continue; // neither a grid cell nor a labelled value
         candidates.push(cell);
       }
     }
+  }
+  // Status lines. Collected innermost-first so the <font> wins over the <td> that
+  // wraps it, rather than perceiving the same line twice at two depths.
+  for (const el of Array.from(document.querySelectorAll('td, div, p, font, span'))) {
+    if (!isVisible(el)) continue;
+    const text = norm((el as HTMLElement).innerText || el.textContent);
+    if (!text || !statusLineLabels(text)) continue;
+    if (Array.from(el.children).some((child) => norm((child as HTMLElement).innerText || child.textContent) === text)) continue;
+    candidates.push(el);
   }
   for (const h of headings) candidates.push(h.el);
 
@@ -452,15 +505,33 @@ export function perceiveInPage(generation: number): RawPerception {
     if (seen.has(el)) continue;
     seen.add(el);
 
-    const role = roleOf(el);
+    let role = roleOf(el);
     let { name, source } = authoredName(el);
     if (!name && (role === 'textbox' || role === 'password' || role === 'combobox' || role === 'checkbox' || role === 'radio')) {
       const syn = synthesiseName(el);
       name = syn.name;
       source = syn.source;
     }
+    // A status line is named after its shape, not its contents. Naming it
+    // "OPR TELLER1 | BR MAIN-001 | ... | SID 3CAB058F" would put a record-time
+    // operator and session id into the target description, and any role-name
+    // strategy built from it would match only the run that recorded it.
+    const statusLabels = statusLineLabels(norm((el as HTMLElement).innerText || el.textContent));
+    if (statusLabels) {
+      name = statusLabels.join(' | ');
+      source = 'text-content';
+      // These live in a <td> or a <font>, so the tag-based role is 'cell' or
+      // 'unknown'. Neither tells a reader what it is looking at, and 'unknown'
+      // reads as a perception failure rather than a deliberate classification.
+      role = 'text';
+    }
+
+    if (el.tagName.toLowerCase() === 'table') {
+      const header = headerRowOf(el as HTMLTableElement);
+      if (header) { role = 'table'; name = Array.from(header.cells).map(c => norm(c.textContent)).join(' | '); source = 'text-content'; }
+    }
     const table = tableInfoFor(el);
-    if (role === 'cell') {
+    if (role === 'cell' && !statusLabels) {
       // A cell's *name* is what it is called, never what it contains.
       //
       // The generic accessible-name path returns a table cell's text content, which
@@ -502,7 +573,7 @@ export function perceiveInPage(generation: number): RawPerception {
     // in that column shares the name -- so role-name is withheld for those. A cell
     // named from an adjacent label is not: that caption identifies one value, and it
     // is the most durable way to find it.
-    if (name && role === 'cell' && source === 'adjacent-cell') {
+    if (name && role === 'cell' && (source === 'adjacent-cell' || statusLabels)) {
       targeting.push({ kind: 'role-name', role, name, nameMatch: 'normalized' });
     }
     if (name && authoredSources.indexOf(source) >= 0 && role !== 'cell') {
@@ -528,6 +599,7 @@ export function perceiveInPage(generation: number): RawPerception {
     targeting.push({ kind: 'dom-hint', css: domHint(el) });
 
     const raw: RawControl = { ref, role, name, nameSource: source, targeting };
+    if (role === 'table') raw.value = (el as HTMLElement).innerText.trim();
     if (section) raw.section = section;
     if (table) raw.table = table;
     if (rect.width || rect.height) raw.box = { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.round(rect.width), height: Math.round(rect.height) };
@@ -537,7 +609,21 @@ export function perceiveInPage(generation: number): RawPerception {
       const inp = el as HTMLInputElement;
       const t = (inp.getAttribute('type') ?? 'text').toLowerCase();
       // Never read back the contents of a password field, not even into memory.
-      if (t !== 'password' && t !== 'submit' && t !== 'button' && t !== 'reset') raw.value = inp.value;
+      //
+      // But reporting *nothing* makes the fill unobservable, and an action whose
+      // effect cannot be perceived invites an infinite retry: the model types the
+      // credential, re-perceives a field that still looks empty, and types it
+      // again until the stall detector escalates. That is a real discovery run on
+      // Meridian -- three successful fills of the same field, then
+      // `discovery.stalled`, because "did that work?" had no answer.
+      //
+      // A fixed-width mask answers it without answering anything else. Fixed
+      // width specifically: deriving it from the real length would leak that.
+      if (t === 'password') {
+        if (inp.value) raw.value = '********';
+      } else if (t !== 'submit' && t !== 'button' && t !== 'reset') {
+        raw.value = inp.value;
+      }
       if (t === 'checkbox' || t === 'radio') raw.checked = inp.checked;
       if (inp.readOnly) raw.readonly = true;
       if (inp.disabled) raw.disabled = true;
@@ -545,7 +631,7 @@ export function perceiveInPage(generation: number): RawPerception {
       const sel = el as HTMLSelectElement;
       raw.value = sel.value;
       if (sel.disabled) raw.disabled = true;
-    } else if (role === 'cell' || role === 'heading') {
+    } else if (role === 'cell' || role === 'heading' || statusLabels) {
       raw.value = norm((el as HTMLElement).innerText || el.textContent);
     } else if (tag === 'button' && (el as HTMLButtonElement).disabled) {
       raw.disabled = true;

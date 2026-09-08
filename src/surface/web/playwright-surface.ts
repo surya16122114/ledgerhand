@@ -41,6 +41,7 @@ import { MAX_PERCEIVED_CONTROLS, REF_ATTR, perceiveInPage, type RawControl, type
 
 export interface WebSurfaceOptions {
   headless?: boolean;
+  onObservation?: (observation: Observation) => void;
   /** Bounded wait for a document to finish loading after an action. */
   settleTimeoutMs?: number;
   /** Default budget for condition polling. */
@@ -52,6 +53,7 @@ export interface WebSurfaceOptions {
 
 const DEFAULTS = {
   headless: false,
+  onObservation: (_observation: Observation) => {},
   settleTimeoutMs: 15_000,
   conditionTimeoutMs: 10_000,
   slowMoMs: 0,
@@ -105,6 +107,13 @@ export class PlaywrightWebSurface implements Surface {
     return s;
   }
 
+  async guardRequests(check: (url: string, method: string, body: string | null) => boolean): Promise<void> {
+    await this.context.route('**/*', async route => {
+      if (check(route.request().url(), route.request().method(), route.request().postData())) await route.fallback();
+      else await route.abort('blockedbyclient');
+    });
+  }
+
   /** The live Playwright page, for the operator handoff channel only. */
   livePage(): Page {
     return this.page;
@@ -155,6 +164,7 @@ export class PlaywrightWebSurface implements Surface {
       text: texts.join('\n'),
     };
 
+    this.opts.onObservation(observation);
     this.lastObservation = observation;
     return observation;
   }
@@ -322,64 +332,53 @@ export class PlaywrightWebSurface implements Surface {
     }
   }
 
-  /**
-   * Screenshots are masked before capture, not after. Password fields are always
-   * blacked out; there is no configuration that turns that off, because a
-   * screenshot is the one piece of evidence most likely to be pasted into a
-   * ticket.
-   */
-  async screenshot(path: string, opts: { maskSensitive?: boolean } = {}): Promise<string | undefined> {
+  /** Persist only layout: text and form values are never trusted to be non-PII. */
+  async screenshot(path: string, _opts: { maskSensitive?: boolean } = {}): Promise<string | undefined> {
+    const styles: import('playwright').ElementHandle[] = [];
     try {
       await mkdir(dirname(path), { recursive: true });
-      if (opts.maskSensitive !== false) await this.applyMask(true);
-      await this.page.screenshot({ path, fullPage: false });
-      if (opts.maskSensitive !== false) await this.applyMask(false);
+      for (const { frame } of this.frameTree()) {
+        // A disappearing frame is a failed capture, not permission to capture it unmasked.
+        styles.push(await frame.addStyleTag({ content: `
+          * { color: transparent !important; text-shadow: none !important;
+              background-image: none !important; caret-color: transparent !important; }
+          *::before, *::after { content: none !important; }
+          input, textarea, select, img, svg, canvas, video, object, embed { visibility: hidden !important; }
+        ` }));
+      }
+      await this.page.screenshot({ path, fullPage: false, animations: 'disabled' });
       return path;
     } catch {
       return undefined;
+    } finally {
+      for (const style of styles) await style.evaluate((el) => el.parentNode?.removeChild(el)).catch(() => {});
     }
   }
 
-  private async applyMask(on: boolean): Promise<void> {
-    const css = `input[type="password"],[data-lh-sensitive="true"]{ background:#000 !important; color:#000 !important; text-shadow:none !important; }`;
-    for (const { frame } of this.frameTree()) {
-      try {
-        await frame.evaluate(
-          ({ on: enable, css: sheet }) => {
-            const id = '__lh_mask';
-            const existing = document.getElementById(id);
-            if (enable && !existing) {
-              const style = document.createElement('style');
-              style.id = id;
-              style.textContent = sheet;
-              document.head?.appendChild(style);
-            } else if (!enable && existing) {
-              existing.remove();
-            }
-          },
-          { on, css },
-        );
-      } catch {
-        /* frame gone; nothing to mask */
-      }
-    }
-  }
-
-  /** Per-frame HTML dump. The richer failure signal alongside the screenshot. */
+  /** Structure-only DOM: no text, attributes containing values, URLs, scripts or hidden tokens. */
   async sourceSnapshot(path: string): Promise<string | undefined> {
     try {
       await mkdir(dirname(path), { recursive: true });
-      const parts: string[] = [];
-      for (const { frame, path: fp } of this.frameTree()) {
-        let html = '';
-        try {
-          html = await frame.content();
-        } catch {
-          html = '<!-- frame unavailable -->';
-        }
-        parts.push(`<!-- ===== frame: ${fp.join('/') || '(top)'} url: ${safeUrl(frame)} ===== -->\n${html}`);
+      const parts: string[] = ['<!-- ledgerhand-sanitized-evidence-v1 -->'];
+      let index = 0;
+      for (const { frame } of this.frameTree()) {
+        const html = await frame.evaluate(() => {
+          const root = document.body.cloneNode(true) as HTMLElement;
+          root.querySelectorAll('script,style,noscript,template,input[type="hidden"],iframe,object,embed,svg,canvas,img,video,audio').forEach((el) => el.parentNode?.removeChild(el));
+          const visit = (node: Node): void => {
+            if (node.nodeType === Node.TEXT_NODE) { node.textContent = node.textContent?.trim() ? '[redacted]' : ''; return; }
+            if (node.nodeType === Node.COMMENT_NODE) { node.parentNode?.removeChild(node); return; }
+            if (node instanceof Element) {
+              for (const attr of Array.from(node.attributes)) node.removeAttribute(attr.name);
+            }
+            Array.from(node.childNodes).forEach(visit);
+          };
+          visit(root);
+          return root.outerHTML;
+        });
+        parts.push(`<!-- frame ${index++} -->\n${html}`);
       }
-      await writeFile(path, parts.join('\n\n'), 'utf8');
+      await writeFile(path, parts.join('\n'), 'utf8');
       return path;
     } catch {
       return undefined;

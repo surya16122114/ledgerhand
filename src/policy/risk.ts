@@ -26,7 +26,7 @@ const IRREVERSIBLE_VERBS = [
 ];
 
 /** Names that look risky but are not. Checked before the list above. */
-const BENIGN_OVERRIDES = ['search', 'find', 'cancel', 'back', 'close window', 'reset', 'clear', 'refresh', 'continue', 'next', 'i acknowledge', 'sign on'];
+const BENIGN_OVERRIDES = ['search', 'find', 'cancel', 'back', 'close window', 'reset', 'clear', 'refresh', 'continue', 'next', 'i acknowledge', 'sign on', 'select'];
 
 export interface RiskAssessment {
   risk: RiskClass;
@@ -34,7 +34,16 @@ export interface RiskAssessment {
   reason: string;
 }
 
-export function classifyRisk(action: Action, control?: PerceivedControl): RiskAssessment {
+export function classifyRisk(
+  action: Action,
+  control?: PerceivedControl,
+  /**
+   * Product-specific wording that commits, from the product profile. The generic
+   * list below is a heuristic and a heuristic tuned on one product is wrong on the
+   * next: it had 'open account' and missed Meridian's 'Open Share'.
+   */
+  extraIrreversibleVerbs: string[] = [],
+): RiskAssessment {
   switch (action.kind) {
     case 'readText':
     case 'waitFor':
@@ -63,15 +72,15 @@ export function classifyRisk(action: Action, control?: PerceivedControl): RiskAs
       const benign = BENIGN_OVERRIDES.find((v) => name === v || name.startsWith(`${v} `) || name.endsWith(` ${v}`));
       if (benign) return { risk: 'safe', reason: `control named '${control?.name ?? name}' is a known-benign '${benign}' control` };
 
-      const verb = IRREVERSIBLE_VERBS.find((v) => name.includes(v));
+      const verb = [...extraIrreversibleVerbs, ...IRREVERSIBLE_VERBS].find((v) => name.includes(v));
       if (verb) {
         return { risk: 'irreversible', reason: `control named '${control?.name ?? name}' contains '${verb}', which indicates durable state change` };
       }
       if (control?.role === 'link') return { risk: 'safe', reason: `link '${control.name}' navigates` };
       if (control?.role === 'button') {
-        return { risk: 'reversible', reason: `button '${control.name}' has no state-changing verb in its name; treated as reversible` };
+        return { risk: 'irreversible', reason: `button '${control.name}' has unknown effect; authorization required` };
       }
-      return { risk: 'reversible', reason: `click on '${name}' could not be classified more precisely; defaulting to reversible` };
+      return { risk: 'irreversible', reason: `click on '${name}' has unknown effect; authorization required` };
     }
   }
 }

@@ -167,13 +167,17 @@ export async function startOperatorConsole(opts: OperatorConsoleOptions): Promis
   // Past the bind, a socket-level error should be logged, not thrown.
   server.on('error', (err) => log('operator.console.error', { error: err.message }));
 
-  const url = `http://127.0.0.1:${port}/`;
+  const address = server.address();
+  const boundPort = typeof address === 'object' && address ? address.port : port;
+  expectedOrigins.add(`http://127.0.0.1:${boundPort}`);
+  expectedOrigins.add(`http://localhost:${boundPort}`);
+  const url = `http://127.0.0.1:${boundPort}/`;
   log('operator.console.started', { url });
 
   return {
     url,
     async close() {
-      for (const client of wss.clients) client.close();
+      for (const client of wss.clients) client.terminate();
       wss.close();
       await new Promise<void>((resolve) => server.close(() => resolve()));
     },

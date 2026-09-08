@@ -1,0 +1,159 @@
+{
+  "checkedAt": "2026-09-06T14:06:37.502Z",
+  "rows": [
+    {
+      "scenario": "contact three-field readback",
+      "runId": "replay-20260906T042634-8c1c76",
+      "status": "success",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "open share A",
+      "runId": "replay-20260906T042659-d2b313",
+      "status": "success",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "open share B",
+      "runId": "replay-20260906T042719-85984d",
+      "status": "success",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "transfer posted with empty memo",
+      "runId": "replay-20260906T042739-cf8df3",
+      "status": "success",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "insufficient funds",
+      "runId": "replay-20260906T042802-5cd3bd",
+      "status": "business_outcome",
+      "code": "INSUFFICIENT_FUNDS",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "same-share validation",
+      "runId": "replay-20260906T042832-a583fe",
+      "status": "business_outcome",
+      "code": "VALIDATION_REJECTED",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "sign-on branch",
+      "runId": "replay-20260906T132244-fc266d",
+      "status": "success",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "read balance and status",
+      "runId": "replay-20260906T132252-427298",
+      "status": "success",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "multi-match search",
+      "runId": "replay-20260906T132309-8003f9",
+      "status": "success",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "member not found",
+      "runId": "replay-20260906T132326-a28ebe",
+      "status": "business_outcome",
+      "code": "MEMBER_NOT_FOUND",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "injected validation",
+      "runId": "replay-20260906T132350-061022",
+      "status": "business_outcome",
+      "code": "VALIDATION_REJECTED",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "injected notfound",
+      "runId": "replay-20260906T132412-5a930c",
+      "status": "business_outcome",
+      "code": "MEMBER_NOT_FOUND",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "injected permission",
+      "runId": "replay-20260906T132423-47825b",
+      "status": "business_outcome",
+      "code": "PERMISSION_DENIED",
+      "recoveries": [
+        "retryStep"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "injected server",
+      "runId": "replay-20260906T132459-f67f9e",
+      "status": "failed",
+      "code": "APP_ERROR",
+      "recoveries": [
+        "retryStep"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "injected maintenance",
+      "runId": "replay-20260906T132535-e345d9",
+      "status": "success",
+      "recoveries": [
+        "retryStep",
+        "dismiss"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "injected timeout",
+      "runId": "replay-20260906T132620-28bcb4",
+      "status": "success",
+      "recoveries": [
+        "retryStep",
+        "reauthenticate"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "teller hold refused",
+      "runId": "replay-20260906T140459-9ef7be",
+      "status": "business_outcome",
+      "code": "PERMISSION_DENIED",
+      "recoveries": [
+        "retryStep"
+      ],
+      "passed": true
+    },
+    {
+      "scenario": "supervisor hold posted",
+      "runId": "replay-20260906T140543-ef0e9a",
+      "status": "success",
+      "recoveries": [],
+      "passed": true
+    },
+    {
+      "scenario": "held source refused",
+      "runId": "replay-20260906T140606-dc650b",
+      "status": "business_outcome",
+      "code": "SOURCE_SHARE_RESTRICTED",
+      "recoveries": [],
+      "passed": true
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "runId": "discovery-20260905T211334-e55c20",
+  "kind": "discovery",
+  "sanitizedEvidenceVersion": 1,
+  "eventCounts": {
+    "action.ok": 9,
+    "discovery.captured": 2,
+    "discovery.compiled": 1,
+    "discovery.entry": 1,
+    "discovery.finishClaimed": 2,
+    "discovery.finishRejected": 1,
+    "discovery.start": 1,
+    "model.turn": 11,
+    "policy": 10,
+    "run.end": 1,
+    "run.start": 1
+  },
+  "status": "success",
+  "capability": {
+    "id": "member.find-by-[pii:surface-value]"
+  },
+  "inputs": {
+    "lastName": "[withheld]"
+  },
+  "outputs": {
+    "memberNumber": "[withheld]",
+    "memberName": "[withheld]"
+  },
+  "turns": 11,
+  "recordedSteps": 10,
+  "humanInterventions": 0,
+  "model": "openai:gpt-4.1"
+}

@@ -1,0 +1,256 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_wj6Pl7tOYXDbGRTwdA4mRENe",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "meridianSupervisorUser",
+            "why": "Enter the supervisor operator ID to sign on as a supervisor."
+          }
+        },
+        {
+          "id": "call_Ph4kE0EaIvqPZIh8wAc35jjW",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "meridianSupervisorPass",
+            "why": "Enter the supervisor [secret] to sign on as a supervisor."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_9Py9frHxUTAT9qcxnG6MkGXg",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "meridianSupervisorPass",
+            "why": "Enter the supervisor [secret] to sign on as a supervisor."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_nES5vOSZZNuqHaDjzH9YhHFV",
+          "name": "click_control",
+          "args": {
+            "ref": "7:3",
+            "why": "Click Sign On to log in as a supervisor."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_ZX5WKxNcrH0cncAeR9sJ1e46",
+          "name": "click_control",
+          "args": {
+            "ref": "10:1",
+            "why": "Go to Member Inquiry to look up the member by member number."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_a9tEtKjk2ESNK8Cx8hBVTqLI",
+          "name": "fill_field",
+          "args": {
+            "ref": "13:5",
+            "value": "{{input.memberId}}",
+            "why": "Enter the member number to search for the member record."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_anI2waA9n7KW0HLmVdy1BqeT",
+          "name": "click_control",
+          "args": {
+            "ref": "16:6",
+            "why": "Search for the member using the entered member number."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_OeCfyrkpI7SEbN4pY6zIoAER",
+          "name": "click_control",
+          "args": {
+            "ref": "19:7",
+            "why": "Select the member record to view member details and shares."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_6W6NH8uKOZ66SWROqWZEjTqI",
+          "name": "click_control",
+          "args": {
+            "ref": "22:7",
+            "why": "Start the process to place an account hold on the selected member's share."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_LM2aqp14m1xgsi8yMqSQylT0",
+          "name": "select_option",
+          "args": {
+            "ref": "25:4",
+            "value": "{{input.shareId}}",
+            "why": "Select the correct share to place the hold on as specified in the task."
+          }
+        },
+        {
+          "id": "call_xcrwZS3GlTZGjnPEbe8xnIda",
+          "name": "select_option",
+          "args": {
+            "ref": "25:5",
+            "value": "{{input.reason}}",
+            "why": "Select {{input.reason}} as the reason code for the hold as specified in the task."
+          }
+        },
+        {
+          "id": "call_zcKjbICpgWaw4hfCm0qrOnKb",
+          "name": "fill_field",
+          "args": {
+            "ref": "25:6",
+            "value": "{{input.notes}}",
+            "why": "Enter the notes for the hold as specified in the task."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_g1CiDspEbtIenK9bvfdeShdy",
+          "name": "select_option",
+          "args": {
+            "ref": "28:5",
+            "value": "{{input.reason}}",
+            "why": "Select {{input.reason}} as the reason code for placing the hold, as specified in the task."
+          }
+        },
+        {
+          "id": "call_6ic0lWnsa7xQFc9OUO2BJg2O",
+          "name": "fill_field",
+          "args": {
+            "ref": "28:6",
+            "value": "{{input.notes}}",
+            "why": "Enter the notes for the hold as specified in the task parameters."
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "toolCalls": [
+        {
+          "id": "call_tfRu1Xsnzsh5dGH0inBpaa5R",
+          "name": "fill_field",
+          "args": {
+            "ref": "31:6",
+            "value": "{{input.notes}}",
+            "why": "Enter the notes for the hold as specified in the task parameters."
+          }
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "toolCalls": [
+        {
+          "id": "call_HP9hZzMF39zwkVYL0qqrWPVu",
+          "name": "click_control",
+          "args": {
+            "ref": "34:7",
+            "why": "Continue to the confirmation screen to review the hold details before posting."
+          }
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "toolCalls": [
+        {
+          "id": "call_XCmInUdgqMxF2ypXCwTv4auw",
+          "name": "click_control",
+          "args": {
+            "ref": "37:4",
+            "why": "Post the hold after reviewing the confirmation screen to complete the hold placement."
+          }
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "toolCalls": [
+        {
+          "id": "call_MwBTo2B30BPpZ18D6P1D5y0o",
+          "name": "read_value",
+          "args": {
+            "ref": "40:6",
+            "outputName": "confirmationReference",
+            "why": "Read the confirmation reference for the hold placement as required by the task."
+          }
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "toolCalls": [
+        {
+          "id": "call_wp4Ppm5kEUTizPQbxZR6XOCm",
+          "name": "finish_goal",
+          "args": {
+            "successText": "ACCOUNT HOLD APPLIED HOLD RECORDED Confirmation: CN480225",
+            "summary": "Signs on as a supervisor, looks up the member, places a hold on the specified share with the given reason and notes, reviews the confirmation screen, posts the hold, and retrieves the confirmation reference."
+          }
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "toolCalls": [
+        {
+          "id": "call_3OdO3ZPEdrAtQS735iJVFFPk",
+          "name": "finish_goal",
+          "args": {
+            "successText": "ACCOUNT HOLD APPLIED",
+            "summary": "Signs on as a supervisor, looks up the member, places a hold on the specified share with the given reason and notes, reviews the confirmation screen, posts the hold, and retrieves the confirmation reference."
+          }
+        }
+      ]
+    }
+  ]
+}

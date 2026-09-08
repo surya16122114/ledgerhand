@@ -1,0 +1,64 @@
+{
+  "runId": "discovery-20260906T132746-de6085",
+  "kind": "discovery",
+  "sanitizedEvidenceVersion": 1,
+  "evidenceWriteFailures": 0,
+  "eventCounts": {
+    "action.ok": 14,
+    "discovery.captured": 1,
+    "discovery.compiled": 1,
+    "discovery.entry": 1,
+    "discovery.finishClaimed": 2,
+    "discovery.finishRejected": 1,
+    "discovery.start": 1,
+    "model.turn": 16,
+    "policy": 15,
+    "policy.preauthorized": 1,
+    "run.end": 1,
+    "run.start": 1
+  },
+  "inputDetails": {
+    "memberId": {
+      "type": "string",
+      "sensitivity": "pii",
+      "supplied": true
+    },
+    "shareId": {
+      "type": "string",
+      "sensitivity": "internal",
+      "supplied": true
+    },
+    "reason": {
+      "type": "string",
+      "sensitivity": "public",
+      "supplied": true
+    },
+    "notes": {
+      "type": "string",
+      "sensitivity": "internal",
+      "supplied": true
+    }
+  },
+  "outputDetails": {
+    "confirmationReference": {
+      "produced": true
+    }
+  },
+  "status": "success",
+  "capability": {
+    "id": "member.place-hold"
+  },
+  "inputs": {
+    "memberId": "[withheld]",
+    "shareId": "[withheld]",
+    "reason": "[withheld]",
+    "notes": "[withheld]"
+  },
+  "outputs": {
+    "confirmationReference": "[withheld]"
+  },
+  "turns": 16,
+  "recordedSteps": 15,
+  "humanInterventions": 0,
+  "model": "openai:gpt-4.1"
+}

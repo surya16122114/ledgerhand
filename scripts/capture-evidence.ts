@@ -11,7 +11,7 @@
  * Requires the target app on 4173 (meridian) and 4174 (riverstone).
  */
 
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
 import { loadEnvFile } from '../src/config/env.js';
@@ -22,7 +22,7 @@ import { startOperatorConsole } from '../src/escalation/operator-server.js';
 
 const MERIDIAN = 'http://localhost:4173';
 const RIVERSTONE = 'http://localhost:4174';
-const OUT = 'evidence';
+const OUT = process.env.EVIDENCE_OUTPUT_DIR ?? `evidence/assignment-1/past-verifications/local-${new Date().toISOString().replace(/[:.]/g, '-')}`;
 
 interface Scenario {
   slug: string;
@@ -205,7 +205,6 @@ async function arm(baseUrl: string, fault: Scenario['fault']): Promise<void> {
 }
 
 await loadEnvFile('.env');
-await rm(join(OUT, 'replays'), { recursive: true, force: true });
 await mkdir(join(OUT, 'replays'), { recursive: true });
 
 /**
@@ -225,6 +224,13 @@ for (const ref of ['member.read-savings-balance', 'member.open-sub-account', 'me
 }
 
 const summary: string[] = [];
+let mismatches = 0;
+function safeResult(result: ReplayResult) {
+  return { runId: result.runId, status: result.status, steps: result.steps.map(s => ({ stepId: s.id, status: s.status })),
+    outputs: Object.fromEntries(Object.keys(result.outputs).map(k => [k, '[withheld]'])),
+    recoveries: result.recoveries.map(r => ({ handler: r.handler, action: r.action, stepId: r.stepId })),
+    drift: result.drift.map(d => ({ stepId: d.stepId, primaryStrategy: d.primaryStrategy, usedStrategy: d.usedStrategy, usedIndex: d.usedIndex })) };
+}
 for (const scenario of SCENARIOS) {
   const baseUrl = scenario.options?.baseUrl ?? MERIDIAN;
   process.stdout.write(`\n=== ${scenario.slug}: ${scenario.title}\n`);
@@ -240,11 +246,12 @@ for (const scenario of SCENARIOS) {
   });
 
   const ok = result.status === scenario.expect;
+  if (!ok) mismatches++;
   process.stdout.write(`    ${ok ? 'as expected' : `UNEXPECTED (wanted ${scenario.expect})`}: ${summarizeResult(result)}\n`);
 
   await writeFile(
     join(OUT, 'replays', scenario.slug, 'result.json'),
-    `${JSON.stringify({ scenario: { slug: scenario.slug, title: scenario.title, why: scenario.why, inputs: Object.keys(scenario.inputs), fault: scenario.fault ?? null, expected: scenario.expect }, matchedExpectation: ok, result }, null, 2)}\n`,
+    `${JSON.stringify({ scenario: { slug: scenario.slug, title: scenario.title, why: scenario.why, inputs: Object.keys(scenario.inputs), fault: scenario.fault ?? null, expected: scenario.expect }, matchedExpectation: ok, result: safeResult(result) }, null, 2)}\n`,
     'utf8',
   );
 
@@ -255,8 +262,8 @@ for (const scenario of SCENARIOS) {
       scenario.why,
       '',
       '```',
-      summarizeResult(result),
-      ...(result.recoveries.length ? ['', 'recoveries:', ...result.recoveries.map((r) => `  ${r.handler} (${r.action}) at ${r.stepId}: ${r.detail}`)] : []),
+      JSON.stringify(safeResult(result), null, 2),
+      ...(result.recoveries.length ? ['', 'recoveries:', ...result.recoveries.map((r) => `  ${r.handler} (${r.action}) at ${r.stepId}: [detail withheld]`)] : []),
       ...(result.drift.length ? ['', 'locator drift:', ...result.drift.map((d) => `  ${d.stepId}: primary ${d.primaryStrategy} -> used ${d.usedStrategy} (#${d.usedIndex})`)] : []),
       '```',
       '',
@@ -297,6 +304,7 @@ try {
             await page.waitForTimeout(6000);
             shot = join(OUT, 'screenshots', 'operator-console.png');
             await mkdir(join(OUT, 'screenshots'), { recursive: true });
+            await page.addStyleTag({ content: '* { color: transparent !important; text-shadow: none !important; background-image: none !important } img, canvas, video, input, textarea, svg { visibility: hidden !important }' });
             await page.screenshot({ path: shot, fullPage: false });
             await browser.close();
             broker.resolve(pending.id, 'abort', 'evidence-capture@console', 'screenshot captured; run aborted deliberately');
@@ -310,17 +318,18 @@ try {
   const result = await run;
   await consoleHandle?.close();
   process.stdout.write(`    console screenshot: ${shot ?? '(not captured)'}  run ended as ${result.status}\n`);
+  if (!shot || result.status !== 'escalated') mismatches++;
   if (shot) {
     summary.push(
       [
         '### 16-operator-console -- the operator console during a live escalation',
         '',
-        'A screenshot of the real console (`evidence/screenshots/operator-console.png`), taken while a replay was paused ' +
+        'A screenshot of the real console (`evidence/assignment-1/original-submission/screenshots/operator-console.png`), taken while a replay was paused ' +
           'on an irreversible step. It shows the intervention context, the live view of the same session the automation ' +
           'was driving, the control-transfer log, and the decision buttons.',
         '',
         '```',
-        summarizeResult(result),
+        JSON.stringify(safeResult(result), null, 2),
         '```',
         '',
         'This run was aborted on purpose once the screenshot was taken.',
@@ -329,8 +338,11 @@ try {
     );
   }
 } catch (err) {
+  mismatches++;
   process.stdout.write(`    console screenshot failed: ${err instanceof Error ? err.message : String(err)}\n`);
 }
 
 await writeFile(join(OUT, 'REPLAY-SCENARIOS.md'), `# Replay scenarios\n\nGenerated by \`npm run capture-evidence\`.\n\n${summary.join('\n')}`, 'utf8');
 process.stdout.write(`\nwrote ${join(OUT, 'REPLAY-SCENARIOS.md')}\n`);
+
+if (mismatches) process.exitCode = 1;

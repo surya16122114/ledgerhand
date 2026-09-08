@@ -1,3 +1,6 @@
+import { checkTransaction } from '../policy/transaction.js';
+import { profileFor } from '../artifact/product-profiles.js';
+import { Allowlist, discoveryAllowlist } from '../policy/allowlist.js';
 /**
  * Deterministic replay: the production execution path.
  *
@@ -59,6 +62,7 @@ import {
   applyTransform,
   materialiseCondition,
   materialiseTarget,
+  materialiseCapturedTarget,
   renderTemplate,
   renderUrlPattern,
   resolveValue,
@@ -123,6 +127,7 @@ export async function replay(
   const drift: DriftSignal[] = [];
   const interventionIds: string[] = [];
   const outputs: Record<string, InputValue> = {};
+  let finalResult: ReplayResult | undefined;
 
   const vault = opts.vault ?? SecretVault.fromEnvironment();
   const digest = capabilityDigest(capabilityInput);
@@ -155,7 +160,7 @@ export async function replay(
 
   const earlyFailure = async (code: ReplayFailureCode, message: string, extra: Partial<ReplayFailure> = {}): Promise<ReplayResult> => {
     logger.event('replay.rejected', { code, message });
-    await logger.finalize({ rejected: { code, message }, capability: { id: capabilityInput.id, version: capabilityInput.version } });
+    await logger.finalize({ status: 'failed', error: { code, message }, rejected: { code, message }, capability: { id: capabilityInput.id, version: capabilityInput.version } });
     return { ...envelope(), status: 'failed', failure: { code, message, ...extra }, outputs: {} };
   };
 
@@ -171,7 +176,7 @@ export async function replay(
   let overlaySummary: ReplayResult['overlay'];
   try {
     const resolved = effectiveCapability(capabilityInput, opts.tenantId, { allowUnadapted: opts.allowUnadapted });
-    capability = resolved.capability;
+    capability = { ...resolved.capability, interrupts: [...(profileFor(resolved.capability.target.productId).runtimeOutcomes ?? []), ...resolved.capability.interrupts] };
     if (resolved.warning) warnings.push(resolved.warning);
     if (resolved.audit) {
       overlaySummary = {
@@ -242,7 +247,7 @@ export async function replay(
 
   let web: PlaywrightWebSurface | undefined;
   try {
-    web = await PlaywrightWebSurface.launch({ headless: opts.headless ?? process.env.HEADLESS !== 'false' });
+    web = await PlaywrightWebSurface.launch({ headless: opts.headless ?? process.env.HEADLESS !== 'false', onObservation: (obs) => redactor.learnObservation(obs) });
 
     const authorized = Boolean(opts.authorizeIrreversible);
     const effectiveCeiling =
@@ -256,9 +261,14 @@ export async function replay(
       requiresApprovalForIrreversible: capability.policy.requiresApprovalForIrreversible,
     });
 
+    let activeStep: Step | undefined;
+    const dispatchedWrites = new Set<string>();
+    let transactionViolation: string | undefined;
     const gate = new PolicyGate(web, {
+      irreversibleVerbs: profileFor(capability.target.productId).irreversibleVerbs,
       allowlist: {
         allowedUrlPatterns: capability.policy.allowedUrlPatterns.map((p) => renderUrlPattern(p, opts.baseUrl)),
+        deniedUrlPatterns: [...(capability.policy.deniedUrlPatterns ?? discoveryAllowlist(opts.baseUrl).deniedUrlPatterns ?? []), ...(profileFor(capability.target.productId).deniedUrlPatterns ?? [])],
         allowedActions: capability.policy.allowedActions,
         // The ceiling is raised to the capability's declared max ONLY when the
         // caller has authorized this run. Otherwise it is held at 'reversible', so
@@ -276,11 +286,24 @@ export async function replay(
         // gets a precise "this step needs authorization" instead of a flat refusal.
         allowEscalationForIrreversible: !opts.unattended || Boolean(opts.authorizeIrreversible),
       },
-      onEvent: (e) => logger.event('policy', e as unknown as Record<string, unknown>),
+      onEvent: (e) => {
+        logger.event('policy', e as unknown as Record<string, unknown>);
+        if (activeStep && e.phase === 'pre-action' && e.decision === 'allow' && e.risk === 'irreversible') dispatchedWrites.add(activeStep.id);
+      },
     });
     if (opts.authorizeIrreversible) {
       logger.event('policy.preauthorized', opts.authorizeIrreversible);
     }
+    const networkPolicy = new Allowlist(gate.policy());
+    await web?.guardRequests((url, method, body) => {
+      if (lease.current() === 'operator') return true;
+      const decision = networkPolicy.checkUrl(url);
+      if (!decision.allowed) logger.event('policy.requestBlocked', { url, code: decision.code });
+      if (!decision.allowed) return false;
+      transactionViolation ??= checkTransaction(profileFor(capability.target.productId).transactionRules ?? [], url, method, body, inputValues);
+      if (transactionViolation) logger.event('transaction.blocked', { reason: transactionViolation });
+      return !transactionViolation;
+    });
     const surface: Surface = new LeaseGuard(gate, lease);
 
     await opts.onSurfaceReady?.({ surface: web, lease, broker, logger });
@@ -333,7 +356,7 @@ export async function replay(
       interventionIds.push(item.id);
 
       // The human is now driving. Their actions land on the intervention record.
-      const recorder = web ? await attachRecorder(web, broker, item.id) : undefined;
+      const recorder = web ? await attachRecorder(web, broker, item.id, logger) : undefined;
       const resolution = await broker.waitForResolution(item.id, opts.escalationTimeoutMs ?? 15 * 60_000);
       recorder?.detach();
 
@@ -574,8 +597,13 @@ export async function replay(
         // -------------------------------------------------------------- perform
         let result: ActionResult;
         try {
+          activeStep = step;
           result = await performStep(step);
+          activeStep = undefined;
+          if (transactionViolation) return { kind: 'fail', failure: await hardFailure(step, index, { code: 'DECLARED_FAILURE', declaredCode: 'TRANSACTION_MISMATCH', message: transactionViolation }) };
         } catch (err) {
+          activeStep = undefined;
+          if (transactionViolation) return { kind: 'fail', failure: await hardFailure(step, index, { code: 'DECLARED_FAILURE', declaredCode: 'TRANSACTION_MISMATCH', message: transactionViolation }) };
           // Pre-flight should have caught a missing credential; if one still surfaces
           // here, name it for what it is rather than filing it under INTERNAL.
           const code: ReplayFailureCode = /secret '.*' is not available/.test(message(err)) ? 'MISSING_CREDENTIAL' : 'INTERNAL';
@@ -614,7 +642,9 @@ export async function replay(
           });
           if (claimed) return claimed.outcome;
           if (attempt >= maxAttempts) {
-            return { kind: 'fail', failure: await hardFailure(step, index, { code: 'RECOVERY_EXHAUSTED', message: `step '${step.id}' failed ${attempt} times`, observed: result.error?.observed }) };
+            const handoff = await exhausted(`step '${step.id}' failed ${attempt} times`, result.error?.observed, { step, index });
+            if (handoff.kind !== 'continue' || trace.status === 'skipped' || trace.status === 'satisfied-externally') return handoff;
+            return executeStep(step, index, trace);
           }
           continue;
         }
@@ -643,6 +673,14 @@ export async function replay(
             });
             logger.event('drift.fallback', { stepId: step.id, primary: primary.kind, used: result.strategyUsed.kind, index: result.strategyIndex });
           }
+        }
+
+        const authenticationFailure = profileFor(capability.target.productId).authenticationFailurePattern;
+        if (step.partOfAuth && authenticationFailure) {
+          const rejected = await surface.evaluate({ kind: 'textPresent', pattern: authenticationFailure }, { timeoutMs: 0 });
+          if (rejected.satisfied) return { kind: 'fail', failure: await hardFailure(step, index, {
+            code: 'DECLARED_FAILURE', declaredCode: 'AUTHENTICATION_FAILED', message: 'The target rejected the operator credentials. Check the configured vault identity before retrying.', observed: rejected.observed,
+          }) };
         }
 
         // -------------------------------------------------------------- capture
@@ -684,7 +722,9 @@ export async function replay(
             });
             if (claimed) return claimed.outcome;
             if (attempt >= maxAttempts) {
-              return { kind: 'fail', failure: await hardFailure(step, index, { code: 'RECOVERY_EXHAUSTED', message: `checkpoint for '${step.id}' never held`, observed: cp.observed }) };
+              const handoff = await exhausted(`checkpoint for '${step.id}' never held`, cp.observed, { step, index });
+              if (handoff.kind !== 'continue' || trace.status === 'skipped' || trace.status === 'satisfied-externally') return handoff;
+              return executeStep(step, index, trace);
             }
             continue;
           }
@@ -695,7 +735,9 @@ export async function replay(
       }
     }
 
-    async function performStep(step: Step): Promise<ActionResult> {
+    async function performStep(original: Step): Promise<ActionResult> {
+      const step: Step = 'target' in original.action ? { ...original, action: { ...original.action,
+        target: materialiseCapturedTarget(original.action.target, captured) } } : original;
       if (step.action.kind === 'navigate') {
         return surface.perform({ kind: 'navigate', url: renderTemplate(step.action.url, { baseUrl: opts.baseUrl, inputs: inputValues }) });
       }
@@ -721,6 +763,12 @@ export async function replay(
       failure: { code: ReplayFailureCode; message: string; expected?: string; observed?: string },
     ): Promise<{ outcome: StepOutcome } | undefined> {
       logger.event('step.failed', { stepId: step.id, ...failure });
+
+      // Explicit host business rejections take precedence over generic timeout recovery.
+      const business = await firstMatchingHandler(profileFor(capability.target.productId).runtimeOutcomes ?? [], {
+        duringAuth: step.partOfAuth, failureCode: failure.code, stepId: step.id,
+      });
+      if (business) return { outcome: await runHandler(business.handler, business.observed, { index, step }, 'interrupt') };
 
       const stepHandler = await firstMatchingHandler(step.handlers, {
         duringAuth: step.partOfAuth,
@@ -833,6 +881,19 @@ export async function replay(
       return { kind: 'continue' };
     }
 
+    async function exhausted(message: string, observed?: string, at?: { step: Step; index: number }): Promise<StepOutcome> {
+      const failure = { code: 'RECOVERY_EXHAUSTED' as const, message, ...(observed ? { observed } : {}) };
+      if (web?.livePage().isClosed()) return { kind: 'fail', failure: await hardFailure(at?.step, at?.index, failure) };
+      const decided = await escalate({ reason: 'unhandled-condition', headline: 'Recovery needs a human', detail: message,
+        ...(at ? { step: at } : {}), attempt: { action: at?.step.action.kind ?? 'recover', errorCode: failure.code, observed } });
+      if (decided.decision === 'abort') return { kind: 'escalated-abort', failure: await hardFailure(at?.step, at?.index, failure),
+        intervention: { id: decided.interventionId, reason: 'recovery-exhausted', decision: decided.decision, humanActionCount: decided.humanActionCount } };
+      recoveryBudget = 1;
+      const trace = at ? steps.find(s => s.id === at.step.id) : undefined;
+      if (at && trace) return applyDecision(decided, at.step, at.index, trace, failure);
+      return { kind: 'continue' };
+    }
+
     /** Execute a declared handler action. */
     async function runHandler(
       handler: Handler,
@@ -843,15 +904,16 @@ export async function replay(
       const stepId = at?.step.id ?? '(pre-step)';
       logger.event('handler.matched', { handler: handler.name, origin, stepId, then: handler.then.do, observed });
 
+      if (at && dispatchedWrites.has(at.step.id) && ['retryStep', 'dismiss', 'reauthenticate'].includes(handler.then.do)) {
+        logger.event('handler.retryRefused', { handler: handler.name, stepId, reason: 'write may already have reached the target' });
+        const decided = await escalate({ reason: 'handler-requested', headline: 'Transaction outcome uncertain',
+          detail: 'An irreversible action was dispatched. Check the target transaction state before resuming; automatic recovery could duplicate it.', step: at });
+        const trace = steps.find(s => s.id === at.step.id)!;
+        return applyDecision(decided, at.step, at.index, trace, {code:'RECOVERY_EXHAUSTED', message:'Automatic recovery refused after a dispatched write', observed});
+      }
+
       if (recoveryBudget <= 0 && handler.then.do !== 'outcome' && handler.then.do !== 'fail' && handler.then.do !== 'escalate') {
-        return {
-          kind: 'fail',
-          failure: await hardFailure(at?.step, at?.index, {
-            code: 'RECOVERY_EXHAUSTED',
-            message: `run exhausted its recovery budget while handling '${handler.name}'`,
-            observed,
-          }),
-        };
+        return exhausted(`run exhausted its recovery budget while handling '${handler.name}'`, observed, at);
       }
 
       switch (handler.then.do) {
@@ -902,14 +964,7 @@ export async function replay(
           });
           logger.event('handler.dismiss', { handler: handler.name, ok: click.ok, target: describeTarget(handler.then.target), error: click.error });
           if (!click.ok) {
-            return {
-              kind: 'fail',
-              failure: await hardFailure(at?.step, at?.index, {
-                code: 'RECOVERY_EXHAUSTED',
-                message: `handler '${handler.name}' could not dismiss ${describeTarget(handler.then.target)}`,
-                observed: click.error?.observed,
-              }),
-            };
+            return exhausted(`handler '${handler.name}' could not dismiss its target`, click.error?.observed, at);
           }
           return { kind: 'continue' };
         }
@@ -1010,7 +1065,7 @@ export async function replay(
           for (let i = 0; i < upto; i++) {
             const prior = capability.steps[i]!;
             if (prior.partOfAuth) continue;
-            if (prior.risk === 'irreversible') {
+            if (prior.risk === 'irreversible' || dispatchedWrites.has(prior.id)) {
               logger.event('handler.repositionRefused', { stepId: prior.id, risk: prior.risk });
               return {
                 kind: 'fail',
@@ -1122,6 +1177,7 @@ export async function replay(
     }
 
     function finish(result: ReplayResult): ReplayResult {
+      finalResult = result;
       const withOverlay = overlaySummary ? { ...result, overlay: overlaySummary } : result;
       return withOverlay;
     }
@@ -1144,6 +1200,15 @@ export async function replay(
       interventions: interventionIds,
       warnings,
       outputKeys: Object.keys(outputs),
+      status: finalResult?.status ?? 'failed',
+      capability: { id: capability.id, version: capability.version, digest },
+      inputDetails: Object.fromEntries(capability.inputs.map(p => [p.name, { type: p.type, sensitivity: p.sensitivity, supplied: inputValues[p.name] !== undefined }])),
+      outputDetails: Object.fromEntries(capability.outputs.map(p => [p.name, { type: p.type, sensitivity: p.sensitivity, produced: outputs[p.name] !== undefined }])),
+      inputs: Object.fromEntries(capability.inputs.map((p) => [p.name, p.sensitivity === 'public' ? inputValues[p.name] : '[withheld]'])),
+      outputs: Object.fromEntries(capability.outputs.map((p) => [p.name, p.sensitivity === 'public' ? outputs[p.name] : '[withheld]'])),
+      outcome: finalResult?.status === 'business_outcome' ? { code: finalResult.outcome.code } : undefined,
+      error: finalResult && (finalResult.status === 'failed' || finalResult.status === 'escalated') ? { code: finalResult.failure.code, step: finalResult.failure.stepId } : undefined,
+      durationMs: Date.now() - t0,
     });
     await web?.close();
   }
@@ -1151,11 +1216,12 @@ export async function replay(
 
 // ---------------------------------------------------------------------------
 
-async function attachRecorder(web: PlaywrightWebSurface, broker: InterventionBroker, interventionId: string) {
+async function attachRecorder(web: PlaywrightWebSurface, broker: InterventionBroker, interventionId: string, logger: RunLogger) {
   const { attachHumanActionRecorder } = await import('../escalation/human-recorder.js');
   try {
     return await attachHumanActionRecorder(web.livePage(), (action) => broker.recordHumanAction(interventionId, action));
   } catch {
+    logger.event('evidence.humanRecorderFailed', { interventionId });
     // A recorder that fails to attach must not block the handoff -- the human
     // still needs the session. The gap is visible in evidence as an intervention
     // with zero recorded actions.

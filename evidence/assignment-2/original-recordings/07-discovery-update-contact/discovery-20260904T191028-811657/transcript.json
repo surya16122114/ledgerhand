@@ -1,0 +1,201 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_eq3tTzrbZ3wBCTUjiYjGwYIZ",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "meridianOperatorUser",
+            "why": "Enter the operator ID to sign on to Meridian Core."
+          }
+        },
+        {
+          "id": "call_oIdGxqESwJlNM1IfyOFlTHKm",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the [secret] to sign on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_Xy51Eyz05JkObz3kNjBNIa74",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the [secret] to sign on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_0QpHCekm85PmvhSFhgR7v5cr",
+          "name": "click_control",
+          "args": {
+            "ref": "7:3",
+            "why": "Click the Sign On button to complete signing on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_Z5JYyHMPQSWstw4SFuvJ7tAT",
+          "name": "click_control",
+          "args": {
+            "ref": "10:1",
+            "why": "Go to Member Inquiry to look up the member by member number."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_atBAqmGDKumN2ikedk9xkbjb",
+          "name": "fill_field",
+          "args": {
+            "ref": "13:5",
+            "value": "{{input.memberId}}",
+            "why": "Enter the member number to search for the member whose contact details need to be updated."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_9kOuviGlkJb1qTFlp3ytRGSi",
+          "name": "click_control",
+          "args": {
+            "ref": "16:6",
+            "why": "Search for the member using the entered member number to access their profile for contact detail update."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_YZyNAzzNmB2CyYK0DsgpSrd4",
+          "name": "click_control",
+          "args": {
+            "ref": "19:7",
+            "why": "Select the member record for Dorothy Vaughan to open her profile and update contact details."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_FhhPqvBkye9D2POjryjZjCkc",
+          "name": "click_control",
+          "args": {
+            "ref": "22:6",
+            "why": "Open the Update Member Information screen to change the e-mail address for this member."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_wxdIplapHr5kD4nobE97HSmi",
+          "name": "fill_field",
+          "args": {
+            "ref": "25:4",
+            "value": "{{input.email}}",
+            "why": "Update the member's e-mail address to the new value as requested."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_R24C2NNBOzQuNQ3y0Koq0wJa",
+          "name": "click_control",
+          "args": {
+            "ref": "28:7",
+            "why": "Save the changes to update the member's e-mail address while leaving phone and mailing address unchanged."
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "toolCalls": [
+        {
+          "id": "call_8qRJU32tVUQy4qBNFgEAb5Sc",
+          "name": "click_control",
+          "args": {
+            "ref": "31:4",
+            "why": "Return to the member record to confirm the e-mail address was updated successfully."
+          }
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "toolCalls": [
+        {
+          "id": "call_dWsyhsqXZwI5XDCii4jNjbUe",
+          "name": "read_value",
+          "args": {
+            "ref": "34:10",
+            "outputName": "savedEmail",
+            "why": "Read and confirm the saved e-mail address for the member after the update."
+          }
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "toolCalls": [
+        {
+          "id": "call_yaS1oLAtHbmi6lC11x0KzIxy",
+          "name": "finish_goal",
+          "args": {
+            "successText": "E-mail: {{input.email}}",
+            "summary": "Updates the member's e-mail address to the specified value, leaving phone and mailing address unchanged, and confirms the new e-mail is saved on the member record screen."
+          }
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "toolCalls": [
+        {
+          "id": "call_nb3z4KwPAMvSt86sL4dC1iZj",
+          "name": "finish_goal",
+          "args": {
+            "successText": "MEMBER RECORD",
+            "summary": "Updates the member's e-mail address to the specified value, leaving phone and mailing address unchanged, and confirms the new e-mail is saved on the member record screen."
+          }
+        }
+      ]
+    }
+  ]
+}

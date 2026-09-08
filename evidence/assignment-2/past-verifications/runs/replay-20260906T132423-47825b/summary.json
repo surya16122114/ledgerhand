@@ -1,0 +1,225 @@
+{
+  "runId": "replay-20260906T132423-47825b",
+  "kind": "replay",
+  "sanitizedEvidenceVersion": 1,
+  "evidenceWriteFailures": 0,
+  "eventCounts": {
+    "handler.matched": 2,
+    "handler.retry": 1,
+    "policy": 8,
+    "policy.ceiling": 1,
+    "replay.entry": 1,
+    "replay.start": 1,
+    "run.end": 1,
+    "run.start": 1,
+    "step.end": 8,
+    "step.failed": 2,
+    "step.start": 8,
+    "step.value": 3
+  },
+  "steps": [
+    {
+      "index": 0,
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "action": "navigate",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1080,
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 1,
+      "id": "02-fill-operator-id",
+      "intent": "Enter the operator ID to begin signing on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 835,
+      "target": "textbox \"Operator ID\" in [pii:record] (textbox labelled \"Operator ID\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 2,
+      "id": "03-fill-[secret]",
+      "intent": "Enter the operator [secret] to continue signing on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 826,
+      "target": "[secret] \"Password\" in Password=[secret] labelled \"Password\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 3,
+      "id": "04-click-sign-on",
+      "intent": "Click Sign On to complete the sign on process and access the main menu.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1540,
+      "target": "button \"Sign On\" in [pii:record] (button \"Sign On\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 4,
+      "id": "05-click-member-inquiry",
+      "intent": "Click Member Inquiry to search for a member by member [pii:surface-value].",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1822,
+      "target": "link \"Member Inquiry\" (link \"Member Inquiry\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 5,
+      "id": "06-fill-value",
+      "intent": "Enter the member [pii:surface-value] to search for the member record by member ID.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1333,
+      "target": "textbox \"Value\" in [pii:record] (textbox labelled \"Value\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 6,
+      "id": "07-click-search",
+      "intent": "Click Search to look up the member record for the entered member [pii:surface-value].",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1815,
+      "target": "button \"Search\" in [pii:record] (button \"Search\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 7,
+      "id": "08-click-select",
+      "intent": "Click Select to open the member record for member [pii:surface-value] {{input.memberId}}.",
+      "action": "click",
+      "risk": "safe",
+      "status": "recovered",
+      "attempts": 2,
+      "durationMs": 26362,
+      "target": "link \"Select\" in [pii:record] (link \"Select\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": false,
+        "observed": "sub-condition 1 failed: /MEMBER RECORD/ not found in 425 chars of visible text"
+      }
+    }
+  ],
+  "recoveries": [
+    {
+      "at": "2026-09-06T13:24:45.217Z",
+      "stepId": "08-click-select",
+      "handler": "transient-slow-load",
+      "action": "retryStep",
+      "attempt": 1,
+      "detail": "backing off 3000ms (attempt 1/1)"
+    }
+  ],
+  "drift": [],
+  "interventions": [],
+  "warnings": [],
+  "outputKeys": [],
+  "status": "business_outcome",
+  "capability": {
+    "id": "member.read-record",
+    "version": "1.0.0",
+    "digest": "sha256:4dbe04ce2993621938b040b0ee56db6a"
+  },
+  "inputDetails": {
+    "memberId": {
+      "type": "string",
+      "sensitivity": "pii",
+      "supplied": true
+    },
+    "shareId": {
+      "type": "string",
+      "sensitivity": "internal",
+      "supplied": true
+    }
+  },
+  "outputDetails": {
+    "memberName": {
+      "type": "string",
+      "sensitivity": "pii",
+      "produced": false
+    },
+    "email": {
+      "type": "string",
+      "sensitivity": "pii",
+      "produced": false
+    },
+    "shareBalance": {
+      "type": "money",
+      "sensitivity": "pii",
+      "produced": false
+    },
+    "shareStatus": {
+      "type": "string",
+      "sensitivity": "pii",
+      "produced": false
+    }
+  },
+  "inputs": {
+    "memberId": "[withheld]",
+    "shareId": "[withheld]"
+  },
+  "outputs": {
+    "memberName": "[withheld]",
+    "email": "[withheld]",
+    "shareBalance": "[withheld]",
+    "shareStatus": "[withheld]"
+  },
+  "outcome": {
+    "code": "PERMISSION_DENIED"
+  },
+  "durationMs": 35773
+}

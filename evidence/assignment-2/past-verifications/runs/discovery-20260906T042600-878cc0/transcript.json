@@ -1,0 +1,149 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_Xsmst0k85sVYL5kNBpf0DHMB",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "meridianOperatorUser",
+            "why": "Enter the teller vault operator ID to sign on."
+          }
+        },
+        {
+          "id": "call_MHLhTKIMjAFi3T1J7rySxwsr",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the teller vault [secret] to sign on."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_Ax4P2fxlVkNUFrEIysseGa1E",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the teller vault [secret] to sign on."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_jpg1iej0PrQKi5zxBwLpATgD",
+          "name": "click_control",
+          "args": {
+            "ref": "7:3",
+            "why": "Click Sign On to log in with the teller vault credentials."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_qlhDLrtUvYBx1DNlN64aGksS",
+          "name": "click_control",
+          "args": {
+            "ref": "10:1",
+            "why": "Open Member Inquiry to search for a member by member [pii:surface-value]."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_zZig5pF0jhI40pq8WCXOAwpK",
+          "name": "fill_field",
+          "args": {
+            "ref": "13:5",
+            "value": "{{input.memberId}}",
+            "why": "Enter the member [pii:surface-value] to search for the member by their ID."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_OAa0c3UNydaXtwRwUzHwKMeZ",
+          "name": "click_control",
+          "args": {
+            "ref": "16:6",
+            "why": "Click Search to look up the member by their member [pii:surface-value]."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_T36msOR6fHkmtR9zpxW8tMNJ",
+          "name": "click_control",
+          "args": {
+            "ref": "19:7",
+            "why": "Select the member record to view their details and shares table."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_cAcPYocdMJm8P9cMrqD4oJ55",
+          "name": "read_value",
+          "args": {
+            "ref": "22:13",
+            "outputName": "sharesText",
+            "format": "text",
+            "why": "Read the complete shares table including all share IDs, types, balances, and statuses for this member."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_5au11vQ41chlqzaQNlWw9EwE",
+          "name": "finish_goal",
+          "args": {
+            "successText": "SHARES / BALANCES Share ID Type Balance Status {{input.memberId}}-S0001 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-MMKT-2 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-MMKT-3 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-MMKT-4 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-MMKT-5 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-S0070-6 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-MMKT-7 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-S0070-8 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-S0001-9 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-MMKT-10 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-MMKT-11 [pii:surface-value] [pii:surface-value] [pii:surface-value] {{input.memberId}}-MMKT-12 [pii:surface-value] [pii:surface-value] [pii:surface-value]",
+            "summary": "Signs on with teller vault credentials, opens Member Inquiry, finds the member by memberId, opens their record, and reads the complete shares table including all share IDs, types, balances, and statuses."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_XNMvGPthxzE2rG1FKn7wYSs5",
+          "name": "finish_goal",
+          "args": {
+            "successText": "SHARES / BALANCES",
+            "summary": "Signs on with teller vault credentials, opens Member Inquiry, finds the member by memberId, opens their record, and reads the complete shares table including all share IDs, types, balances, and statuses."
+          }
+        }
+      ]
+    }
+  ]
+}

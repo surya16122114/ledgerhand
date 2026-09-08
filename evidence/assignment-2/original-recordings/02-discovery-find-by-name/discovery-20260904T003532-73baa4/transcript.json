@@ -1,0 +1,172 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_tF9uMSfZlOMQhXCij53zOMNM",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "meridianOperatorUser",
+            "why": "Enter the operator ID to sign on to Meridian Core."
+          }
+        },
+        {
+          "id": "call_zakraBaLP4lFJ2o7OnoNXQ8o",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the [secret] to sign on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_THQKAGZkHf5DkTrbn8CqwJdE",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the operator [secret] to sign on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_vKwby2Ant2BUEJW8vEpxaDO5",
+          "name": "click_control",
+          "args": {
+            "ref": "7:3",
+            "why": "Click the Sign On button to log in to Meridian Core with the provided operator credentials."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_g4VD9NKWN1mcm15HCgKSOh5w",
+          "name": "click_control",
+          "args": {
+            "ref": "10:1",
+            "why": "Open the Member Inquiry screen to search for members by last name."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_Xaagq6cX5mJPq1ctbKY0qVtW",
+          "name": "select_option",
+          "args": {
+            "ref": "13:4",
+            "value": "Last Name",
+            "why": "Change the search criteria to search for members by last name."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_uIrO0BIbfFP8zzLMeVo4E7PN",
+          "name": "fill_field",
+          "args": {
+            "ref": "16:5",
+            "value": "{{input.lastName}}",
+            "why": "Enter the last name {{input.lastName}} to search for members with this last name."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_yzlhB6ZIeQZRJW0lQLmTg6Oy",
+          "name": "click_control",
+          "args": {
+            "ref": "19:6",
+            "why": "Click the Search button to find members with the last name {{input.lastName}}."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_8TmnSJxfojZsJt6M1sRINyWm",
+          "name": "read_value",
+          "args": {
+            "ref": "22:8",
+            "outputName": "memberNumber",
+            "why": "Read the member number of the first matching record for the last name {{input.lastName}}."
+          }
+        },
+        {
+          "id": "call_2SXyAOmVn4HRepvlUR4xCeAA",
+          "name": "read_value",
+          "args": {
+            "ref": "22:9",
+            "outputName": "memberName",
+            "why": "Read the member name of the first matching record for the last name {{input.lastName}}."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_a03fEg9CUhP91U4nxeiyLrWw",
+          "name": "read_value",
+          "args": {
+            "ref": "25:9",
+            "outputName": "memberName",
+            "why": "Read the name of the first matching member with the last name {{input.lastName}}."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_xfmOTdXv8U9OBQeHhaAxazin",
+          "name": "finish_goal",
+          "args": {
+            "successText": "103001 {{input.lastName}}, Dorothy",
+            "summary": "Signs on to Meridian Core, opens Member Inquiry, searches for members by last name '{{input.lastName}}', and reads the member number and name of the first matching record."
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "toolCalls": [
+        {
+          "id": "call_B1QBjV0daVwzz9WN4HczSsqj",
+          "name": "finish_goal",
+          "args": {
+            "successText": "MEMBER INQUIRY / SELECTION",
+            "summary": "Signs on to Meridian Core, opens Member Inquiry, searches for members by last name '{{input.lastName}}', and reads the member number and name of the first matching record."
+          }
+        }
+      ]
+    }
+  ]
+}

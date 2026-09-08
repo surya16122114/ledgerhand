@@ -1,0 +1,279 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_NqlbbMABR7dVDQpEbVMgxLxd",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "meridianOperatorUser",
+            "why": "Enter the operator ID to sign on to Meridian Core."
+          }
+        },
+        {
+          "id": "call_Aff51OJ9uQrHe17IjwnNJqUF",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the [secret] to sign on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_H490PGGbMAGfWFJcda82DP2j",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the [secret] to sign on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_3pImQ4Aii7cFySa2LYlZu17S",
+          "name": "click_control",
+          "args": {
+            "ref": "7:3",
+            "why": "Click Sign On to log in to Meridian Core with the entered operator credentials and branch."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_Tq9TGML96q6VkGf5EqJ1bGxX",
+          "name": "click_control",
+          "args": {
+            "ref": "10:1",
+            "why": "Go to Member Inquiry to look up the member by member number."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_mQcxbx20eLdAH5xnFfDujWXk",
+          "name": "fill_field",
+          "args": {
+            "ref": "13:5",
+            "value": "{{input.memberId}}",
+            "why": "Enter the member number to look up the member for the funds transfer."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_DqDHiUCmthCXTmRYKOTxMc8p",
+          "name": "click_control",
+          "args": {
+            "ref": "16:6",
+            "why": "Search for the member using the entered member number to access their account details for the funds transfer."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_3kLNI5g4xw0a5Ztuuyt9jblw",
+          "name": "click_control",
+          "args": {
+            "ref": "19:7",
+            "why": "Select the member to access their account details and initiate a funds transfer."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_FBxpgLfifjwEwo87SPeWCN4o",
+          "name": "click_control",
+          "args": {
+            "ref": "22:4",
+            "why": "Open the Funds Transfer screen to initiate a transfer between the member's shares."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_6WdCkjenR2l7KZIV8HjIBaEK",
+          "name": "select_option",
+          "args": {
+            "ref": "25:4",
+            "value": "{{input.fromShare}}",
+            "why": "Select the source share {{input.fromShare}} for the funds transfer."
+          }
+        },
+        {
+          "id": "call_VNj9fDHkpFIZNCnYgh7qlm2i",
+          "name": "select_option",
+          "args": {
+            "ref": "25:5",
+            "value": "{{input.toShare}}",
+            "why": "Select the destination share {{input.toShare}} for the funds transfer."
+          }
+        },
+        {
+          "id": "call_0WDgXzDbN42za9rheZReb449",
+          "name": "fill_field",
+          "args": {
+            "ref": "25:6",
+            "value": "1",
+            "why": "Enter the transfer amount for the funds transfer."
+          }
+        },
+        {
+          "id": "call_nt1oPMNxmTKJg30eQvFY6ZUQ",
+          "name": "fill_field",
+          "args": {
+            "ref": "25:7",
+            "value": "{{input.memo}}",
+            "why": "Enter the memo for the funds transfer."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_OTXKz7BI9uHYTGs8YnGvSo0y",
+          "name": "select_option",
+          "args": {
+            "ref": "28:5",
+            "value": "{{input.toShare}}",
+            "why": "Select the destination share {{input.toShare}} for the funds transfer."
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "toolCalls": [
+        {
+          "id": "call_iOumdutRiWQt2AuySjHWvjji",
+          "name": "fill_field",
+          "args": {
+            "ref": "31:6",
+            "value": "1",
+            "why": "Enter the amount to transfer between the selected shares."
+          }
+        },
+        {
+          "id": "call_aL8qJXGGEARUhlNXcRknSXaH",
+          "name": "fill_field",
+          "args": {
+            "ref": "31:7",
+            "value": "{{input.memo}}",
+            "why": "Enter the memo for the funds transfer as specified in the task parameters."
+          }
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "toolCalls": [
+        {
+          "id": "call_2QV6Lu2tBStKhPzwMBVESue5",
+          "name": "fill_field",
+          "args": {
+            "ref": "34:7",
+            "value": "{{input.memo}}",
+            "why": "Enter the memo for the funds transfer as specified in the task parameters."
+          }
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "toolCalls": [
+        {
+          "id": "call_utM29leo7TwLHHmw66SDEPSr",
+          "name": "click_control",
+          "args": {
+            "ref": "37:8",
+            "why": "Continue to the confirmation screen to review the funds transfer details before posting."
+          }
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "toolCalls": [
+        {
+          "id": "call_6lg35qO391c0KrMb2s5XUicN",
+          "name": "click_control",
+          "args": {
+            "ref": "40:4",
+            "why": "Post the funds transfer after reviewing the confirmation screen to complete the transaction."
+          }
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "toolCalls": [
+        {
+          "id": "call_EVuwbAvert79fiSq13PvAKB4",
+          "name": "read_value",
+          "args": {
+            "ref": "43:6",
+            "outputName": "confirmationReference",
+            "why": "Read the confirmation reference for the posted funds transfer as required by the task."
+          }
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "toolCalls": [
+        {
+          "id": "call_vgLDBKRoYfUSDKRRnMsacZsm",
+          "name": "finish_goal",
+          "args": {
+            "successText": "TRANSFER POSTED TRANSACTION COMPLETE Confirmation: CN480227",
+            "summary": "Posts a funds transfer between the specified member shares, then retrieves and confirms the transaction reference after successful posting."
+          }
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "toolCalls": [
+        {
+          "id": "call_FqQjtgMsaQH6n7BSb1z21Lik",
+          "name": "finish_goal",
+          "args": {
+            "successText": "TRANSFER POSTED TRANSACTION COMPLETE",
+            "summary": "Posts a funds transfer between the specified member shares, then retrieves and confirms the transaction reference after successful posting."
+          }
+        }
+      ]
+    }
+  ]
+}

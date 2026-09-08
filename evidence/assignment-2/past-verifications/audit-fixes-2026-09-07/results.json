@@ -1,0 +1,88 @@
+{
+  "build": "PASS",
+  "unitApiTests": 307,
+  "browserTests": 35,
+  "runs": [
+    {
+      "check": "invalid-phone",
+      "runId": "replay-20260907T005256-5cb6f5",
+      "status": "business_outcome",
+      "code": "VALIDATION_REJECTED"
+    },
+    {
+      "check": "invalid-email",
+      "runId": "replay-20260907T005304-6f4f0b",
+      "status": "business_outcome",
+      "code": "VALIDATION_REJECTED"
+    },
+    {
+      "check": "altered-contact",
+      "runId": "replay-20260907T005115-222b8a",
+      "status": "failed",
+      "code": "DECLARED_FAILURE",
+      "declaredCode": "TRANSACTION_MISMATCH"
+    },
+    {
+      "check": "settings-denied-read-success",
+      "runId": "replay-20260907T005127-288de9",
+      "status": "success",
+      "code": null
+    },
+    {
+      "check": "api-read",
+      "runId": "replay-20260907T005745-dbc6ad",
+      "status": "success",
+      "code": null
+    }
+  ],
+  "apiChecks": [
+    {
+      "check": "catalog clutter",
+      "present": false
+    },
+    {
+      "check": "unattended draft",
+      "http": 400,
+      "error": {
+        "code": "NOT_APPROVED",
+        "message": "'member_read_record' is in lifecycle state 'draft' and cannot be called unattended"
+      }
+    },
+    {
+      "check": "direct empty server vault",
+      "http": 502,
+      "error": {
+        "code": "MISSING_CREDENTIAL",
+        "message": "capability 'member.read-record' needs credential(s) that are not configured: meridianOperatorPass, meridianOperatorUser.\n  - set LEDGERHAND_SECRET_MERIDIAN_OPERATOR_PASS (or see .env.example)\n  - set LEDGERHAND_SECRET_MERIDIAN_OPERATOR_USER (or see .env.example)"
+      }
+    },
+    {
+      "check": "scripted chat attempts withheld hold",
+      "holdOffered": false,
+      "result": [
+        {
+          "name": "member_place_hold",
+          "error": "NO_SUCH_CAPABILITY"
+        }
+      ]
+    },
+    {
+      "check": "scripted chat real read with omitted vault",
+      "calls": [
+        {
+          "name": "member_read_record",
+          "ok": false,
+          "runId": "replay-20260907T005745-f7ab77",
+          "error": "MISSING_CREDENTIAL"
+        }
+      ]
+    }
+  ],
+  "customEvidenceStability": {
+    "runs": 1,
+    "successes": 1,
+    "successRate": 1,
+    "fallbackHits": 0
+  },
+  "scope": "Scripted local model for chat wiring, real browser/API replay. No external model call. Email pattern relaxed only in memory to exercise host rejection. No new financial writes in this pass."
+}

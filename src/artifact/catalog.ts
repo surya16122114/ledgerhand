@@ -1,3 +1,6 @@
+import { readdir, readFile } from 'node:fs/promises';
+import { join } from 'node:path';
+import { capabilityDigest } from './store.js';
 /**
  * The agent-facing capability catalog.
  *
@@ -23,7 +26,7 @@
  */
 
 import { requiredSecretNames } from './schema.js';
-import type { Capability, InputParam, OutputField } from './index-types.js';
+import type { Capability, InputParam, OutputField, RiskClass } from './index-types.js';
 import { listCapabilities, loadCapabilityFile, type CapabilityIndexEntry } from './store.js';
 
 export interface JsonSchemaProperty {
@@ -34,15 +37,29 @@ export interface JsonSchemaProperty {
 }
 
 export interface CapabilityToolDefinition {
+  /**
+   * One sentence, for a person. The `description` below is written for a model --
+   * it spells out the whole outcome vocabulary so the model knows a business
+   * outcome is an answer rather than a crash. Rendering that verbatim in a human
+   * UI buries the one line an operator actually wanted.
+   */
+  summary: string;
   /** Callable name. Dots are not universally accepted in tool names, so they become underscores. */
   name: string;
   capabilityId: string;
+  productId?: string;
   version: string;
   description: string;
   inputSchema: { type: 'object'; properties: Record<string, JsonSchemaProperty>; required: string[]; additionalProperties: false };
   outputSchema: { type: 'object'; properties: Record<string, JsonSchemaProperty>; required: string[] };
   outcomes: { code: string; description: string; retryable: boolean }[];
   lifecycle: { state: string; callableUnattended: boolean };
+  /**
+   * The capability's declared risk ceiling. Exposed because a caller deciding
+   * whether to let a chatbot invoke this needs to know it can change records,
+   * and inferring that from the name is exactly the mistake to avoid.
+   */
+  maxRisk: RiskClass;
   stability: { runs: number; successes: number; successRate: number | null; fallbackHits: number };
   /** Names of vault credentials this capability needs at replay time. */
   requiredSecrets: string[];
@@ -112,12 +129,15 @@ export function toToolDefinition(cap: Capability): CapabilityToolDefinition {
   return {
     name: toolNameFor(cap),
     capabilityId: cap.id,
+    productId: cap.target.productId,
     version: cap.version,
+    summary: readablePlaceholders(cap.summary),
     description,
     inputSchema: { type: 'object', properties, required, additionalProperties: false },
     outputSchema: { type: 'object', properties: outputProps, required: outputRequired },
     outcomes: cap.outcomes.map((o) => ({ code: o.code, description: o.description, retryable: o.retryable })),
     lifecycle: { state: cap.lifecycle.state, callableUnattended: cap.lifecycle.state === 'approved' },
+    maxRisk: cap.policy.maxRisk,
     stability: {
       runs: stability.runs,
       successes: stability.successes,
@@ -144,14 +164,22 @@ export interface Catalog {
   entries: CapabilityIndexEntry[];
 }
 
-export async function buildCatalog(dir?: string): Promise<Catalog> {
+export async function buildCatalog(dir?: string, evidenceDir?: string): Promise<Catalog> {
   const entries = await listCapabilities(dir);
-  const tools: CapabilityToolDefinition[] = [];
+  const latest = new Map<string, typeof entries[number]>();
   for (const entry of entries) {
+    const prior = latest.get(entry.id);
+    if (!prior || entry.version.localeCompare(prior.version, undefined, { numeric: true }) > 0) latest.set(entry.id, entry);
+  }
+  const tools: CapabilityToolDefinition[] = [];
+  for (const entry of latest.values()) {
     if (entry.digest === 'invalid') continue;
     if (entry.state === 'deprecated') continue;
     try {
-      tools.push(toToolDefinition(await loadCapabilityFile(entry.file)));
+      const cap = await loadCapabilityFile(entry.file);
+      const tool = toToolDefinition(cap);
+      tool.stability = await measuredStability(cap, evidenceDir);
+      tools.push(tool);
     } catch {
       /* already reported as an invalid index entry */
     }
@@ -162,4 +190,26 @@ export async function buildCatalog(dir?: string): Promise<Catalog> {
 /** Resolve a tool name (underscored) back to a capability id. */
 export function capabilityIdForToolName(name: string, entries: CapabilityIndexEntry[]): string | undefined {
   return entries.find((e) => e.id.replace(/[.-]/g, '_') === name)?.id;
+}
+
+/** Counters belong beside recordings, derived from terminal runs with the same digest. */
+export async function measuredStability(cap: Capability, dir = 'evidence/runs'): Promise<CapabilityToolDefinition['stability']> {
+  const digest = capabilityDigest(cap);
+  let runs = 0, successes = 0, fallbackHits = 0;
+  const seen = new Set<string>();
+  for (const root of dir === 'evidence/runs' ? [dir, 'evidence/assignment-2/past-verifications/runs'] : [dir]) {
+    const names = await readdir(root).catch(() => []);
+    for (const name of names.filter((n) => n.startsWith('replay-'))) {
+      try {
+        if (seen.has(name)) continue;
+        const summary = JSON.parse(await readFile(join(root, name, 'summary.json'), 'utf8'));
+        seen.add(name);
+        if (summary.capability?.digest !== digest || !['success', 'business_outcome', 'failed', 'escalated'].includes(summary.status)) continue;
+        runs++;
+        if (['success', 'business_outcome'].includes(summary.status)) successes++;
+        fallbackHits += Array.isArray(summary.drift) ? summary.drift.length : 0;
+      } catch { /* Incomplete runs do not become reliability measurements. */ }
+    }
+  }
+  return { runs, successes, successRate: runs ? Number((successes / runs).toFixed(3)) : null, fallbackHits };
 }

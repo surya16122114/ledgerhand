@@ -263,3 +263,211 @@ describe('action kinds no committed capability happens to use', () => {
     expect(obs.text).toContain('SUB-ACCOUNT OPENED');
   });
 });
+
+/**
+ * A filled password field has to look different from an empty one, or the model
+ * cannot tell its own fill worked.
+ *
+ * This is only observable in a browser: the browser-free suite builds
+ * Observations from fixtures, so it can assert whatever it likes about a
+ * password field without ever running the code that decides what to report.
+ */
+describe('password fields report that they are filled, never what with', () => {
+  const SECRET = 'demo-password-not-real';
+  const passwordControl = (obs: { controls: { role: string; value?: string }[] }) =>
+    obs.controls.find((c) => c.role === 'password');
+
+  it('reports no value for an untouched password field', async () => {
+    // A fresh sign-on page: nothing typed yet.
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: `${BASE}/login.aspx` });
+      expect(passwordControl(await fresh.observe())?.value).toBeUndefined();
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  it('reports a masked value once filled, so the fill is observable', async () => {
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: `${BASE}/login.aspx` });
+      await fresh.perform({ kind: 'fill', target: target('Password', [byLabel('Password', 'password')]), value: SECRET });
+      const observed = passwordControl(await fresh.observe())?.value;
+
+      // The point of the change: filled and empty are now distinguishable.
+      expect(observed).toBeTruthy();
+      // The point of the redaction: still nothing about the credential itself.
+      expect(observed).not.toContain(SECRET);
+      expect(observed).not.toContain('demo');
+      // Fixed width -- deriving it from the real length would leak the length.
+      expect(observed).toBe('********');
+      expect(observed!.length).not.toBe(SECRET.length);
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  it('never lets the credential reach the observation at all', async () => {
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: `${BASE}/login.aspx` });
+      await fresh.perform({ kind: 'fill', target: target('Password', [byLabel('Password', 'password')]), value: SECRET });
+      // Whole-observation check, not just the one control: the value could also
+      // have leaked into a name, a target hint or the page text.
+      expect(JSON.stringify(await fresh.observe())).not.toContain(SECRET);
+    } finally {
+      await fresh.close();
+    }
+  });
+});
+
+/**
+ * A table cell that wraps one link is that link, perceived twice.
+ *
+ * Meridian's search results put `<a href="/members/103001">Select</a>` alone in a
+ * cell. Perception offered the model both a `link "Select"` -- with role-name,
+ * text and section-ordinal strategies -- and a `cell "Select"` carrying only a
+ * positional dom-hint, with nothing to tell them apart. Clicking the cell hits the
+ * td's padding and navigates nowhere; a real discovery run did exactly that three
+ * times and escalated.
+ */
+describe('a cell that only wraps a control is not perceived as a value', () => {
+  const page = (body: string) =>
+    `data:text/html,${encodeURIComponent(`<html><body><table border="1"><tr><th>Member No.</th><th>Name</th><th>Action</th></tr>${body}</table></body></html>`)}`;
+
+  const named = (obs: { controls: { role: string; name: string }[] }, name: string) =>
+    obs.controls.filter((c) => c.name === name);
+
+  it('drops the wrapper cell and keeps the link', async () => {
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: page('<tr><td>103001</td><td>Vaughan, Dorothy</td><td><a href="/members/103001">Select</a></td></tr>') });
+      const obs = await fresh.observe();
+      const selects = named(obs, 'Select');
+      expect(selects).toHaveLength(1);
+      expect(selects[0]!.role).toBe('link');
+      // The data either side of it is still readable.
+      expect(obs.controls.some((c) => c.name === 'Vaughan, Dorothy' || c.value === 'Vaughan, Dorothy')).toBe(true);
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  it('keeps a cell that holds a link plus other text', async () => {
+    // The local app's own footer is this shape: "Signed on: <b>x</b> | Sign Off".
+    // Dropping it would lose a value to read, so the rule is deliberately narrow.
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: page('<tr><td>103001</td><td>Vaughan, Dorothy</td><td>OPEN &nbsp; <a href="/x">Select</a></td></tr>') });
+      const obs = await fresh.observe();
+      // Cell survives, because its text is more than the link's.
+      // A grid cell is *named* by its column header; its text is the value.
+      expect(obs.controls.some((c) => c.role === 'cell' && /OPEN/.test(`${c.name ?? ''} ${c.value ?? ''}`))).toBe(true);
+      expect(obs.controls.some((c) => c.role === 'link' && c.name === 'Select')).toBe(true);
+    } finally {
+      await fresh.close();
+    }
+  });
+});
+
+/**
+ * The status line: several label/value pairs in one element, with no heading,
+ * no label and no accessible name.
+ *
+ * Nothing else in the perception layer collected it, so the model could read
+ * "OPR TELLER1 | BR MAIN-001" in the page text while having no ref to point at.
+ * It pointed at the nearest control it did have and captured the menu's "1." --
+ * a green run returning the wrong value.
+ */
+describe('status lines are perceived, and named after their shape', () => {
+  const FOOTER = 'OPR TELLER1 | BR MAIN-001 | 09/03/2026 23:38:07 | SID 3CAB058F';
+  const page = (body: string) => `data:text/html,${encodeURIComponent(`<html><body>${body}</body></html>`)}`;
+
+  const statusLine = (obs: { controls: { name: string; value?: string }[] }) =>
+    obs.controls.find((c) => /OPR/.test(`${c.name ?? ''}`));
+
+  it('perceives a status line that carries no label of any kind', async () => {
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: page(`<table><tr><td><font size="1">${FOOTER}</font></td></tr></table>`) });
+      const found = statusLine(await fresh.observe());
+      expect(found).toBeDefined();
+      expect(found!.value).toContain('MAIN-001');
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  it('names it after its labels, keeping record-time data out of the name', async () => {
+    // The name is what lands in a target descriptor and in failure messages. A
+    // name containing the operator and session id would be pinned to one run.
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: page(`<table><tr><td><font size="1">${FOOTER}</font></td></tr></table>`) });
+      const found = statusLine(await fresh.observe())!;
+      expect(found.name).toBe('OPR | BR | SID');
+      expect(found.name).not.toContain('TELLER1');
+      expect(found.name).not.toContain('3CAB058F');
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  it('gives the same name when the values differ, so a target survives the next run', async () => {
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: page('<table><tr><td><font>OPR SUPER1 | BR EAST-022 | 01/01/2027 00:00:00 | SID FFFFFFFF</font></td></tr></table>') });
+      expect(statusLine(await fresh.observe())!.name).toBe('OPR | BR | SID');
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  it('does not mistake ordinary prose for a status line', async () => {
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: page('<table><tr><td>Type or click a menu option to continue.</td></tr></table>') });
+      expect(statusLine(await fresh.observe())).toBeUndefined();
+    } finally {
+      await fresh.close();
+    }
+  });
+
+  it('perceives it once, not once per nesting depth', async () => {
+    // The <font> is inside a <td> inside a <table>; all three have the same text.
+    const fresh = await PlaywrightWebSurface.launch({ headless: true });
+    try {
+      await fresh.perform({ kind: 'navigate', url: page(`<table><tr><td><font size="1">${FOOTER}</font></td></tr></table>`) });
+      const obs = await fresh.observe();
+      expect(obs.controls.filter((c) => /OPR/.test(`${c.name ?? ''}`))).toHaveLength(1);
+    } finally {
+      await fresh.close();
+    }
+  });
+});
+
+it('persists structure-only snapshots without hidden tokens, attributes or PII', async () => {
+  const { readFile, mkdtemp, rm } = await import('node:fs/promises');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const dir = await mkdtemp(join(tmpdir(), 'lh-sanitized-'));
+  const page = surface.livePage();
+  const isolated = await page.context().newPage();
+  // Use the actual surface with a simple page after the other perception scenarios.
+  await page.goto('about:blank');
+  await page.setContent('<p data-name="PRIVATE_PERSON">PRIVATE_PERSON</p><input type="hidden" name="_token" value="PRIVATE_TOKEN"><input value="PRIVATE_EMAIL@example.com"><script type="application/json">PRIVATE_SCRIPT</script>');
+  try {
+    const file = await surface.sourceSnapshot(join(dir, 'snapshot.html'));
+    expect(file).toBeTruthy();
+    const snapshot = await readFile(file!, 'utf8');
+    expect(snapshot).toContain('ledgerhand-sanitized-evidence-v1');
+    expect(snapshot).not.toContain('PRIVATE');
+    expect(snapshot).not.toContain('_token');
+    expect(snapshot).not.toContain('<script');
+    const shot = await surface.screenshot(join(dir, 'snapshot.png'));
+    expect(shot).toBeTruthy();
+    expect(await page.locator('input:not([type="hidden"])').inputValue()).toBe('PRIVATE_EMAIL@example.com');
+    expect(await page.locator('p').evaluate((el) => getComputedStyle(el).color)).not.toBe('rgba(0, 0, 0, 0)');
+  } finally { await isolated.close(); await rm(dir, { recursive: true, force: true }); }
+});

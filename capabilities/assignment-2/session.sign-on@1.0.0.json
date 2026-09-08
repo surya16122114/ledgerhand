@@ -1,0 +1,514 @@
+{
+  "description": "Signs on to Meridian Core as the configured operator at the specified branch, reaches the main menu, and reads the signed-on operator and branch from the status line at the bottom of the screen.\n\nRecorded from the goal: \"Sign on to Meridian Core as the configured operator at the given branch and reach the main menu. Then read the signed-on operator and the branch out of the status line at the bottom of the screen, the one reading \"OPR ... | BR ... | SID ...\". Extract each field on its own rather than returning the whole line, and match on the \"OPR\" and \"BR\" prefixes rather than on the values themselves.\"",
+  "id": "session.sign-on",
+  "inputs": [
+    {
+      "description": "Branch code to sign on at. The host offers MAIN-001, WEST-014 and EAST-022.",
+      "name": "branch",
+      "pattern": "^[A-Z]{4}-\\d{3}$",
+      "required": true,
+      "sensitivity": "internal",
+      "type": "string"
+    }
+  ],
+  "interrupts": [
+    {
+      "name": "application-error-page",
+      "notDuringAuth": false,
+      "then": {
+        "code": "APP_ERROR",
+        "do": "fail",
+        "message": "the application returned an error page with a support reference"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "APPLICATION ERROR|Reference: ERR-"
+      }
+    },
+    {
+      "name": "supervisor-override-required",
+      "notDuringAuth": false,
+      "then": {
+        "code": "PERMISSION_DENIED",
+        "do": "outcome"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "SUPERVISOR OVERRIDE REQUIRED|not authorized to perform this function"
+      }
+    },
+    {
+      "name": "session-timed-out",
+      "notDuringAuth": true,
+      "then": {
+        "do": "reauthenticate",
+        "maxAttempts": 1
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "YOUR SESSION HAS TIMED OUT|session ended due to inactivity"
+      }
+    },
+    {
+      "name": "maintenance-window",
+      "notDuringAuth": false,
+      "then": {
+        "do": "dismiss",
+        "target": {
+          "description": "Continue link on the maintenance notice",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Continue",
+              "nameMatch": "normalized",
+              "role": "link"
+            }
+          ]
+        },
+        "thenRetryStep": true
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "SCHEDULED MAINTENANCE IN PROGRESS|This window normally clears within a few moments"
+          },
+          {
+            "kind": "controlPresent",
+            "target": {
+              "description": "Continue link on the maintenance notice",
+              "strategies": [
+                {
+                  "kind": "role-name",
+                  "name": "Continue",
+                  "nameMatch": "normalized",
+                  "role": "link"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "record-not-found",
+      "notDuringAuth": true,
+      "then": {
+        "code": "MEMBER_NOT_FOUND",
+        "do": "outcome"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "RECORD NOT FOUND|could not be located on this host"
+      }
+    },
+    {
+      "name": "unexpected-signon-screen",
+      "notDuringAuth": true,
+      "then": {
+        "do": "escalate",
+        "reason": "the application returned to the sign-on screen without reporting a timed-out session"
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "textAbsent",
+            "pattern": "SESSION HAS TIMED OUT"
+          }
+        ]
+      }
+    }
+  ],
+  "lifecycle": {
+    "stability": {
+      "consecutiveFailures": 0,
+      "fallbackHits": 0,
+      "runs": 0,
+      "successes": 0
+    },
+    "state": "draft"
+  },
+  "name": "Sign On",
+  "outcomes": [
+    {
+      "code": "MEMBER_NOT_FOUND",
+      "description": "The member number was searched or navigated to and the host reported no such record. A legitimate answer, not an error.",
+      "retryable": true
+    },
+    {
+      "code": "PERMISSION_DENIED",
+      "description": "The signed-on operator profile is not entitled to this function -- the host asks for a supervisor override. Placing a hold is the known case: a teller profile is refused at the review step, a supervisor profile is not. Requires a different operator identity, not a retry.",
+      "retryable": false
+    },
+    {
+      "code": "VALIDATION_REJECTED",
+      "description": "The host rejected the submitted values as malformed. The caller should correct the inputs and retry.",
+      "retryable": true
+    },
+    {
+      "code": "SOURCE_SHARE_RESTRICTED",
+      "description": "The source share carries a HOLD and cannot be debited. The automation did everything correctly and the bank declined; retrying the same inputs will always fail, but the same transfer from a different share may succeed.",
+      "retryable": false
+    },
+    {
+      "code": "INSUFFICIENT_FUNDS",
+      "description": "The source share does not have the available balance for this amount. Not retryable with the same amount.",
+      "retryable": false
+    }
+  ],
+  "outputs": [
+    {
+      "description": "Read the signed-on operator from the status line at the bottom of the screen.",
+      "name": "signedOnOperator",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    },
+    {
+      "description": "Read the signed-on branch from the status line at the bottom of the screen.",
+      "name": "signedOnBranch",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    }
+  ],
+  "overlays": [],
+  "policy": {
+    "allowedActions": [
+      "navigate",
+      "fill",
+      "select",
+      "click",
+      "readText"
+    ],
+    "allowedUrlPatterns": [
+      "^{{baseUrl}}/"
+    ],
+    "maxRisk": "reversible",
+    "requiresApprovalForIrreversible": true
+  },
+  "provenance": {
+    "discoveryRunId": "discovery-20260904T183830-25cbfa",
+    "humanInterventions": 0,
+    "model": "openai:gpt-4.1",
+    "modelTurns": 8,
+    "recordedAt": "2026-09-04T18:38:46.438Z",
+    "recordedBy": "ledgerhand-discovery",
+    "redactionApplied": true,
+    "toolVersion": "ledgerhand/0.1.0",
+    "transcriptDigest": "sha256:f690ea0a12178ef8553dda25c840d9d4"
+  },
+  "schemaVersion": "1.0.0",
+  "steps": [
+    {
+      "action": {
+        "kind": "navigate",
+        "url": "{{baseUrl}}/signon"
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/signon"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Operator ID\" in Operator ID:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Operator ID",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "Operator ID:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "meridianOperatorUser"
+        }
+      },
+      "handlers": [],
+      "id": "02-fill-operator-id",
+      "intent": "Enter the operator ID to begin signing on.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "password \"Password\" in Password:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Password",
+              "labelMatch": "normalized",
+              "role": "password"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "password",
+              "section": "Password:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "meridianOperatorPass"
+        }
+      },
+      "handlers": [],
+      "id": "03-fill-password",
+      "intent": "Enter the operator password to continue signing on.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "select",
+        "target": {
+          "description": "combobox \"Branch\" in Branch:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Branch",
+              "labelMatch": "normalized",
+              "role": "combobox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "combobox",
+              "section": "Branch:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2) > select:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "branch"
+        }
+      },
+      "handlers": [],
+      "id": "04-select-branch",
+      "intent": "Select the correct branch as required for sign on.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Sign On\" in Branch:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Sign On",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Sign On",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "Branch:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(4) > td:nth-child(2) > input:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "MAIN MENU"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/menu"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "05-click-sign-on",
+      "intent": "Click Sign On to submit the operator credentials and branch for sign on.",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "readText",
+        "target": {
+          "description": "text \"OPR | BR | SID\" in 9.",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "OPR | BR | SID",
+              "nameMatch": "normalized",
+              "role": "text"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "text",
+              "section": "9."
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(4) > td:nth-child(1) > font:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "captureAs": "signedOnOperator",
+      "handlers": [],
+      "id": "06-read-signed-on-operator",
+      "intent": "Read the signed-on operator from the status line at the bottom of the screen.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000,
+      "transform": {
+        "group": 1,
+        "kind": "regex",
+        "pattern": "OPR\\s+(\\S+)"
+      }
+    },
+    {
+      "action": {
+        "kind": "readText",
+        "target": {
+          "description": "text \"OPR | BR | SID\" in 9.",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "OPR | BR | SID",
+              "nameMatch": "normalized",
+              "role": "text"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "text",
+              "section": "9."
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(4) > td:nth-child(1) > font:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "captureAs": "signedOnBranch",
+      "handlers": [],
+      "id": "07-read-signed-on-branch",
+      "intent": "Read the signed-on branch from the status line at the bottom of the screen.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000,
+      "transform": {
+        "group": 1,
+        "kind": "regex",
+        "pattern": "BR\\s+(\\S+)"
+      }
+    }
+  ],
+  "success": {
+    "checkpoint": {
+      "kind": "textPresent",
+      "pattern": "MAIN MENU"
+    },
+    "description": "the screen shows \"MAIN MENU\""
+  },
+  "summary": "Signs on to Meridian Core as the configured operator at the specified branch, reaches the main menu, and reads the signed-on operator and branch from the status line at the bottom of the sc...",
+  "target": {
+    "entryUrl": "{{baseUrl}}/signon",
+    "productId": "meridian-core",
+    "productVersion": "4.2.1",
+    "recordedTenantId": "meridian-core-sandbox",
+    "surfaceKind": "legacy-web"
+  },
+  "version": "1.0.0"
+}

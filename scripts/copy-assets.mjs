@@ -8,7 +8,10 @@
 import { copyFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
-const ASSETS = [['src/escalation/operator-console.html', 'dist/src/escalation/operator-console.html']];
+const ASSETS = [
+  ['src/escalation/operator-console.html', 'dist/src/escalation/operator-console.html'],
+  ['src/api/dashboard.html', 'dist/src/api/dashboard.html'],
+];
 
 for (const [from, to] of ASSETS) {
   await mkdir(dirname(to), { recursive: true });

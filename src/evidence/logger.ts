@@ -50,6 +50,10 @@ export function newRunId(kind: RunKind): string {
 export class RunLogger {
   private queue: Promise<void> = Promise.resolve();
   private seq = 0;
+  private writeFailures = 0;
+  private recent: Record<string, unknown>[] = [];
+
+  recentEvents(): Record<string, unknown>[] { return [...this.recent]; }
   private counts = new Map<string, number>();
 
   private constructor(
@@ -101,9 +105,11 @@ export class RunLogger {
       type,
       ...this.redactor.deep(data),
     };
+    this.recent.push(line);
+    if (this.recent.length > 60) this.recent.shift();
     this.queue = this.queue
       .then(() => appendFile(this.paths.log, `${JSON.stringify(line)}\n`, 'utf8'))
-      .catch(() => {});
+      .catch(() => { this.writeFailures++; process.stderr.write('Evidence log write failed; run history may be incomplete.\n'); });
   }
 
   /**
@@ -116,13 +122,14 @@ export class RunLogger {
     try {
       out.screenshot = await surface.screenshot(join(this.paths.screenshots, `${slug}.png`), { maskSensitive: true });
     } catch {
-      /* ignored */
+      this.event('evidence.captureFailed', { signal: 'screenshot', label });
     }
     try {
       out.snapshot = await surface.sourceSnapshot(join(this.paths.snapshots, `${slug}.html`));
     } catch {
-      /* ignored */
+      this.event('evidence.captureFailed', { signal: 'snapshot', label });
     }
+    if (!out.screenshot && !out.snapshot) this.event('evidence.unavailable', { label });
     this.event('evidence.captured', { label, ...out });
     return out;
   }
@@ -137,6 +144,8 @@ export class RunLogger {
     const body = {
       runId: this.runId,
       kind: this.kind,
+      sanitizedEvidenceVersion: 1,
+      evidenceWriteFailures: this.writeFailures,
       eventCounts: Object.fromEntries([...this.counts.entries()].sort()),
       ...this.redactor.deep(summary),
     };

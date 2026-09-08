@@ -1,0 +1,166 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_WfeV9JcSereEoP7mq6tw9KJU",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "meridianOperatorUser",
+            "why": "Enter the operator ID to sign on to Meridian Core."
+          }
+        },
+        {
+          "id": "call_FpzTK3sEaL344VqZ3xbOSM8D",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the [secret] to sign on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_k8mKXzVIZBm4taD4qIM7LuPw",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the [secret] to sign on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_kR69lzNuUcDTSbL5l4hSMxMG",
+          "name": "click_control",
+          "args": {
+            "ref": "7:3",
+            "why": "Click the Sign On button to log in to Meridian Core with the entered credentials."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_PMQneNJzS1CBC2IqNc26Ll7T",
+          "name": "click_control",
+          "args": {
+            "ref": "10:1",
+            "why": "Open the Member Inquiry screen to search for members by last [pii:surface-value]."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_nSkj7jeQEP9RJ6ykIPv77i5H",
+          "name": "select_option",
+          "args": {
+            "ref": "13:4",
+            "value": "Last Name",
+            "why": "Change the search criteria to search by last [pii:surface-value] instead of member [pii:surface-value]."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_l5mRQIJvgmRT3knGPVIpYaxS",
+          "name": "fill_field",
+          "args": {
+            "ref": "16:5",
+            "value": "a",
+            "why": "Enter the last [pii:surface-value] search term 'a' to find members whose last [pii:surface-value] contains this letter."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_KmhxxPuakstLUPQdlDYPLT1G",
+          "name": "click_control",
+          "args": {
+            "ref": "19:6",
+            "why": "Click the Search button to find members whose last [pii:surface-value] contains 'a'."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_gLgeXv30dSEjZryrhcb1COih",
+          "name": "read_value",
+          "args": {
+            "ref": "22:12",
+            "outputName": "memberNumber",
+            "format": "regex",
+            "pattern": "(\\d+)",
+            "why": "Read the member [pii:surface-value] from the first matching record in the search results."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_lERCJ74Zpyp5QsACTg5vVRS1",
+          "name": "read_value",
+          "args": {
+            "ref": "25:13",
+            "outputName": "memberName",
+            "format": "text",
+            "why": "Read the member [pii:surface-value] from the first matching record in the search results."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_sGesqYmtUWM0j9IcMho0S2l1",
+          "name": "finish_goal",
+          "args": {
+            "successText": "[pii:surface-value]",
+            "summary": "Searches for members by last [pii:surface-value], retrieves the member [pii:surface-value] and member [pii:surface-value] from the first matching record in the results."
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "toolCalls": [
+        {
+          "id": "call_dJNa5OQG54uz1aUms7i4lvuA",
+          "name": "finish_goal",
+          "args": {
+            "successText": "[pii:surface-value]",
+            "summary": "Searches for members by last [pii:surface-value], retrieves the member [pii:surface-value] and member [pii:surface-value] from the first matching record in the results."
+          }
+        }
+      ]
+    }
+  ]
+}

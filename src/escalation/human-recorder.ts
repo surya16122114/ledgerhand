@@ -116,14 +116,21 @@ export interface HumanRecorderHandle {
   detach(): void;
 }
 
+const recorderStates = new WeakMap<Page, { sink?: (action: HumanAction) => void }>();
+
 export async function attachHumanActionRecorder(
   page: Page,
   sink: (action: HumanAction) => void,
 ): Promise<HumanRecorderHandle> {
-  let active = true;
+  const existing = recorderStates.get(page);
+  if (existing) {
+    existing.sink = sink;
+    return { detach() { if (existing.sink === sink) existing.sink = undefined; } };
+  }
+  const state: { sink?: (action: HumanAction) => void } = { sink };
 
   await page.exposeBinding('__lhRecordHumanAction', (source, payload) => {
-    if (!active) return;
+    if (!state.sink) return;
     const p = (payload ?? {}) as Partial<HumanAction>;
     const framePath: string[] = [];
     let frame = source.frame;
@@ -131,7 +138,7 @@ export async function attachHumanActionRecorder(
       framePath.unshift(frame.name() || '#');
       frame = frame.parentFrame()!;
     }
-    sink({
+    state.sink({
       at: new Date().toISOString(),
       kind: (p.kind as HumanAction['kind']) ?? 'click',
       ...(p.control ? { control: p.control } : {}),
@@ -142,6 +149,7 @@ export async function attachHumanActionRecorder(
     });
   });
 
+  recorderStates.set(page, state);
   await page.addInitScript(RECORDER_SCRIPT);
   // addInitScript only affects documents loaded from now on; the session already
   // has documents open, so install into those too.
@@ -151,7 +159,7 @@ export async function attachHumanActionRecorder(
 
   return {
     detach() {
-      active = false;
+      if (state.sink === sink) state.sink = undefined;
     },
   };
 }

@@ -1,0 +1,3 @@
+{"seq":1,"at":"2026-09-06T14:05:16.358Z","runId":"replay-20260906T140516-23fbbe","type":"run.start","kind":"replay"}
+{"seq":2,"at":"2026-09-06T14:05:16.359Z","runId":"replay-20260906T140516-23fbbe","type":"replay.rejected","code":"INVALID_INPUT","message":"inputs do not satisfy the capability contract:\n  - input 'phone' does not match the required format /^.{7,30}$/"}
+{"seq":3,"at":"2026-09-06T14:05:16.359Z","runId":"replay-20260906T140516-23fbbe","type":"run.end"}

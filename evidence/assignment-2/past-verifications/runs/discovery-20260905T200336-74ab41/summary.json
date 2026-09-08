@@ -1,0 +1,38 @@
+{
+  "runId": "discovery-20260905T200336-74ab41",
+  "kind": "discovery",
+  "sanitizedEvidenceVersion": 1,
+  "eventCounts": {
+    "action.ok": 16,
+    "discovery.captured": 3,
+    "discovery.compiled": 1,
+    "discovery.entry": 1,
+    "discovery.finishClaimed": 2,
+    "discovery.finishRejected": 1,
+    "discovery.start": 1,
+    "model.turn": 18,
+    "policy": 17,
+    "policy.preauthorized": 1,
+    "run.end": 1,
+    "run.start": 1
+  },
+  "status": "success",
+  "capability": {
+    "id": "member.update-contact"
+  },
+  "inputs": {
+    "memberId": "[withheld]",
+    "email": "[withheld]",
+    "phone": "[withheld]",
+    "address": "[withheld]"
+  },
+  "outputs": {
+    "savedEmail": "[withheld]",
+    "savedPhone": "[withheld]",
+    "savedAddress": "[withheld]"
+  },
+  "turns": 18,
+  "recordedSteps": 17,
+  "humanInterventions": 0,
+  "model": "openai:gpt-4.1"
+}

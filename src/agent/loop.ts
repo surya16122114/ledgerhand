@@ -39,8 +39,9 @@ import type { Capability } from '../artifact/schema.js';
 import type { StepAction, TargetDescriptor } from '../artifact/index-types.js';
 import type { Action, Observation, PerceivedControl, RiskClass, Surface } from '../surface/types.js';
 import { classifyRisk } from '../policy/risk.js';
+import { profileFor } from '../artifact/product-profiles.js';
 import { PolicyGate } from '../policy/gate.js';
-import { discoveryAllowlist } from '../policy/allowlist.js';
+import { Allowlist, discoveryAllowlist } from '../policy/allowlist.js';
 import { ControlLease, LeaseGuard } from '../escalation/control.js';
 import { InterventionBroker } from '../escalation/broker.js';
 import { PlaywrightWebSurface } from '../surface/web/playwright-surface.js';
@@ -68,6 +69,7 @@ export interface DiscoveryOptions {
   productVersion?: string;
   tenantId: string;
   capabilityId: string;
+  version?: string;
   parameters: DiscoveryParameter[];
   expectedOutputs: string[];
   provider: LlmProvider;
@@ -78,6 +80,12 @@ export interface DiscoveryOptions {
   vault?: SecretVault;
   recordedBy?: string;
   escalationTimeoutMs?: number;
+  /**
+   * Caller-side authorization for this run's irreversible steps: same shape, same
+   * audit trail as replay's. Absent, discovery escalates to a human on the first
+   * irreversible control, which stays the default.
+   */
+  authorizeIrreversible?: { by: string; reason: string };
   onSurfaceReady?: (ctx: {
     surface: PlaywrightWebSurface;
     lease: ControlLease;
@@ -114,6 +122,8 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
   };
   let humanInterventions = 0;
   let turns = 0;
+  let lastAttempt = { action: 'observe', intent: 'Inspect the entry screen' };
+  let finalStatus = 'failed';
 
   const evidenceDir = logger.paths.dir;
   const fail = (reason: string): DiscoveryResult => ({ status: 'failed', runId, evidenceDir, reason, turns });
@@ -131,11 +141,28 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
 
   let web: PlaywrightWebSurface | undefined;
   try {
-    web = await PlaywrightWebSurface.launch({ headless: opts.headless ?? process.env.HEADLESS !== 'false' });
+    web = await PlaywrightWebSurface.launch({ headless: opts.headless ?? process.env.HEADLESS !== 'false', onObservation: (obs) => redactor.learnObservation(obs) });
+
+    // The product's own committing verbs, so a control that creates an account is
+    // classified irreversible even when the generic verb list has never heard of it.
+    const productVerbs = profileFor(opts.productId).irreversibleVerbs ?? [];
 
     const gate = new PolicyGate(web, {
-      allowlist: discoveryAllowlist(opts.baseUrl),
+      irreversibleVerbs: productVerbs,
+      allowlist: { ...discoveryAllowlist(opts.baseUrl, Boolean(opts.authorizeIrreversible)), deniedUrlPatterns: [...(discoveryAllowlist(opts.baseUrl).deniedUrlPatterns ?? []), ...(profileFor(opts.productId).deniedUrlPatterns ?? [])] },
       onEvent: (e) => logger.event('policy', e as unknown as Record<string, unknown>),
+    });
+    if (opts.authorizeIrreversible) {
+      // Recorded before the first action, so the bundle shows the authorization
+      // preceding anything it permitted rather than being inferred afterwards.
+      logger.event('policy.preauthorized', opts.authorizeIrreversible);
+    }
+    const networkPolicy = new Allowlist(gate.policy());
+    await web?.guardRequests(url => {
+      if (lease.current() === 'operator') return true;
+      const decision = networkPolicy.checkUrl(url);
+      if (!decision.allowed) logger.event('policy.requestBlocked', { url, code: decision.code });
+      return decision.allowed;
     });
     const surface: Surface = new LeaseGuard(gate, lease);
     await opts.onSurfaceReady?.({ surface: web, lease, broker, logger });
@@ -295,6 +322,7 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
         const decided = await raiseIntervention('discovery-stuck', `Discovery stuck: ${truncate(reason, 60)}`, reason);
         humanInterventions++;
         if (decided.decision === 'abort') {
+          finalStatus = 'escalated';
           return { status: 'escalated', runId, evidenceDir, reason, interventionId: decided.id, decision: decided.decision, turns };
         }
         observation = await surface.observe();
@@ -308,13 +336,14 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
 
       // -------------------------------------------------------- acting tools
       const before = observation;
-      const built = buildAction(call, before, vault.names(), opts.parameters);
+      const built = buildAction(call, before, vault.names(), opts.parameters, productVerbs);
       if ('error' in built) {
         logger.event('model.invalidCall', { turn: turns, tool: call.name, error: built.error });
         reply(built.error);
         continue;
       }
 
+      lastAttempt = { action: call.name, intent: built.intent };
       const fingerprint = createHash('sha256')
         .update(`${hashText(before.text)}|${call.name}|${JSON.stringify(built.fingerprint)}`)
         .digest('hex')
@@ -329,6 +358,7 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
         const decided = await raiseIntervention('discovery-stuck', 'Discovery is looping', reason);
         humanInterventions++;
         if (decided.decision === 'abort') {
+          finalStatus = 'escalated';
           return { status: 'escalated', runId, evidenceDir, reason, interventionId: decided.id, decision: decided.decision, turns };
         }
         attemptFingerprints.clear();
@@ -346,6 +376,7 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
         const decided = await raiseIntervention('authorization-required', `Authorize: ${truncate(built.intent, 60)}`, reason);
         humanInterventions++;
         if (decided.decision === 'abort') {
+          finalStatus = 'escalated';
           return { status: 'escalated', runId, evidenceDir, reason, interventionId: decided.id, decision: decided.decision, turns };
         }
         if (decided.decision === 'authorize-and-resume') {
@@ -423,6 +454,7 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
 
     const compileInput: CompileInput = {
       id: opts.capabilityId,
+      ...(opts.version ? { version: opts.version } : {}),
       name: titleCase(opts.capabilityId.split('.').pop() ?? opts.capabilityId),
       summary: truncate(summary ?? opts.goal, 190),
       description: summary ?? opts.goal,
@@ -445,6 +477,7 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
       },
     };
     const capability = compileCapability(compileInput);
+    finalStatus = 'success';
     logger.event('discovery.compiled', {
       capability: { id: capability.id, version: capability.version },
       steps: capability.steps.length,
@@ -473,6 +506,8 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
           runId,
           runKind: 'discovery',
           goal: opts.goal,
+          step: { index: turns, id: `discovery-turn-${turns}`, intent: lastAttempt.intent },
+          attempt: { action: lastAttempt.action, observed: detail },
           location: loc,
           visibleExcerpt: redactor.text(observation.text.slice(0, 700)),
           evidence,
@@ -481,7 +516,7 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
       let recorder: { detach(): void } | undefined;
       if (web) {
         const { attachHumanActionRecorder } = await import('../escalation/human-recorder.js');
-        recorder = await attachHumanActionRecorder(web.livePage(), (a) => broker.recordHumanAction(item.id, a)).catch(() => undefined);
+        recorder = await attachHumanActionRecorder(web.livePage(), (a) => broker.recordHumanAction(item.id, a)).catch(() => { logger.event('evidence.humanRecorderFailed', { interventionId: item.id }); return undefined; });
       }
       const resolution = await broker.waitForResolution(item.id, opts.escalationTimeoutMs ?? 15 * 60_000);
       recorder?.detach();
@@ -498,7 +533,7 @@ export async function discover(opts: DiscoveryOptions): Promise<DiscoveryResult>
     logger.event('discovery.crashed', { error: err instanceof Error ? err.message : String(err) });
     return fail(`discovery crashed: ${err instanceof Error ? err.message : String(err)}`);
   } finally {
-    await logger.finalize({ turns, recordedSteps: recorded.length, humanInterventions, model: opts.provider.id });
+    await logger.finalize({ inputDetails: Object.fromEntries(opts.parameters.map(p => [p.name, { type: p.type, sensitivity: p.sensitivity, supplied: true }])), outputDetails: Object.fromEntries(opts.expectedOutputs.map(name => [name, { produced: recorded.some(s => s.capture?.name === name) }])), status: finalStatus, capability: { id: opts.capabilityId }, inputs: Object.fromEntries(opts.parameters.map((p) => [p.name, '[withheld]'])), outputs: Object.fromEntries((opts.expectedOutputs ?? []).map((p) => [p, '[withheld]'])), turns, recordedSteps: recorded.length, humanInterventions, model: opts.provider.id });
     await web?.close();
   }
 }
@@ -525,7 +560,7 @@ interface BuiltAction {
   /** Identifies the action for stall detection, with no secret material in it. */
   fingerprint: unknown;
   section?: string;
-  capture?: { name: string; format: 'text' | 'money' | 'number' };
+  capture?: { name: string; format: 'text' | 'money' | 'number' | 'regex'; pattern?: string };
 }
 
 function toSurfaceActionForBuilt(built: BuiltAction, vault: SecretVault): Action {
@@ -581,11 +616,15 @@ function resolveParameterPlaceholders(text: string, parameters: DiscoveryParamet
   });
 }
 
-function buildAction(
+/** Exported for tests: the validation below is the only thing standing between a
+ *  model's regex and an artifact that silently returns the wrong field forever. */
+export function buildAction(
   call: LlmToolCall,
   observation: Observation,
   secretNames: string[],
   parameters: DiscoveryParameter[],
+  /** Product-specific committing verbs; see ProductProfile.irreversibleVerbs. */
+  productVerbs: string[] = [],
 ): BuiltAction | { error: string } {
   const why = String(call.args.why ?? '').trim();
 
@@ -630,7 +669,7 @@ function buildAction(
       return {
         ...common,
         stepAction: { kind: 'click', target },
-        risk: classifyRisk({ kind: 'click', target }, control).risk,
+        risk: classifyRisk({ kind: 'click', target }, control, productVerbs).risk,
         fingerprint: { kind: 'click', control: refDescription },
       };
 
@@ -675,7 +714,7 @@ function buildAction(
           target,
           value: secretName ? { from: 'secret', name: secretName } : { from: 'literal', value: literal! },
         },
-        risk: classifyRisk({ kind: 'fill', target, value: '' }, control).risk,
+        risk: classifyRisk({ kind: 'fill', target, value: '' }, control, productVerbs).risk,
         fingerprint: { kind: 'fill', control: refDescription, secret: Boolean(secretName), value: secretName ? '[secret]' : literal },
       };
     }
@@ -687,7 +726,7 @@ function buildAction(
         ...common,
         selectValue: value,
         stepAction: { kind: 'select', target, value: { from: 'literal', value } },
-        risk: classifyRisk({ kind: 'select', target, value }, control).risk,
+        risk: classifyRisk({ kind: 'select', target, value }, control, productVerbs).risk,
         fingerprint: { kind: 'select', control: refDescription, value },
       };
     }
@@ -697,14 +736,52 @@ function buildAction(
       if (!/^[a-z][a-zA-Z0-9]*$/.test(outputName)) {
         return { error: `read_value requires outputName in lowerCamelCase, e.g. savingsBalance. Got '${outputName}'.` };
       }
-      const format = ['text', 'money', 'number'].includes(String(call.args.format))
-        ? (String(call.args.format) as 'text' | 'money' | 'number')
+      const format = ['text', 'money', 'number', 'regex'].includes(String(call.args.format))
+        ? (String(call.args.format) as 'text' | 'money' | 'number' | 'regex')
         : 'text';
+
+      let pattern: string | undefined;
+      if (format === 'regex') {
+        // These are returned to the model rather than thrown: a malformed pattern
+        // is a correctable mistake, and the model has the screen text in front of
+        // it to correct against.
+        pattern = String(call.args.pattern ?? '').trim();
+        if (!pattern) {
+          return { error: 'read_value with format "regex" requires a pattern with one capture group, e.g. "OPR\\s+(\\S+)".' };
+        }
+        let compiled: RegExp;
+        try {
+          compiled = new RegExp(pattern);
+        } catch (err) {
+          return { error: `pattern /${pattern}/ is not a valid regular expression: ${err instanceof Error ? err.message : String(err)}` };
+        }
+        // Group 0 is the whole match, which would make the transform a no-op and
+        // silently return the composite string the caller was trying to split up.
+        if (!/\((?!\?[:=!])/.test(pattern)) {
+          return { error: `pattern /${pattern}/ has no capture group. Put parentheses around the part you want, e.g. "OPR\\s+(\\S+)".` };
+        }
+        // Record-time data, caught where the pattern is authored. A regex embedding this
+        // run's member id or a credential passes discovery and then matches
+        // nothing for the next caller.
+        const recordTime = [...secretNames.map((n) => n), ...parameters.map((prm) => prm.value)].filter(
+          (v) => typeof v === 'string' && v.length >= 3,
+        );
+        const embedded = recordTime.find((v) => pattern!.includes(v));
+        if (embedded) {
+          return {
+            error:
+              `pattern /${pattern}/ contains a value from this particular run, so it would only ever match this record. ` +
+              `Match on the surrounding structure instead -- the label, the separator, the prefix.`,
+          };
+        }
+        void compiled;
+      }
+
       return {
         ...common,
         stepAction: { kind: 'readText', target },
         risk: 'safe',
-        capture: { name: outputName, format },
+        capture: { name: outputName, format, ...(pattern ? { pattern } : {}) },
         fingerprint: { kind: 'readText', control: refDescription, outputName },
       };
     }

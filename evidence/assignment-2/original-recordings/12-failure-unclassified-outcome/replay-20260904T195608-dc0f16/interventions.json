@@ -1,0 +1,52 @@
+{
+  "updatedAt": "2026-09-04T19:57:09.151Z",
+  "interventions": [
+    {
+      "id": "int_fc5492b9",
+      "createdAt": "2026-09-04T19:56:54.131Z",
+      "reason": "unhandled-condition",
+      "headline": "Replay stuck: Continue to the confirmation screen to review the funds transfer details before posting.",
+      "detail": "Step '14-click-continue' failed with TARGET_NOT_FOUND and no declared handler matched the current state.\n\nexpected: button \"Continue\" in Memo: (button \"Continue\")\nobserved: role-name: 0 match(es) | text: 0 match(es) | section-ordinal: section 'Memo:' had 0 button control(s), index 0 out of range | dom-hint: 0 match(es)",
+      "context": {
+        "runId": "replay-20260904T195608-dc0f16",
+        "runKind": "replay",
+        "capability": {
+          "id": "member.transfer-funds",
+          "version": "1.0.0",
+          "tenantId": "meridian-core-sandbox"
+        },
+        "step": {
+          "index": 13,
+          "id": "14-click-continue",
+          "intent": "Continue to the confirmation screen to review the funds transfer details before posting."
+        },
+        "location": {
+          "url": "https://web-sample.interface-hiring.com/members/103001/transfer/review",
+          "title": "Funds Transfer - Meridian Core"
+        },
+        "visibleExcerpt": "MERIDIAN CORE Member Services Platform v4.2.1 Cornerstone Financial Systems™ Main Menu · Member Inquiry · System Settings · Sign Off FUNDS TRANSFER The transaction could not be validated: Source share is HOLD and cannot be debited. Return to Funds Transfer OPR TELLER1 | BR MAIN-001 | 09/04/2026 19:56:29 | SID C73DB83B F3=Sign Off F5=Main Menu F7=Member Inquiry F12=Cancel",
+        "evidence": {
+          "screenshot": "evidence/runs/replay-20260904T195608-dc0f16/screenshots/058-escalation-14-click-continue.png",
+          "snapshot": "evidence/runs/replay-20260904T195608-dc0f16/snapshots/058-escalation-14-click-continue.html"
+        },
+        "attempt": {
+          "action": "click button \"Continue\" in Memo: (button \"Continue\")",
+          "expected": "button \"Continue\" in Memo: (button \"Continue\")",
+          "observed": "role-name: 0 match(es) | text: 0 match(es) | section-ordinal: section 'Memo:' had 0 button control(s), index 0 out of range | dom-hint: 0 match(es)",
+          "errorCode": "TARGET_NOT_FOUND"
+        }
+      },
+      "status": "abandoned",
+      "humanActions": [],
+      "leaseTransitions": [
+        {
+          "at": "2026-09-04T19:56:54.131Z",
+          "from": "automation",
+          "to": "operator",
+          "by": "system",
+          "reason": "escalation int_fc5492b9: unhandled-condition"
+        }
+      ]
+    }
+  ]
+}

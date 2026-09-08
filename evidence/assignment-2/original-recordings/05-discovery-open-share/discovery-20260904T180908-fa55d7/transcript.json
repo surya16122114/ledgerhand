@@ -1,0 +1,202 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_VMTvAlKola0kQ8mGGYZrjh5k",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "meridianOperatorUser",
+            "why": "Enter the operator ID to begin signing on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_CzdeaZDCJ4uSXOPAEWPiHnED",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the operator [secret] to continue signing on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_c4bmm9UYLMFXbuSeZB8eufPR",
+          "name": "click_control",
+          "args": {
+            "ref": "7:3",
+            "why": "Click the Sign On button to complete the sign-on process and access the main menu."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_fUUgvgj42Jqu9NZrpKse7MOG",
+          "name": "click_control",
+          "args": {
+            "ref": "10:1",
+            "why": "Navigate to Member Inquiry to look up the member by member ID."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_e2kJ9H1xj6MKBzY0QH8bv6ct",
+          "name": "fill_field",
+          "args": {
+            "ref": "13:5",
+            "value": "{{input.memberId}}",
+            "why": "Enter the member ID to search for the member whose account will receive the new share."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_HL2McU2A1qViTc92ISXPmcfZ",
+          "name": "click_control",
+          "args": {
+            "ref": "16:6",
+            "why": "Click the Search button to look up the member by the entered member ID."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_DiwqV2OSxUv9YVy0n2toHrAJ",
+          "name": "click_control",
+          "args": {
+            "ref": "19:7",
+            "why": "Select the member record to view the member profile and access share account options."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_kJ79m7h6FT0kOpHSsYK6lALG",
+          "name": "click_control",
+          "args": {
+            "ref": "22:5",
+            "why": "Begin the process to open a new share for the member as requested."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_5fI2Tr1zs9R6NyLKejRpBlg6",
+          "name": "select_option",
+          "args": {
+            "ref": "{{input.initialDeposit}}:4",
+            "value": "{{input.shareType}}",
+            "why": "Select {{input.shareType}} as the share type to open a Money Market share for the member."
+          }
+        },
+        {
+          "id": "call_fQ88yNuZFIGccWfCvicXlmiB",
+          "name": "fill_field",
+          "args": {
+            "ref": "{{input.initialDeposit}}:5",
+            "value": "{{input.initialDeposit}}",
+            "why": "Enter the initial deposit amount for the new share as required."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_OQvuAbA1wghyLfk4IY0DAMGF",
+          "name": "fill_field",
+          "args": {
+            "ref": "28:5",
+            "value": "{{input.initialDeposit}}",
+            "why": "Enter the initial deposit amount for the new {{input.shareType}} share as specified in the task parameters."
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "toolCalls": [
+        {
+          "id": "call_9TdCJnoD2WPRHgGsWujDTq0i",
+          "name": "click_control",
+          "args": {
+            "ref": "31:6",
+            "why": "Continue to the confirmation screen to review the new {{input.shareType}} share details before posting."
+          }
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "toolCalls": [
+        {
+          "id": "call_mEe91UpPjNVaijDA9HWJ7HtL",
+          "name": "click_control",
+          "args": {
+            "ref": "34:4",
+            "why": "Post the new {{input.shareType}} share for the member to complete the account opening process."
+          }
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "toolCalls": [
+        {
+          "id": "call_Skxjz4elGL3jjthL9kC0erMo",
+          "name": "read_value",
+          "args": {
+            "ref": "37:7",
+            "outputName": "newShareId",
+            "why": "Record the new share ID that was generated after opening the {{input.shareType}} share for the member."
+          }
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "toolCalls": [
+        {
+          "id": "call_odN27U0oMRyx6fdrqXphERSM",
+          "name": "finish_goal",
+          "args": {
+            "successText": "NEW SHARE ESTABLISHED",
+            "summary": "Opens a new {{input.shareType}} (Money Market) share for the specified member with the given initial deposit, and records the new share ID once the share is successfully established."
+          }
+        }
+      ]
+    }
+  ]
+}

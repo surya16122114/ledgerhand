@@ -1,0 +1,56 @@
+{
+  "checkedAt": "2026-09-06T14:05:16.360Z",
+  "rows": [
+    {
+      "name": "complete shares",
+      "runId": "replay-20260906T132352-233ab2",
+      "status": "success",
+      "code": "success",
+      "passed": true
+    },
+    {
+      "name": "chat success",
+      "passed": true,
+      "invocations": [
+        {
+          "name": "member_list_shares",
+          "runId": "replay-20260906T132450-5b287e",
+          "ok": true
+        }
+      ]
+    },
+    {
+      "name": "chat notfound",
+      "passed": true,
+      "invocations": [
+        {
+          "name": "member_find_by_name",
+          "runId": "replay-20260906T132506-d35731",
+          "ok": false,
+          "code": "MEMBER_NOT_FOUND"
+        }
+      ]
+    },
+    {
+      "name": "bad login",
+      "runId": "replay-20260906T132907-439287",
+      "status": "failed",
+      "code": "AUTHENTICATION_FAILED",
+      "passed": true
+    },
+    {
+      "name": "invalid email",
+      "runId": "replay-20260906T140515-e1fb94",
+      "status": "failed",
+      "code": "INVALID_INPUT",
+      "passed": true
+    },
+    {
+      "name": "invalid phone",
+      "runId": "replay-20260906T140516-23fbbe",
+      "status": "failed",
+      "code": "INVALID_INPUT",
+      "passed": true
+    }
+  ]
+}

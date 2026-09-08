@@ -1,0 +1,24 @@
+{
+  "runId": "replay-20260906T140516-23fbbe",
+  "kind": "replay",
+  "sanitizedEvidenceVersion": 1,
+  "evidenceWriteFailures": 0,
+  "eventCounts": {
+    "replay.rejected": 1,
+    "run.end": 1,
+    "run.start": 1
+  },
+  "status": "failed",
+  "error": {
+    "code": "INVALID_INPUT",
+    "message": "inputs do not satisfy the capability contract:\n  - input 'phone' does not match the required format /^.{7,30}$/"
+  },
+  "rejected": {
+    "code": "INVALID_INPUT",
+    "message": "inputs do not satisfy the capability contract:\n  - input 'phone' does not match the required format /^.{7,30}$/"
+  },
+  "capability": {
+    "id": "member.update-contact",
+    "version": "1.1.0"
+  }
+}

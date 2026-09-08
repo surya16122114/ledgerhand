@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { attachRunConsole } from './api/runs.js';
 /**
  * Command line entry point.
  *
@@ -30,7 +31,10 @@ import { overlaySchema } from './artifact/schema.js';
 import { SecretVault } from './policy/vault.js';
 import { startOperatorConsole } from './escalation/operator-server.js';
 import { loadEnvFile } from './config/env.js';
-import { DEMO_GOALS } from './config/demo-goals.js';
+import { DEMO_GOALS, defaultBaseUrlFor, discoveryDefaultsFor } from './config/demo-goals.js';
+import { startApi, type ChatBackend, type DiscoverBackend } from './api/server.js';
+import { createChatBackend } from './api/chat.js';
+import { listTools } from './api/invoke.js';
 
 const HELP = `ledgerhand -- record a UI flow once with a model, replay it deterministically forever
 
@@ -43,23 +47,45 @@ usage
   ledgerhand show     <capability[@version]>
   ledgerhand overlay  <capability[@version]> <overlay.json>
   ledgerhand invoke   <tool-name> --args '{"...":"..."}'   call a capability the way an agent would
+  ledgerhand serve                                [options] HTTP API + dashboard over the catalog
+
+serve options
+  --port <n>               default 4190 (or API_PORT)
+  --no-dashboard           API only, no static UI
+  --headed                 show the browser window for each invocation. NOT the
+                           default here, unlike discover/replay: a long-running
+                           server popping a window per request is unusable
+  --chat-may-write "<reason>"
+                           DANGEROUS. Lets the *chatbot* invoke capabilities that
+                           change records -- transfers, holds -- on the strength of
+                           a sentence. Off by default: those capabilities are
+                           withheld from the model's tool list entirely. The reason
+                           is recorded against every invocation it makes.
 
 discover options
   --goal <text>            free-form goal (or use a preset: ${Object.keys(DEMO_GOALS).join(', ')})
   --capability-id <id>      dotted-kebab id for the artifact, e.g. member.read-savings-balance
   --param <name=value[:type[:sensitivity[:pattern]]]>  repeatable; becomes a typed capability input
   --expect <outputName>     repeatable; a value the goal must retrieve
-  --base-url <url>          default http://localhost:4173
-  --tenant <tenantId>       default meridian-cu
+  --product <productId>     which product profile to record against: corepoint-servicing
+                            or meridian-core. Selects the error taxonomy, the default
+                            host and the sign-on route together.
+  --base-url <url>          default: the host for --product
+  --tenant <tenantId>       default: the tenant for --product
   --max-steps <n>           default 24
   --provider <openai|transcript>   default from LLM_PROVIDER, else openai
   --transcript <file>       for --provider transcript
   --no-save                 do not write the artifact to ${DEFAULT_CAPABILITY_DIR}/
+  --version <semver>        save a new version without replacing prior evidence
   --force                   overwrite an existing capability of the same id@version
+  --authorize "<reason>"    permit this run's irreversible steps instead of escalating
+                            to an operator for each one. The reason is recorded in the
+                            evidence bundle. Without it, recording a write capability
+                            needs a human at the console for every commit.
 
 replay options
   --input <name=value>      repeatable
-  --base-url <url>          default http://localhost:4173
+  --base-url <url>          default: the host for the capability's product
   --tenant <tenantId>       selects the overlay; default = the recorded tenant
   --allow-unadapted         run against a tenant with no overlay anyway
   --unattended              refuse drafts, require --authorize for irreversible steps
@@ -70,6 +96,10 @@ common options
   --headed / --headless     default headed, so a handoff is watchable
   --operator-port <n>       default 4180
   --no-operator             do not start the operator console
+  --escalation-timeout <s>  how long an escalation waits for an operator, in seconds
+                            (default 900 with a console, 15 without one). Discovery
+                            cannot pre-authorize an irreversible step -- a human has
+                            to approve it -- so raise this rather than race it.
   --evidence-dir <dir>      default evidence/runs
   --json                    machine-readable result on stdout
 `;
@@ -94,6 +124,8 @@ async function main(argv: string[]): Promise<number> {
       return cmdShow(args);
     case 'overlay':
       return cmdOverlay(args);
+    case 'serve':
+      return cmdServe(args);
     case 'invoke':
       return cmdInvoke(args);
     case 'help':
@@ -126,8 +158,16 @@ async function cmdDiscover(args: Args): Promise<number> {
     return 2;
   }
 
-  const baseUrl = args.str('base-url') ?? preset?.baseUrl ?? 'http://localhost:4173';
-  const tenantId = args.str('tenant') ?? preset?.tenantId ?? 'meridian-cu';
+  // A free-form goal names no product, and silently inheriting CorePoint's is the
+  // worst available default: the run would compile against the wrong error
+  // taxonomy and the wrong url canonicalisation, and only misbehave later. So the
+  // product is selectable, and everything that follows from it -- the host, the
+  // sign-on route, the description handed to the model -- follows from that one
+  // choice rather than needing three more flags to agree with each other.
+  const productId = args.str('product') ?? preset?.productId ?? 'corepoint-servicing';
+  const productDefaults = discoveryDefaultsFor(productId);
+  const baseUrl = args.str('base-url') ?? preset?.baseUrl ?? productDefaults.baseUrl;
+  const tenantId = args.str('tenant') ?? preset?.tenantId ?? productDefaults.tenantId;
   const parameters: DiscoveryParameter[] = args.list('param').length ? args.list('param').map(parseParam) : (preset?.parameters ?? []);
   const expectedOutputs = args.list('expect').length ? args.list('expect') : (preset?.expectedOutputs ?? []);
 
@@ -148,14 +188,24 @@ async function cmdDiscover(args: Args): Promise<number> {
   );
 
   let consoleHandle: { url: string; close(): Promise<void> } | undefined;
+  const discoveryAuthorization = args.str('authorize');
   const result = await discover({
-    ...(args.flag('no-operator') ? { escalationTimeoutMs: 15_000 } : {}),
+    ...(discoveryAuthorization ? { authorizeIrreversible: { by: 'cli', reason: discoveryAuthorization } } : {}),
+    // Without --authorize the run escalates on the first irreversible control and
+    // waits for an operator, so this is how long it waits. The 15-minute default
+    // turns approving a transfer into a race against a timer that aborts the run.
+    ...(args.num('escalation-timeout')
+      ? { escalationTimeoutMs: args.num('escalation-timeout')! * 1000 }
+      : args.flag('no-operator')
+        ? { escalationTimeoutMs: 15_000 }
+        : {}),
     goal,
+    ...(args.str('version') ? { version: args.str('version')! } : {}),
     capabilityId,
     baseUrl,
-    entryUrl: preset?.entryUrl ?? `${baseUrl.replace(/\/$/, '')}/login.aspx`,
-    appDescription: preset?.appDescription ?? 'A back-office member servicing console.',
-    productId: preset?.productId ?? 'corepoint-servicing',
+    entryUrl: preset?.entryUrl ?? `${baseUrl.replace(/\/$/, '')}${productDefaults.entryPath}`,
+    appDescription: preset?.appDescription ?? productDefaults.appDescription,
+    productId,
     ...(preset?.productVersion ? { productVersion: preset.productVersion } : {}),
     tenantId,
     parameters,
@@ -251,10 +301,14 @@ async function cmdReplay(args: Args): Promise<number> {
     // With no operator console there is nobody who *can* respond, so waiting the
     // full attended timeout just hangs a CI run for fifteen minutes. Timing out is
     // reported as an abort, which is the honest result: nobody approved anything.
-    const escalationTimeoutMs = args.flag('no-operator') ? 15_000 : undefined;
+    const escalationTimeoutMs = args.num('escalation-timeout')
+      ? args.num('escalation-timeout')! * 1000
+      : args.flag('no-operator')
+        ? 15_000
+        : undefined;
     const result = await replay(capability, inputs, {
       ...(escalationTimeoutMs ? { escalationTimeoutMs } : {}),
-      baseUrl: args.str('base-url') ?? 'http://localhost:4173',
+      baseUrl: args.str('base-url') ?? defaultBaseUrlFor(capability.target.productId),
       ...(args.str('tenant') ? { tenantId: args.str('tenant')! } : {}),
       allowUnadapted: args.flag('allow-unadapted'),
       unattended: args.flag('unattended'),
@@ -547,7 +601,7 @@ async function cmdInvoke(args: Args): Promise<number> {
   const capability = await loadCapability(tool.capabilityId);
   const authorize = args.str('authorize');
   const result = await replay(capability, parsedArgs, {
-    baseUrl: args.str('base-url') ?? 'http://localhost:4173',
+    baseUrl: args.str('base-url') ?? defaultBaseUrlFor(capability.target.productId),
     ...(args.str('tenant') ? { tenantId: args.str('tenant')! } : {}),
     unattended: args.flag('unattended'),
     ...(authorize ? { authorizeIrreversible: { by: 'invoke', reason: authorize } } : {}),
@@ -746,3 +800,142 @@ main(process.argv.slice(2))
     process.stderr.write(`\n${err instanceof Error ? err.message : String(err)}\n`);
     process.exit(1);
   });
+
+// ---------------------------------------------------------------------------
+// serve
+// ---------------------------------------------------------------------------
+
+/**
+ * Run the HTTP API (and, unless suppressed, the dashboard on the same origin).
+ *
+ * Same origin on purpose: the dashboard is a plain page that calls the API with
+ * `fetch`, so serving both from one process means no CORS configuration, no
+ * second port to remember, and one command in the demo path.
+ */
+async function cmdServe(args: Args): Promise<number> {
+  const vault = SecretVault.fromEnvironment();
+  // Chat needs a model; without one the endpoint reports itself unavailable
+  // rather than the server refusing to start. The rest of the API is useful
+  // without a key, and a demo machine may not have one.
+  let chat: ChatBackend | undefined;
+  try {
+    const provider = await buildProvider(args);
+    chat = createChatBackend({
+      provider,
+      invoke: { vault, headless: !args.flag('headed'), onSurfaceReady: attachRunConsole },
+      // Deliberately NOT --authorize. That name is used by replay and invoke to
+      // authorize one run the operator is watching; reusing it here would mean a
+      // habitual flag silently handed a chatbot the ability to move money, which
+      // is the opposite of what the policy gate is for.
+      ...(args.str('chat-may-write')
+        ? { authorize: { by: 'chat', reason: args.str('chat-may-write')! } }
+        : {}),
+    });
+  } catch {
+    chat = undefined;
+  }
+
+  // Headed is the right default for discover and replay, where a human may have
+  // to take over the session. It is the wrong one for a server: every API call and
+  // every chat message would open a browser window over whatever is on screen.
+  const headless = !args.flag('headed');
+
+  // Teaching a new capability from the dashboard runs the *same* discover the CLI
+  // runs, against whichever product the server was pointed at. Recording is
+  // read-only here by omission: no authorization is passed, so the first
+  // irreversible control escalates and, with no console attached, times out. A
+  // write capability is deliberately something you record deliberately.
+  const discoverDefaults = discoveryDefaultsFor(args.str('product') ?? 'meridian-core');
+  let discoverBackend: DiscoverBackend | undefined;
+  try {
+    const provider = await buildProvider(args);
+    discoverBackend = {
+      async run(req) {
+        const result = await discover({
+          goal: req.goal,
+          capabilityId: req.capabilityId,
+          baseUrl: discoverDefaults.baseUrl,
+          entryUrl: `${discoverDefaults.baseUrl.replace(/\/$/, '')}${discoverDefaults.entryPath}`,
+          appDescription: discoverDefaults.appDescription,
+          productId: args.str('product') ?? 'meridian-core',
+          tenantId: discoverDefaults.tenantId,
+          parameters: req.parameters.map((p) => ({
+            name: p.name,
+            value: p.value,
+            type: 'string' as const,
+            description: `Supplied when teaching this capability.`,
+            sensitivity: 'pii' as const,
+          })),
+          expectedOutputs: req.expectedOutputs,
+          provider,
+          headless,
+          escalationTimeoutMs: 15 * 60_000,
+          onSurfaceReady: attachRunConsole,
+          vault,
+        });
+        if (result.status !== 'success') {
+          return { ok: false, reason: result.reason, evidence: result.evidenceDir };
+        }
+        const findings = lintCapability(result.capability, vault.values());
+        if (findings.some((f) => f.severity === 'error')) {
+          return {
+            ok: false,
+            reason: 'the recorded capability did not pass lint and was not saved',
+            evidence: result.evidenceDir,
+            lint: findings,
+          };
+        }
+        await saveCapability(result.capability);
+        return {
+          ok: true,
+          capabilityId: `${result.capability.id}@${result.capability.version}`,
+          steps: result.capability.steps.length,
+          turns: result.turns,
+          outputs: result.capability.outputs.map((o) => o.name),
+          evidence: result.evidenceDir,
+          lint: findings,
+        };
+      },
+    };
+  } catch {
+    discoverBackend = undefined;
+  }
+
+  const handle = await startApi({
+    port: args.num('port') ?? Number(process.env.API_PORT ?? 4190),
+    vault,
+    invokeDefaults: { headless },
+    dashboard: !args.flag('no-dashboard'),
+    ...(chat ? { chat } : {}),
+    ...(discoverBackend ? { discover: discoverBackend } : {}),
+    log: (event, detail) => {
+      process.stdout.write(`${new Date().toISOString()} ${event} ${JSON.stringify(detail)}\n`);
+    },
+  });
+
+  const tools = await listTools();
+  process.stdout.write(
+    [
+      `ledgerhand api  ${handle.url}`,
+      args.flag('no-dashboard') ? '' : `dashboard       ${handle.url}/`,
+      `chat            ${chat ? 'enabled' : 'disabled (no model configured)'}`,
+      `teach           ${discoverBackend ? `enabled (records against ${args.str('product') ?? 'meridian-core'})` : 'disabled (no model configured)'}`,
+      `capabilities    ${tools.length} callable`,
+      ...tools.map((t) => `  ${t.name}  (${t.lifecycle.state})`),
+      '',
+      'ctrl-c to stop',
+      '',
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  );
+
+  await new Promise<void>((resolve) => {
+    const stop = () => {
+      void handle.close().then(resolve);
+    };
+    process.on('SIGINT', stop);
+    process.on('SIGTERM', stop);
+  });
+  return 0;
+}

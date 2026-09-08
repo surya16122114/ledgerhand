@@ -23,7 +23,9 @@
     "capture-evidence": "tsx scripts/capture-evidence.ts",
     "demo:discover": "tsx src/cli.ts discover read-balance",
     "demo:replay": "tsx src/cli.ts replay member.read-savings-balance --input memberId=12345",
-    "test:browser": "vitest run --config vitest.browser.config.ts"
+    "test:browser": "vitest run --config vitest.browser.config.ts",
+    "verify:meridian": "tsx scripts/verify-meridian.ts",
+    "record:demo": "tsx scripts/record-demo.ts"
   },
   "dependencies": {
     "express": "^4.19.2",
@@ -39,6 +41,10 @@
     "@types/ws": "^8.5.13",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",
-    "vitest": "^2.1.5"
+    "vitest": "^3.2.7"
+  },
+  "overrides": {
+    "vite": "^6.4.3",
+    "qs": "^6.16.0"
   }
 }

@@ -1,0 +1,1327 @@
+{
+  "description": "Opens a new Money Market share for the specified member with the given initial deposit, posts it, and retrieves the new share ID once the process is complete.\n\nRecorded from the goal: \"Sign on to Meridian Core, look up the member, open a new share of the given type with the given initial deposit, review the confirmation screen, post it, and read the new share id.\"",
+  "id": "member.open-share",
+  "inputs": [
+    {
+      "description": "The credit union member number.",
+      "name": "memberId",
+      "pattern": "^\\d{6}$",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    },
+    {
+      "description": "Share type code. The host offers S0001, S0070, MMKT and CERT.",
+      "name": "shareType",
+      "pattern": "^(S0001|S0070|MMKT|CERT)$",
+      "required": true,
+      "sensitivity": "internal",
+      "type": "string"
+    },
+    {
+      "description": "Opening deposit in dollars.",
+      "name": "initialDeposit",
+      "required": true,
+      "sensitivity": "internal",
+      "type": "money"
+    }
+  ],
+  "interrupts": [
+    {
+      "name": "application-error-page",
+      "notDuringAuth": false,
+      "then": {
+        "code": "APP_ERROR",
+        "do": "fail",
+        "message": "the application returned an error page with a support reference"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "APPLICATION ERROR|Reference: ERR-"
+      }
+    },
+    {
+      "name": "supervisor-override-required",
+      "notDuringAuth": false,
+      "then": {
+        "code": "PERMISSION_DENIED",
+        "do": "outcome"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "SUPERVISOR OVERRIDE REQUIRED|not authorized to perform this function"
+      }
+    },
+    {
+      "name": "session-timed-out",
+      "notDuringAuth": true,
+      "then": {
+        "do": "reauthenticate",
+        "maxAttempts": 1
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "YOUR SESSION HAS TIMED OUT|session ended due to inactivity"
+      }
+    },
+    {
+      "name": "maintenance-window",
+      "notDuringAuth": false,
+      "then": {
+        "do": "dismiss",
+        "target": {
+          "description": "Continue link on the maintenance notice",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Continue",
+              "nameMatch": "normalized",
+              "role": "link"
+            }
+          ]
+        },
+        "thenRetryStep": true
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "SCHEDULED MAINTENANCE IN PROGRESS|This window normally clears within a few moments"
+          },
+          {
+            "kind": "controlPresent",
+            "target": {
+              "description": "Continue link on the maintenance notice",
+              "strategies": [
+                {
+                  "kind": "role-name",
+                  "name": "Continue",
+                  "nameMatch": "normalized",
+                  "role": "link"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "record-not-found",
+      "notDuringAuth": true,
+      "then": {
+        "code": "MEMBER_NOT_FOUND",
+        "do": "outcome"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "RECORD NOT FOUND|could not be located on this host"
+      }
+    },
+    {
+      "name": "unexpected-signon-screen",
+      "notDuringAuth": true,
+      "then": {
+        "do": "escalate",
+        "reason": "the application returned to the sign-on screen without reporting a timed-out session"
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "textAbsent",
+            "pattern": "SESSION HAS TIMED OUT"
+          }
+        ]
+      }
+    }
+  ],
+  "lifecycle": {
+    "stability": {
+      "consecutiveFailures": 0,
+      "fallbackHits": 0,
+      "runs": 0,
+      "successes": 0
+    },
+    "state": "draft"
+  },
+  "name": "Open Share",
+  "outcomes": [
+    {
+      "code": "MEMBER_NOT_FOUND",
+      "description": "The member number was searched or navigated to and the host reported no such record. A legitimate answer, not an error.",
+      "retryable": true
+    },
+    {
+      "code": "PERMISSION_DENIED",
+      "description": "The signed-on operator profile is not entitled to this function -- the host asks for a supervisor override. Placing a hold is the known case: a teller profile is refused at the review step, a supervisor profile is not. Requires a different operator identity, not a retry.",
+      "retryable": false
+    },
+    {
+      "code": "VALIDATION_REJECTED",
+      "description": "The host rejected the submitted values as malformed. The caller should correct the inputs and retry.",
+      "retryable": true
+    },
+    {
+      "code": "SOURCE_SHARE_RESTRICTED",
+      "description": "The source share carries a HOLD and cannot be debited. The automation did everything correctly and the bank declined; retrying the same inputs will always fail, but the same transfer from a different share may succeed.",
+      "retryable": false
+    },
+    {
+      "code": "INSUFFICIENT_FUNDS",
+      "description": "The source share does not have the available balance for this amount. Not retryable with the same amount.",
+      "retryable": false
+    }
+  ],
+  "outputs": [
+    {
+      "description": "Read the new share ID that was assigned to the Money Market share just opened for the member.",
+      "name": "newShareId",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    }
+  ],
+  "overlays": [],
+  "policy": {
+    "allowedActions": [
+      "navigate",
+      "fill",
+      "click",
+      "select",
+      "readText"
+    ],
+    "allowedUrlPatterns": [
+      "^{{baseUrl}}/"
+    ],
+    "maxRisk": "irreversible",
+    "requiresApprovalForIrreversible": true
+  },
+  "provenance": {
+    "discoveryRunId": "discovery-20260905T171358-b79bc1",
+    "humanInterventions": 0,
+    "model": "openai:gpt-4.1",
+    "modelTurns": 14,
+    "recordedAt": "2026-09-05T17:14:21.167Z",
+    "recordedBy": "ledgerhand-discovery",
+    "redactionApplied": true,
+    "toolVersion": "ledgerhand/0.1.0",
+    "transcriptDigest": "sha256:842d4a9f44829051a2fc8c34d82d72e4"
+  },
+  "schemaVersion": "1.0.0",
+  "steps": [
+    {
+      "action": {
+        "kind": "navigate",
+        "url": "{{baseUrl}}/signon"
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/signon"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Operator ID\" in Operator ID:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Operator ID",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "Operator ID:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "meridianOperatorUser"
+        }
+      },
+      "handlers": [],
+      "id": "02-fill-operator-id",
+      "intent": "Enter the operator ID to begin signing on to Meridian Core.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "password \"Password\" in Password:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Password",
+              "labelMatch": "normalized",
+              "role": "password"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "password",
+              "section": "Password:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "meridianOperatorPass"
+        }
+      },
+      "handlers": [],
+      "id": "03-fill-password",
+      "intent": "Enter the operator password to continue signing on to Meridian Core.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Sign On\" in Branch:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Sign On",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Sign On",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "Branch:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(4) > td:nth-child(2) > input:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "MAIN MENU"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/menu"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "04-click-sign-on",
+      "intent": "Click the Sign On button to complete the sign on process to Meridian Core.",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "link \"Member Inquiry\"",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Member Inquiry",
+              "nameMatch": "normalized",
+              "role": "link"
+            },
+            {
+              "kind": "text",
+              "role": "link",
+              "text": "Member Inquiry",
+              "textMatch": "normalized"
+            },
+            {
+              "css": "tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(1) > font:nth-child(1) > a:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "MEMBER INQUIRY / SELECTION"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "no-matching-member",
+          "notDuringAuth": false,
+          "then": {
+            "code": "MEMBER_NOT_FOUND",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "No member records matched your search"
+          }
+        },
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "05-click-member-inquiry",
+      "intent": "Navigate to Member Inquiry to look up the member by member ID.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Value\" in Value:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Value",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "Value:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "memberId"
+        }
+      },
+      "handlers": [],
+      "id": "06-fill-value",
+      "intent": "Enter the member ID to search for the member whose account we want to open a new share for.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Search\" in Value:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Search",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Search",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "Value:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2) > input:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "Member No\\."
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "no-matching-member",
+          "notDuringAuth": false,
+          "then": {
+            "code": "MEMBER_NOT_FOUND",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "No member records matched your search"
+          }
+        },
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "07-click-search",
+      "intent": "Click the Search button to look up the member by the entered member ID.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "link \"Select\" in Value:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Select",
+              "nameMatch": "normalized",
+              "role": "link"
+            },
+            {
+              "kind": "text",
+              "role": "link",
+              "text": "Select",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "link",
+              "section": "Value:"
+            },
+            {
+              "css": "table:nth-child(5) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(4) > a:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "MEMBER RECORD"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members/\\d+"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "08-click-select",
+      "intent": "Select the member record for member ID {{input.memberId}} to view their profile and open a new share.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "link \"Open New Share\" in Address:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Open New Share",
+              "nameMatch": "normalized",
+              "role": "link"
+            },
+            {
+              "kind": "text",
+              "role": "link",
+              "text": "Open New Share",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 1,
+              "kind": "section-ordinal",
+              "role": "link",
+              "section": "Address:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > a:nth-child(11)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPEN NEW SHARE"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members/\\d+/open-share"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "09-click-open-new-share",
+      "intent": "Click Open New Share to begin the process of opening a new Money Market share for this member.",
+      "partOfAuth": false,
+      "risk": "irreversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "select",
+        "target": {
+          "description": "combobox \"Share Type\" in Share Type:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Share Type",
+              "labelMatch": "normalized",
+              "role": "combobox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "combobox",
+              "section": "Share Type:"
+            },
+            {
+              "css": "table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2) > select:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "shareType"
+        }
+      },
+      "handlers": [],
+      "id": "10-select-share-type",
+      "intent": "Select {{input.shareType}} as the share type to open a Money Market share for the member.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Initial Deposit\" in Initial Deposit:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Initial Deposit",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "Initial Deposit:"
+            },
+            {
+              "css": "table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "initialDeposit"
+        }
+      },
+      "handlers": [],
+      "id": "11-fill-initial-deposit",
+      "intent": "Enter the initial deposit amount for the new Money Market share.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Continue\" in Initial Deposit:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Continue",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Continue",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "Initial Deposit:"
+            },
+            {
+              "css": "table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2) > input:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "CONFIRM NEW SHARE"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members/\\d+/open-share/review"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "12-click-continue",
+      "intent": "Continue to the confirmation screen for opening the new Money Market share with the specified initial deposit.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Open Share\" in ${{input.initialDeposit}}.00",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Open Share",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Open Share",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "$25.00"
+            },
+            {
+              "css": "tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > form:nth-child(5) > input:nth-child(4)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "SHARE OPENED"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members/\\d+/open-share/post"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "13-click-open-share",
+      "intent": "Post the new Money Market share to complete the account opening process for the member.",
+      "partOfAuth": false,
+      "risk": "irreversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "readText",
+        "target": {
+          "description": "cell \"New Share ID\" in New Share ID:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "New Share ID",
+              "nameMatch": "normalized",
+              "role": "cell"
+            },
+            {
+              "css": "div:nth-child(3) > table:nth-child(4) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "captureAs": "newShareId",
+      "handlers": [],
+      "id": "14-read-new-share-id",
+      "intent": "Read the new share ID that was assigned to the Money Market share just opened for the member.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000,
+      "transform": {
+        "kind": "trim"
+      }
+    }
+  ],
+  "success": {
+    "checkpoint": {
+      "kind": "textPresent",
+      "pattern": "NEW SHARE ESTABLISHED"
+    },
+    "description": "the screen shows \"NEW SHARE ESTABLISHED\""
+  },
+  "summary": "Opens a new Money Market share for the specified member with the given initial deposit, posts it, and retrieves the new share ID once the process is complete.",
+  "target": {
+    "entryUrl": "{{baseUrl}}/signon",
+    "productId": "meridian-core",
+    "productVersion": "4.2.1",
+    "recordedTenantId": "meridian-core-sandbox",
+    "surfaceKind": "legacy-web"
+  },
+  "version": "1.0.0"
+}

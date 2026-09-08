@@ -411,6 +411,7 @@ export const capabilityPolicySchema = z.object({
    * action, in discovery and in replay, not merely documented here.
    */
   allowedUrlPatterns: z.array(z.string()).min(1),
+  deniedUrlPatterns: z.array(z.string()).optional(),
   allowedActions: z.array(z.enum(['navigate', 'click', 'fill', 'select', 'press', 'readText', 'waitFor', 'assert'])),
   /** The highest risk class any step in this capability is permitted to be. */
   maxRisk: riskClassSchema,

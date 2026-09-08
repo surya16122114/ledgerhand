@@ -1,0 +1,147 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_YZZCsfJPULI04T5q5ISEXszU",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "meridianOperatorUser",
+            "why": "Enter the operator ID to begin signing on."
+          }
+        },
+        {
+          "id": "call_6YBavr55RzgTZKOmwCXLnYFw",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the operator [secret] to begin signing on."
+          }
+        },
+        {
+          "id": "call_9XMJWoBySoZuptPIQNNz5yEB",
+          "name": "select_option",
+          "args": {
+            "ref": "1:2",
+            "value": "{{input.branch}} - Westside",
+            "why": "Select the {{input.branch}} branch for sign on."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_2rvslxEhfDmRWisWqDYx86Rw",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the operator [secret] to continue signing on."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_IlbomhmCi4I8NotTZC5YNabZ",
+          "name": "select_option",
+          "args": {
+            "ref": "7:2",
+            "value": "{{input.branch}} - Westside",
+            "why": "Select the correct branch as required for sign on."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_otGElV4Ne8tCkEJNjLt5F1e7",
+          "name": "click_control",
+          "args": {
+            "ref": "10:3",
+            "why": "Click Sign On to submit the operator credentials and branch for sign on."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_HMb4ZjH4tyk1PixVraVgHY5L",
+          "name": "read_value",
+          "args": {
+            "ref": "13:11",
+            "outputName": "signedOnOperator",
+            "format": "regex",
+            "pattern": "OPR\\s+(\\S+)",
+            "why": "Read the signed-on operator from the status line at the bottom of the screen."
+          }
+        },
+        {
+          "id": "call_Px7VOc5pkpVQ6fZNg7vLcDFg",
+          "name": "read_value",
+          "args": {
+            "ref": "13:11",
+            "outputName": "signedOnBranch",
+            "format": "regex",
+            "pattern": "BR\\s+(\\S+)",
+            "why": "Read the signed-on branch from the status line at the bottom of the screen."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_IjjRRaVXjACnCkcH3i8LmILA",
+          "name": "read_value",
+          "args": {
+            "ref": "16:11",
+            "outputName": "signedOnBranch",
+            "format": "regex",
+            "pattern": "BR\\s+(\\S+)",
+            "why": "Read the signed-on branch from the status line at the bottom of the screen."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_q6jMW0vavD2XBpU0qwmyfxmu",
+          "name": "finish_goal",
+          "args": {
+            "successText": "OPR TELLER1 | BR {{input.branch}} | 09/04/2026",
+            "summary": "Signs on to Meridian Core as the configured operator at the specified branch, reaches the main menu, and reads the signed-on operator and branch from the status line at the bottom of the screen."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_ae7LXLlpUVq6S6lM0H6pVvWv",
+          "name": "finish_goal",
+          "args": {
+            "successText": "MAIN MENU",
+            "summary": "Signs on to Meridian Core as the configured operator at the specified branch, reaches the main menu, and reads the signed-on operator and branch from the status line at the bottom of the screen."
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -119,7 +119,18 @@ export class OpenAiProvider implements LlmProvider {
         }
 
         const status = (err as { status?: number }).status;
-        const retryable = status === 429 || status === 408 || (typeof status === 'number' && status >= 500);
+        // A request that never reached the server has no status, and that is the
+        // most transient failure there is -- yet it fell through every arm of this
+        // check and aborted immediately. An eleven-turn discovery run died on one
+        // dropped connection, "after 1 attempt(s) and 0s of backoff", having
+        // already filled the form it was recording.
+        //
+        // Matched on the absence of a status rather than on the message text, so a
+        // reworded SDK error cannot quietly turn this back off. A genuine 4xx
+        // still carries a status and is still not retried.
+        const neverReachedServer = status === undefined;
+        const retryable =
+          neverReachedServer || status === 429 || status === 408 || (typeof status === 'number' && status >= 500);
         if (!retryable || attempt === this.maxRetries || waited >= this.retryBudgetMs) {
           throw new LlmError(
             `OpenAI request failed (${status ?? 'no status'}) after ${attempt} attempt(s) and ${Math.round(waited / 1000)}s of backoff: ${message(err)}`,
@@ -144,13 +155,19 @@ export class OpenAiProvider implements LlmProvider {
  * from the hint OpenAI puts in the 429 message body ("try again in 4.54s").
  * A little slack is added so we do not land exactly on the boundary.
  */
-function suggestedDelayMs(err: unknown): number | undefined {
+export function suggestedDelayMs(err: unknown): number | undefined {
   const headers = (err as { headers?: Record<string, string> }).headers;
-  const header = headers?.['retry-after'] ?? headers?.['retry-after-ms'];
-  if (header) {
-    const n = Number(header);
-    if (Number.isFinite(n) && n > 0) return (headers?.['retry-after-ms'] ? n : n * 1000) + 250;
-  }
+  // Each header is read with its own unit.
+  //
+  // OpenAI sends both on a token-per-minute 429 -- `retry-after: 2` alongside
+  // `retry-after-ms: 2862`. Choosing the value from one and the unit from the
+  // other read "2 seconds" as "2 milliseconds", so eight retries spent 2s of
+  // backoff waiting out a limit measured per minute, and a rate limit surfaced as
+  // a crashed discovery run.
+  const fromMs = Number(headers?.['retry-after-ms']);
+  if (Number.isFinite(fromMs) && fromMs > 0) return fromMs + 250;
+  const fromSeconds = Number(headers?.['retry-after']);
+  if (Number.isFinite(fromSeconds) && fromSeconds > 0) return fromSeconds * 1000 + 250;
   const hint = /try again in ([\d.]+)\s*(ms|s)\b/i.exec(message(err));
   if (hint) {
     const value = Number(hint[1]);

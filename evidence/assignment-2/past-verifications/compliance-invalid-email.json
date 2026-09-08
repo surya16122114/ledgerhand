@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-09-06T14:05:15.934Z",
+  "rows": [
+    {
+      "name": "invalid email",
+      "runId": "replay-20260906T140515-e1fb94",
+      "status": "failed",
+      "code": "INVALID_INPUT",
+      "passed": true
+    }
+  ]
+}

@@ -34,6 +34,7 @@ import { ARTIFACT_SCHEMA_VERSION, capabilitySchema, type Capability } from '../a
 import type { Condition, Handler, RiskClass, Step, StepAction, TargetDescriptor } from '../artifact/index-types.js';
 import { profileFor, stepOutcomeHandlers } from '../artifact/product-profiles.js';
 import type { ActionKind } from '../surface/types.js';
+import { discoveryAllowlist } from '../policy/allowlist.js';
 import { escapeRegExp } from '../util/regex.js';
 
 export const TOOL_VERSION = 'ledgerhand/0.1.0';
@@ -59,7 +60,7 @@ export interface RecordedStep {
   /** True when the value typed came from the vault. */
   usedSecret: boolean;
   /** Set for read_value steps. */
-  capture?: { name: string; format: 'text' | 'money' | 'number'; observedValue: string };
+  capture?: { name: string; format: 'text' | 'money' | 'number' | 'regex'; pattern?: string; observedValue: string };
   /**
    * Structural section headings visible before and after the action.
    *
@@ -76,6 +77,7 @@ export interface RecordedStep {
 }
 
 export interface CompileInput {
+  version?: string;
   id: string;
   name: string;
   summary: string;
@@ -136,10 +138,21 @@ export function compileCapability(input: CompileInput): Capability {
 
   const outputs: Capability['outputs'] = [];
   const steps: Step[] = [];
+  const capturedIdentities = new Map<string, string>();
 
   input.steps.forEach((rec, i) => {
     const id = stepId(rec, i);
     const action = parameterize(rec.action, paramByValue, input.baseUrl);
+    if ('target' in action) {
+      action.target.strategies = action.target.strategies.map((st) => {
+        if (st.kind !== 'table-cell') return st;
+        const capturedName = capturedIdentities.get(st.rowKey);
+        return capturedName ? { ...st, rowKey: `{{captured.${capturedName}}}` } : st;
+      });
+      if (action.target.strategies.some((st) => st.kind === 'table-cell' && st.rowKey.includes('{{captured.'))) {
+        action.target.strategies = action.target.strategies.filter((st) => st.kind === 'table-cell');
+      }
+    }
     const handlers: Handler[] = [];
 
     // Step-scoped business outcomes, chosen by what the step just did rather than
@@ -148,15 +161,22 @@ export function compileCapability(input: CompileInput): Capability {
     if (rec.action.kind === 'click') {
       const label = targetLabel(rec.action);
       const isSearch = /search|find|lookup|inquir/i.test(label);
-      const isSubmit = /submit|save|confirm|open|post|apply/i.test(label);
       if (isSearch) handlers.push(...stepOutcomeHandlers(input.productId, 'after-search'));
-      // A search button submits a form, so it can also come back with a field
-      // validation message ("Member ID must be numeric"). Attaching the validation
-      // handler only to buttons whose label says "submit" leaves that message
-      // unclassified, and an unclassified condition becomes a hard failure -- so a
-      // caller passing a malformed id would get a crash where a clear
-      // VALIDATION_REJECTED was available.
-      if (isSearch || isSubmit) handlers.push(...stepOutcomeHandlers(input.productId, 'after-submit'));
+
+      // Every click gets the after-submit handlers, not just ones whose label
+      // looks like a submit.
+      //
+      // This used to be a word list -- submit|save|confirm|open|post|apply -- and
+      // the asymmetry is what killed it. An extra handler that never matches costs
+      // a few bytes of artifact; a missing one turns a legitimate business outcome
+      // into a hard failure. Meridian's two-phase forms submit with a button
+      // labelled "Continue", so a transfer out of a frozen share reported
+      // TARGET_NOT_FOUND -- the error page had replaced the button -- instead of
+      // SOURCE_SHARE_RESTRICTED, which the profile could name precisely.
+      //
+      // A word list also cannot be right for the next vendor product either, and
+      // that is the deeper reason to drop it rather than extend it.
+      handlers.push(...stepOutcomeHandlers(input.productId, 'after-submit'));
     }
 
     // Transient slowness on a navigating step is recoverable, once.
@@ -203,8 +223,17 @@ export function compileCapability(input: CompileInput): Capability {
 
     if (rec.capture) {
       step.captureAs = rec.capture.name;
+      capturedIdentities.set(rec.capture.observedValue.trim(), rec.capture.name);
+      const expected = input.parameters.find((p) => p.value === rec.capture?.observedValue.trim());
+      if (expected && rec.action.kind === 'readText' && rec.capture.format === 'text') {
+        step.checkpoint = { kind: 'valueMatches', target: action.kind === 'readText' ? action.target : rec.action.target,
+          pattern: `^{{input.${expected.name}}}$` };
+      }
       if (rec.capture.format === 'money') step.transform = { kind: 'money' };
       else if (rec.capture.format === 'number') step.transform = { kind: 'number' };
+      // Group 1 by default: the tool requires exactly the shape where the wanted
+      // value is the first capture group, and validates that at record time.
+      else if (rec.capture.format === 'regex' && rec.capture.pattern) step.transform = { kind: 'regex', pattern: rec.capture.pattern, group: 1 };
       else step.transform = { kind: 'trim' };
 
       outputs.push({
@@ -231,7 +260,7 @@ export function compileCapability(input: CompileInput): Capability {
   const capability: Capability = capabilitySchema.parse({
     schemaVersion: ARTIFACT_SCHEMA_VERSION,
     id: input.id,
-    version: '1.0.0',
+    version: input.version ?? '1.0.0',
     name: input.name,
     summary: templateIntent(input.summary, paramByValue),
     // The goal is kept because it is the best short explanation of why this
@@ -258,15 +287,13 @@ export function compileCapability(input: CompileInput): Capability {
     outputs,
     outcomes: profile.outcomes,
     steps,
-    success: {
-      description: `the screen shows "${input.successText}"`,
-      checkpoint: { kind: 'textPresent', pattern: escapeRegExp(input.successText) },
-    },
-    interrupts: profile.interrupts,
+    success: successCondition(input),
+    interrupts: [...(profile.runtimeOutcomes ?? []), ...profile.interrupts],
     policy: {
       // The placeholder is left unescaped: it is substituted by
       // `renderUrlPattern`, which regex-escapes the URL it interpolates.
       allowedUrlPatterns: ['^{{baseUrl}}/'],
+      deniedUrlPatterns: [...(discoveryAllowlist(input.baseUrl).deniedUrlPatterns ?? []), ...(profile.deniedUrlPatterns ?? [])],
       allowedActions: actionKinds,
       maxRisk,
       requiresApprovalForIrreversible: true,
@@ -321,7 +348,24 @@ function parameterize(action: StepAction, paramByValue: Map<string, { name: stri
   const withTarget = 'target' in action ? { ...action, target: parameteriseTarget(action.target, paramByValue) } : action;
   if (withTarget.kind !== 'fill' && withTarget.kind !== 'select') return withTarget;
   if (withTarget.value.from !== 'literal') return withTarget;
-  const param = paramByValue.get(withTarget.value.value);
+  const literal = withTarget.value.value;
+  const param =
+    paramByValue.get(literal) ??
+    // A dropdown option carries a code and a label in one string -- "WEST-014 -
+    // Westside" -- and the model can only name it by what it sees, so an exact
+    // match never fires and the branch stays hardcoded. The capability then
+    // advertises a `branch` input and signs on at whatever branch was recorded.
+    //
+    // Restricted to `select`, and to the code appearing at the *start* on a
+    // non-alphanumeric boundary, so this cannot fire on a fill whose text merely
+    // begins with a parameter value. Safe because replay resolves a select by the
+    // option's underlying value first and only falls back to its label -- and the
+    // code is exactly that underlying value.
+    (withTarget.kind === 'select'
+      ? [...paramByValue.entries()].find(
+          ([value]) => value.length >= 3 && literal.startsWith(value) && /^[^A-Za-z0-9]/.test(literal.slice(value.length)),
+        )?.[1]
+      : undefined);
   if (!param) return withTarget;
   return { ...withTarget, value: { from: 'input', name: param.name } };
 }
@@ -481,7 +525,34 @@ function pickCheckpointPhrase(rec: RecordedStep): string | undefined {
  * the model proposes. One definition, used in both places, so the model cannot
  * hand us something the recorder would have rejected.
  */
-export function looksLikeData(phrase: string): boolean {
+/**
+ * The capability's overall success condition.
+ *
+ * Every *step* checkpoint was already filtered through `looksLikeData`, but this
+ * one was taken from the model's success phrase verbatim -- the single place a
+ * record-time value could still walk into an artifact. Two shipped that way: a
+ * contact update asserting the e-mail it happened to set, and a sign-on asserting
+ * the operator's display name. Both passed discovery, and both would only ever
+ * have succeeded for the run that produced them.
+ *
+ * When the phrase is unusable the last step's structural heading is a better
+ * answer than a data-bearing one. If there is no safe phrase at all we keep the
+ * model's, because a wrong checkpoint that `lintCapability` reports beats a
+ * missing one that nothing does.
+ */
+function successCondition(input: CompileInput): { description: string; checkpoint: Condition } {
+  const recordTimeValues = input.parameters.map((p) => p.value).filter((v): v is string => typeof v === 'string');
+  const phrase = !looksLikeData(input.successText, recordTimeValues)
+    ? input.successText
+    : ([...input.steps].reverse().flatMap((s) => s.headingsAfter ?? []).find((h) => !looksLikeData(h, recordTimeValues)) ??
+      input.successText);
+  return {
+    description: `the screen shows "${phrase}"`,
+    checkpoint: { kind: 'textPresent', pattern: escapeRegExp(phrase) },
+  };
+}
+
+export function looksLikeData(phrase: string, recordTimeValues: string[] = []): boolean {
   // Any digit at all. On these screens digits are member numbers, balances,
   // branch codes, dates and queue counts -- never structure. This is blunt, and
   // deliberately so: the cost of rejecting a usable phrase is that we fall back to
@@ -492,7 +563,18 @@ export function looksLikeData(phrase: string): boolean {
   if (/[$\u00a3\u20ac]/.test(phrase)) return true;
   // "Lastname, Firstname" -- how these apps render a member name.
   if (/\b[A-Z][a-z]+,\s+[A-Z][a-z]+/.test(phrase)) return true;
-  return false;
+  // An e-mail address. Every check above is digit- or punctuation-shaped, and a
+  // contact-update capability compiled with "E-mail: d.vaughan@example.org" as its
+  // definition of success -- passing only for the address it was recorded with.
+  if (/[^\s@]+@[^\s@]+\.[A-Za-z]{2,}/.test(phrase)) return true;
+  // "J. TELLER" -- an initial and a surname, how these apps render an operator.
+  // A sign-on capability asserted this and would have failed as any other user.
+  if (/\b[A-Z]\.\s*[A-Z][A-Za-z]+\b/.test(phrase)) return true;
+  // Anything this particular run supplied. The cheapest and most certain signal
+  // available, and the only one that does not rely on guessing a shape -- but it
+  // needs the caller to pass the values, so it supplements the patterns above
+  // rather than replacing them.
+  return recordTimeValues.some((v) => v.length >= 3 && phrase.includes(v));
 }
 
 /**

@@ -1,0 +1,305 @@
+{
+  "runId": "replay-20260907T005256-5cb6f5",
+  "kind": "replay",
+  "sanitizedEvidenceVersion": 1,
+  "evidenceWriteFailures": 0,
+  "eventCounts": {
+    "handler.matched": 1,
+    "policy": 13,
+    "policy.ceiling": 1,
+    "policy.preauthorized": 1,
+    "replay.entry": 1,
+    "replay.start": 1,
+    "run.end": 1,
+    "run.start": 1,
+    "step.end": 13,
+    "step.failed": 1,
+    "step.start": 13,
+    "step.value": 6
+  },
+  "steps": [
+    {
+      "index": 0,
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "action": "navigate",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1295,
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 1,
+      "id": "02-fill-operator-id",
+      "intent": "Enter the operator ID to sign on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1035,
+      "target": "textbox \"Operator ID\" in [pii:record] (textbox labelled \"Operator ID\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 2,
+      "id": "03-fill-[secret]",
+      "intent": "Enter the [secret] to sign on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1036,
+      "target": "[secret] \"Password\" in Password=[secret] labelled \"Password\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 3,
+      "id": "04-click-sign-on",
+      "intent": "Click Sign On to log in to Meridian Core with the entered credentials.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1728,
+      "target": "button \"Sign On\" in [pii:record] (button \"Sign On\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 4,
+      "id": "05-click-member-inquiry",
+      "intent": "Go to Member Inquiry to look up the member by their member [pii:surface-value].",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1959,
+      "target": "link \"Member Inquiry\" (link \"Member Inquiry\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 5,
+      "id": "06-fill-value",
+      "intent": "Enter the member [pii:surface-value] to search for the member record.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1435,
+      "target": "textbox \"Value\" in [pii:record] (textbox labelled \"Value\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 6,
+      "id": "07-click-search",
+      "intent": "Search for the member record using the entered member [pii:surface-value].",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1907,
+      "target": "button \"Search\" in [pii:record] (button \"Search\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 7,
+      "id": "08-click-select",
+      "intent": "Select the member record for Dorothy Vaughan to view and update contact details.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1967,
+      "target": "link \"Select\" in [pii:record] (link \"Select\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 8,
+      "id": "09-click-update-member-information",
+      "intent": "Open the Update Member Information screen to update the member's email, phone, and mailing address.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 2025,
+      "target": "link \"Update Member Information\" in [pii:record] (link \"Update Member Information\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 9,
+      "id": "10-fill-e-mail",
+      "intent": "Update the member's email address as provided.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1480,
+      "target": "textbox \"E-mail\" in [pii:record] (textbox labelled \"E-mail\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 10,
+      "id": "11-fill-phone",
+      "intent": "Update the member's phone [pii:surface-value] as provided.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1455,
+      "target": "textbox \"Phone\" in [pii:surface-value] (textbox labelled \"Phone\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 11,
+      "id": "12-fill-mailing-address",
+      "intent": "Update the member's mailing address as provided.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1464,
+      "target": "textbox \"Mailing Address\" in [pii:record] (textbox labelled \"Mailing Address\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 12,
+      "id": "13-click-save-changes",
+      "intent": "Save the updated email, phone, and mailing address for the member.",
+      "action": "click",
+      "risk": "irreversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 12250,
+      "target": "button \"Save Changes\" in [pii:record] (button \"Save Changes\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": false,
+        "observed": "/MEMBER INFORMATION UPDATED/ not found in 349 chars of visible text"
+      }
+    }
+  ],
+  "recoveries": [],
+  "drift": [],
+  "interventions": [],
+  "warnings": [],
+  "outputKeys": [],
+  "status": "business_outcome",
+  "capability": {
+    "id": "member.update-contact",
+    "version": "1.1.0",
+    "digest": "sha256:f8c56a0a7da606466efa3055e6e9cad7"
+  },
+  "inputDetails": {
+    "memberId": {
+      "type": "string",
+      "sensitivity": "pii",
+      "supplied": true
+    },
+    "email": {
+      "type": "string",
+      "sensitivity": "pii",
+      "supplied": true
+    },
+    "phone": {
+      "type": "string",
+      "sensitivity": "pii",
+      "supplied": true
+    },
+    "address": {
+      "type": "string",
+      "sensitivity": "pii",
+      "supplied": true
+    }
+  },
+  "outputDetails": {
+    "savedEmail": {
+      "type": "string",
+      "sensitivity": "pii",
+      "produced": false
+    },
+    "savedPhone": {
+      "type": "string",
+      "sensitivity": "pii",
+      "produced": false
+    },
+    "savedAddress": {
+      "type": "string",
+      "sensitivity": "pii",
+      "produced": false
+    }
+  },
+  "inputs": {
+    "memberId": "[withheld]",
+    "email": "[withheld]",
+    "phone": "[withheld]",
+    "address": "[withheld]"
+  },
+  "outputs": {
+    "savedEmail": "[withheld]",
+    "savedPhone": "[withheld]",
+    "savedAddress": "[withheld]"
+  },
+  "outcome": {
+    "code": "VALIDATION_REJECTED"
+  },
+  "durationMs": 31177
+}

@@ -42,6 +42,9 @@ interface ShapeRule {
  * SSN rather than swallowed by the generic digit-run rule.
  */
 const SHAPE_RULES: ShapeRule[] = [
+  { name: 'email', re: /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, replace: () => '[pii:email]' },
+  { name: 'phone', re: /\b(?:\+?1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}\b/g, replace: () => '[pii:phone]' },
+
   { name: 'ssn', re: /\b\d{3}-\d{2}-\d{4}\b/g, replace: () => '[pii:ssn]' },
   {
     name: 'pan',
@@ -75,8 +78,15 @@ export class Redactor {
   }
 
   addLabelled(name: string, value: string): void {
-    if (value && value.length >= 4) this.exact.push({ value, token: `[pii:${name}]` });
+    if (value && value.length >= 4 && !this.exact.some((e) => e.value === value)) this.exact.push({ value, token: `[pii:${name}]` });
     this.sortExact();
+  }
+
+  learnObservation(observation: { controls: { role: string; value?: string; container: { table?: { rowKey?: string } } }[] }): void {
+    for (const c of observation.controls) {
+      if (c.value && c.value.length >= 4) this.addLabelled('surface-value', c.value);
+      if (c.container.table?.rowKey) this.addLabelled('record', c.container.table.rowKey);
+    }
   }
 
   /** Longest first, so a secret that contains another secret is replaced whole. */

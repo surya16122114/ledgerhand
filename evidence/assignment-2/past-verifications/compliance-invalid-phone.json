@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-09-06T14:05:16.360Z",
+  "rows": [
+    {
+      "name": "invalid phone",
+      "runId": "replay-20260906T140516-23fbbe",
+      "status": "failed",
+      "code": "INVALID_INPUT",
+      "passed": true
+    }
+  ]
+}

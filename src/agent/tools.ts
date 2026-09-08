@@ -101,8 +101,19 @@ export function discoveryTools(opts: { secretNames: string[]; outputNames: strin
           outputName: { type: 'string', description: 'lowerCamelCase name for this output, e.g. savingsBalance.' },
           format: {
             type: 'string',
-            enum: ['text', 'money', 'number'],
-            description: 'How callers should receive it. Use "money" for currency so the caller gets a number, not "$8,241.77".',
+            enum: ['text', 'money', 'number', 'regex'],
+            description:
+              'How callers should receive it. Use "money" for currency so the caller gets a number, not "$8,241.77". ' +
+              'Use "regex" when the value you want is only part of the text on screen -- a status line like ' +
+              '"OPR TELLER1 | BR MAIN-001 | SID 5221CABC" holds three values in one element, and reading it whole ' +
+              'gives the caller none of them.',
+          },
+          pattern: {
+            type: 'string',
+            description:
+              'Required with format "regex". A regular expression with one capture group around the part you want, ' +
+              'e.g. "OPR\\s+(\\S+)". Match on the surrounding *structure*, never on the value itself: ' +
+              '"OPR\\s+(\\S+)" is right, "OPR (TELLER1)" only ever works for the record you are looking at now.',
           },
           why,
         },

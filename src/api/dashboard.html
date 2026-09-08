@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ledgerhand — Capability Console</title>
+<style>
+  :root { --bg:#f7f7f4; --panel:#fff; --line:#dedfe3; --ink:#122442; --dim:#687182; --accent:#245fe5; --ok:#258044; --warn:#a86508; --bad:#b73a40; --mono:ui-monospace,Menlo,monospace; }
+  * {box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+  header{height:76px;display:flex;align-items:center;gap:36px;padding:0 28px;border-bottom:1px solid var(--line);background:#fff} header b{font:28px Georgia,serif;letter-spacing:-1px} header b:before{content:'▦';color:var(--accent);margin-right:12px} header span{color:var(--dim);font-size:12px}
+  .wrap{display:grid;grid-template-columns:285px minmax(0,1fr);min-height:calc(100vh - 76px)} .side{background:#071d40;color:#edf3ff;padding:18px 12px;overflow:auto;height:100vh;max-height:100vh;align-self:start;position:sticky;top:0}
+  .side h2{font-family:inherit;font-size:11px;font-weight:600;line-height:1.6;text-transform:uppercase;letter-spacing:.08em;color:#c4d0e3}.side p.muted{color:#aabbd5;font-size:12px}.side label{color:#b6c5de}.side select{background:#112e58;color:white;border-color:#395074}
+  .cap{padding:12px;margin:5px 0;border-radius:9px;cursor:pointer;transition:background .15s}.cap:hover{background:#142f55}.cap.sel{background:#235dde;box-shadow:0 4px 14px #0002}.cap h3{margin:0;font-size:14px;font-weight:500}.cap p,.cap>div{display:none}.cap h3:before{content:'◇';margin-right:10px;color:#a9c6ff}.cap.sel h3:before{color:white}.cap .technical-id{display:none}
+  .main{padding:32px 40px;min-width:0}.tabs{display:flex;gap:28px;border-bottom:1px solid var(--line);margin-bottom:28px}.tabs a{color:var(--dim);text-decoration:none;padding:10px 0 13px;border-bottom:3px solid transparent;font-weight:500}.tabs a.on{color:var(--accent);border-color:var(--accent)}
+  h2{font:26px/1.3 Georgia,serif;margin:0 0 12px} .task-heading{font-size:34px;letter-spacing:-.6px}.muted{font-size:12px;color:var(--dim)}
+  .task-layout{display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.15fr);gap:24px;margin-top:24px;align-items:start}.card{background:white;border:1px solid var(--line);border-radius:14px;padding:26px;box-shadow:0 3px 12px #172c4503}.card h3{font:22px Georgia,serif;margin:0 0 20px}.empty-state{padding:50px 10px;text-align:center;color:var(--dim)}.empty-symbol{font-size:32px;color:#9ab2dc;margin-bottom:12px}
+  label{display:block;font-size:13px;margin:17px 0 6px;color:#475369}label .muted{display:block;font-size:11px;margin-top:3px} input,textarea,select{width:100%;font:14px inherit;color:var(--ink);background:#fff;border:1px solid #c9ced7;border-radius:7px;padding:11px 12px}input:focus,textarea:focus,select:focus{outline:3px solid #245fe522;border-color:var(--accent)}textarea{resize:vertical}
+  .cap .authorization-tag{display:inline-block;margin:8px 0 0;background:#ffdf9b;color:#573900;border:0;font-size:11px}
+  button{background:var(--accent);color:white;border:1px solid #2155c8;border-radius:7px;padding:11px 18px;margin-top:20px;font:500 14px inherit;cursor:pointer;box-shadow:0 2px 3px #17356815}button:hover{background:#174cbf}button:disabled{opacity:.5;cursor:default}.tag{display:inline-block;border:1px solid var(--line);padding:2px 8px;border-radius:20px;font-size:11px;margin:2px;color:var(--dim)}.tag.risk{color:var(--warn)}.tag.approved{color:var(--ok)}
+  pre{background:#f5f7fa;border:1px solid var(--line);border-radius:8px;padding:14px;font:12px/1.6 var(--mono);overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere}.res.ok{border-left:3px solid var(--ok)}.res.err{border-left:3px solid var(--bad)}.res.outcome{border-left:3px solid var(--warn)}
+  .result-status{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--ok);margin-bottom:18px}.result-status.err{color:var(--bad)}.result-status.outcome{color:var(--warn)}.result-item{border-bottom:1px solid #eceef2;padding:12px 0}.result-item dt{color:var(--dim);font-size:12px}.result-item dd{margin:4px 0;font-size:20px;overflow-wrap:anywhere;white-space:pre-wrap}.result-item.balance dd{font:40px Georgia,serif}.technical-details{margin-top:22px}.technical-details summary{cursor:pointer;color:var(--dim)}
+  #liveRuns:empty{display:none}#liveRuns{background:#fff6df}#liveRuns a{color:#935b05}a{color:var(--accent)}table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:8px;text-align:left;border-bottom:1px solid var(--line)}
+  .chat{display:flex;flex-direction:column;min-height:60vh}.msgs{flex:1;overflow:auto}.msg{margin-bottom:18px;padding:16px;background:white;border:1px solid var(--line);border-radius:10px}.msg .who{font-size:10px;color:var(--dim);letter-spacing:.1em}.msg.u .body{color:var(--accent)}.row{display:flex;gap:10px}.row input{flex:1}.row button{margin:0}
+  @media(max-width:1100px){.main{padding:24px}.task-layout{grid-template-columns:1fr}}@media(max-width:700px){.wrap{grid-template-columns:1fr}.side{position:relative;height:auto;max-height:260px}.main{padding:18px}.tabs{gap:18px}header{padding:0 18px}header span{font-size:10px}}
+</style>
+</head>
+<body>
+<header>
+  <b>LEDGERHAND</b>
+  <span id="sub">capability console</span>
+</header>
+<div id="liveRuns" style="padding:8px 18px"></div>
+<div class="wrap">
+  <div class="side" id="list"></div>
+  <div class="main">
+    <div class="tabs">
+      <a href="#" id="tabInvoke" class="on">Run a task</a>
+      <a href="#" id="tabChat">Chat</a>
+      <a href="#" id="tabTeach">Teach</a>
+      <a href="#" id="tabRuns">Runs & evidence</a>
+    </div>
+    <div id="paneInvoke"></div>
+    <div id="paneRuns" style="display:none"><h2>Run history</h2><p class="muted">Sensitive inputs and outputs are withheld from saved history. Full results are returned to the current caller.</p><div id="runList"></div><div id="runDetail"></div></div>
+    <div id="paneTeach" style="display:none">
+      <h2>Teach a new capability</h2>
+      <p class="muted">Describe a task in plain language. A model will drive the live console
+        once to work it out, and the run is compiled into a capability that replays without it.
+        Read-only tasks only: anything that changes a record stops for a human.</p>
+      <label>goal</label>
+      <textarea id="teachGoal" rows="3" placeholder="Sign on, look up the member, and read back their phone number and mailing address."></textarea>
+      <label>member number <span class="muted">passed to the run as a typed input</span></label>
+      <input id="teachMember" value="103001">
+      <button id="teachGo">Teach it</button>
+      <div id="teachOut"></div>
+    </div>
+    <div id="paneChat" style="display:none">
+      <div class="chat">
+        <div class="msgs" id="msgs">
+          <p class="muted">Ask in plain language, or try one:</p>
+          <div id="examples"></div>
+        </div>
+        <form class="row" id="chatForm" autocomplete="off">
+          <input id="chatIn" placeholder="Ask about a member…" autocomplete="off">
+          <button id="chatSend" type="submit">Send</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+// Everything the UI knows comes from /capabilities. There is no second copy of
+// the contract in this file -- the form below is generated from the same JSON
+// Schema the chatbot and any external agent receive.
+let caps = [], sel = null, history = [];
+const friendly = name => ({session_sign_on:'Sign on',member_find_by_name:'Find member',member_read_record:'Read member record',member_list_shares:'List shares',member_update_contact:'Update contact',member_open_share:'Open share',member_transfer_funds:'Transfer funds',member_place_hold:'Place hold',member_read_savings_balance:'Read savings balance',member_read_profile_summary:'Read profile summary',member_open_sub_account:'Open sub-account'}[name] || name.replaceAll('_',' '));
+const fieldLabel = key => key.replace(/([a-z])([A-Z])/g,'$1 $2').replace(/^./,c=>c.toUpperCase());
+
+const el = (id) => document.getElementById(id);
+
+// Capability descriptions, outcome messages and chat replies are written by a
+// model. They reach this page as data and must never reach it as markup.
+// `member.find-by-name` made the point concretely: its description contains
+// "by last name '<lastName>'", the browser parsed <lastName> as a tag, and the
+// field silently rendered as ''. A description that can vanish is a description
+// that can also inject.
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) =>
+  ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// Truncate on a word boundary. "reaches the c" reads as a bug, not a summary.
+const clip = (text, n) => {
+  const t = String(text ?? '').trim();
+  if (t.length <= n) return t;
+  const cut = t.slice(0, n);
+  return cut.slice(0, Math.max(cut.lastIndexOf(' '), n - 20)).trimEnd() + '…';
+};
+
+async function load() {
+  const r = await fetch('/capabilities');
+  const j = await r.json();
+  caps = j.capabilities;
+  el('sub').textContent = caps.length + ' capabilities · ' + new Date(j.generatedAt).toLocaleTimeString();
+  const groups = [
+    { id: 'meridian-core', title: 'Assignment 2 · MERIDIAN CORE', note: 'Hosted application · member 103001' },
+    { id: 'corepoint-servicing', title: 'Assignment 1 · Local applications', note: 'Local Meridian CU · member 12345. Riverstone FCU reuses these recordings through its tenant overlay.' },
+    { id: 'other', title: 'Other products', note: 'Check the capability contract before invoking.' }
+  ];
+  el('list').innerHTML = `<div style="padding:12px 10px;position:sticky;top:0;background:#071d40;z-index:1"><label for="assignmentSelect">Choose assignment</label><select id="assignmentSelect" style="width:100%">${groups.filter(g => caps.some(c => g.id === 'other' ? !['meridian-core','corepoint-servicing'].includes(c.productId) : c.productId === g.id)).map(g => `<option value="${g.id}">${esc(g.title)}</option>`).join('')}</select></div>` + groups.map(g => {
+    const items = caps.map((c,i) => ({c,i})).filter(({c}) => g.id === 'other' ? !['meridian-core','corepoint-servicing'].includes(c.productId) : c.productId === g.id);
+    if (!items.length) return '';
+    return `<section data-product="${esc(g.id)}"><h2 style="padding:12px 10px 0">Capabilities</h2><p class="muted" style="padding:0 10px">${esc(g.note)}</p>` + items.map(({c,i}) =>
+      `<div class="cap" data-i="${i}"><h3>${esc(friendly(c.name))}</h3><span class="technical-id">${esc(c.name)}</span><p>${esc(clip(c.summary || c.description,110))}</p>
+      ${c.maxRisk === 'irreversible' ? '<span class="tag authorization-tag">Requires authorization</span>' : ''}</div>`).join('') + '</section>';
+  }).join('');
+  [...document.querySelectorAll('.cap')].forEach((n) =>
+    n.onclick = () => select(Number(n.dataset.i)));
+  const switchAssignment = () => {
+    if (busy) return;
+    const product = el('assignmentSelect').value;
+    document.querySelectorAll('[data-product]').forEach(section => { section.hidden = section.dataset.product !== product; });
+    const first = document.querySelector(`[data-product="${product}"] .cap`);
+    if (first) select(Number(first.dataset.i));
+  };
+  el('assignmentSelect').onchange = switchAssignment;
+  if (caps.length) switchAssignment();
+}
+
+function select(i) {
+  if (busy) return;
+  sel = caps[i];
+  [...document.querySelectorAll('.cap')].forEach((n) => n.classList.toggle('sel', i === Number(n.dataset.i)));
+  const props = sel.inputSchema.properties || {};
+  // Say the shape in English.
+  //
+  // "string" tells the operator the type, which they can already see. Showing the
+  // raw pattern instead just moved the problem: "e.g. matching ^\\d{1,10}$" is
+  // only readable by someone who reads regular expressions, and this screen is
+  // meant to be usable by whoever is servicing the account.
+  const hint = (v) => {
+    const p = v.pattern;
+    if (!p) return v.type === 'money' ? 'e.g. 25' : v.type === 'number' ? 'a number' : 'text';
+    const body = p.replace(/^\^/, '').replace(/\$$/, '');
+    // A choice between fixed options: ^(S0001|S0070|MMKT)$
+    const choice = /^\(([^()|]+(?:\|[^()|]+)+)\)$/.exec(body);
+    if (choice) {
+      const parts = choice[1].split('|');
+      return `${parts.slice(0, -1).join(', ')} or ${parts[parts.length - 1]}`;
+    }
+    const exact = /^\\d\{(\d+)\}$/.exec(body);
+    if (exact) return `${exact[1]} digits`;
+    const range = /^\\d\{(\d+),(\d+)\}$/.exec(body);
+    if (range) return `${range[1]}\u2013${range[2]} digits`;
+    const chars = /^\.\{(\d+),(\d+)\}$/.exec(body);
+    if (chars) return `up to ${chars[2]} characters`;
+    // Anything more involved is not worth paraphrasing badly.
+    return v.type === 'money' ? 'e.g. 25' : 'text';
+  };
+  const fields = Object.entries(props).map(([k, v]) =>
+    `<label>${esc(fieldLabel(k))}${sel.inputSchema.required.includes(k) ? ' *' : ''} <span class="muted">${esc(v.description)}</span></label>
+     <input data-arg="${esc(k)}" placeholder="${esc(hint(v))}">`).join('');
+  el('paneInvoke').innerHTML =
+    `<h2 class="task-heading">${esc(friendly(sel.name))}</h2>
+     ${sel.maxRisk === 'irreversible' ? '<span class="tag risk">Requires authorization</span>' : ''}
+     <p class="muted">${sel.productId === 'meridian-core' ? 'Assignment 2 · MERIDIAN CORE' : sel.productId === 'corepoint-servicing' ? 'Assignment 1 · Local applications' : esc(sel.productId)}</p>
+     <p class="muted">${esc(sel.summary || sel.description)}</p>
+     <p><a href="#" id="showFull">View contract & outcomes ↗</a></p>
+     <div id="fullDesc" style="display:none"><p>${sel.lifecycle.state === 'draft' ? 'Draft · attended use only' : 'Lifecycle: ' + esc(sel.lifecycle.state)}</p><pre class="muted">${esc(sel.name)}\n${esc(sel.description)}\n\nOutcomes: ${esc((sel.outcomes || []).map(o => o.code).join(', '))}</pre></div>
+     <div class="task-layout"><section class="card"><h3>Task details</h3>${fields || '<p class="muted">No inputs.</p>'}
+     ${sel.maxRisk === 'irreversible'
+       ? `<label>Approval</label>
+          <select id="approvalMode"><option value="operator">Pause for operator approval during the run</option><option value="upfront">Authorize before starting</option></select>
+          <p class="muted">For operator approval, open Runs &amp; evidence when the run pauses, then open its operator console. The same session waits for your decision.</p>
+          <label>authorization reason (required only for upfront approval) <span class="muted">recorded in the evidence bundle; required because this capability changes records</span></label>
+          <input id="why" placeholder="why this is being run">` : ''}
+     <button id="go">Run capability →</button></section>
+     <section class="card"><h3>Latest result</h3><div id="out"><div class="empty-state"><div class="empty-symbol">◇</div>Ready when you are.<br>Run this capability to see its result.</div></div></section></div>`;
+  el('go').onclick = invoke;
+  // The agent-facing contract is still one click away -- it is the thing a
+  // reviewer asks to see -- just not the first thing an operator reads.
+  el('showFull').onclick = (e) => {
+    e.preventDefault();
+    const d = el('fullDesc');
+    d.style.display = d.style.display === 'none' ? '' : 'none';
+  };
+}
+
+async function invoke() {
+  if (busy) return;
+  const args = {};
+  el('paneInvoke').querySelectorAll('[data-arg]').forEach((i) => { const v = i.value.trim(); args[i.dataset.arg] = sel.inputSchema.properties[i.dataset.arg].type === 'number' && v !== '' ? Number(v) : v; });
+  const why = el('why') ? el('why').value.trim() : '';
+  const upfront = el('approvalMode')?.value === 'upfront';
+  if (upfront && !why) { el('out').innerHTML = '<pre class="res err">an authorization reason is required for an irreversible capability</pre>'; return; }
+
+  setBusy(true);
+  const t0 = Date.now();
+  const tick = setInterval(() => {
+    el('out').innerHTML = `<pre class="muted">running… ${Math.round((Date.now() - t0) / 1000)}s  (signing on and driving the live console)</pre>`;
+  }, 1000);
+  el('out').innerHTML = '<pre class="muted">running… 0s</pre>';
+  try {
+    const r = await fetch('/capabilities/' + encodeURIComponent(sel.name) + '/invoke', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ arguments: args, ...(upfront && why ? { authorize: { by: 'dashboard', reason: why } } : {}) }),
+    });
+    const j = await r.json();
+    // Three visually distinct results, because the whole point of the contract is
+    // that a business outcome is not a failure.
+    const cls = j.ok ? 'ok' : j.outcome ? 'outcome' : 'err';
+    const head = j.ok ? 'SUCCESS' : j.outcome ? 'BUSINESS OUTCOME — ' + j.outcome.code : 'ERROR — ' + (j.error && j.error.code);
+    const values = j.outputs ?? j.outcome ?? j.error ?? {};
+    el('out').innerHTML = `<div class="result-status ${cls}">${esc(head)}</div>` +
+      `<dl>${Object.entries(values).map(([key,value]) => `<div class="result-item ${/balance/i.test(key) ? 'balance' : ''}"><dt>${esc(fieldLabel(key))}</dt><dd>${esc(typeof value === 'object' ? JSON.stringify(value,null,2) : value)}</dd></div>`).join('')}</dl>` +
+      `<p class="muted">${esc(j.runId || '')} · ${j.durationMs ?? '?'} ms</p>` +
+      `<details class="technical-details"><summary>Run activity & technical details</summary>${stepTable(j.steps)}<pre>${esc(JSON.stringify(j,null,2))}</pre></details>`;
+  } catch (e) {
+    el('out').innerHTML = '<pre class="res err">' + esc(e) + '</pre>';
+  }
+  clearInterval(tick);
+  setBusy(false);
+  refreshRuns();
+}
+
+/**
+ * The per-step trace.
+ *
+ * This is the part of a run worth watching: which locator strategy resolved each
+ * control, how long each step took, and exactly where a failure landed. The API
+ * used to discard it, which left a thirty-second run showing a single spinner and
+ * a failure showing only a message.
+ */
+function stepTable(steps) {
+  if (!Array.isArray(steps) || !steps.length) return '';
+  const rows = steps.map((s, i) =>
+    `<tr>
+       <td class="muted" style="padding-right:10px">${i + 1}</td>
+       <td style="color:${s.ok ? 'var(--ok)' : 'var(--bad)'}">${s.ok ? 'ok' : 'FAIL'}</td>
+       <td style="padding:0 10px">${esc(s.id)}</td>
+       <td class="muted" style="padding-right:10px">${esc(s.action)}</td>
+       <td class="muted" style="padding-right:10px">${esc(s.via || '')}</td>
+       <td class="muted" style="text-align:right">${s.ms}ms</td>
+     </tr>`).join('');
+  return `<p class="muted" style="margin-top:14px">steps</p>
+          <pre class="res"><table style="border-collapse:collapse;width:100%">${rows}</table></pre>`;
+}
+
+const PANES = { tabInvoke: 'paneInvoke', tabChat: 'paneChat', tabTeach: 'paneTeach', tabRuns: 'paneRuns' };
+function showTab(which) {
+  for (const [tab, pane] of Object.entries(PANES)) {
+    el(tab).classList.toggle('on', tab === which);
+    el(pane).style.display = tab === which ? '' : 'none';
+  }
+}
+for (const tab of Object.keys(PANES)) el(tab).onclick = (e) => { e.preventDefault(); showTab(tab); };
+
+el('teachGo').onclick = async () => {
+  if (busy) return;
+  const goal = el('teachGoal').value.trim();
+  if (!goal) return;
+  setBusy(true);
+  const t0 = Date.now();
+  // Discovery is a model driving a browser for a minute or two. Without a visible
+  // clock this is indistinguishable from a hang -- the same mistake the chat tab
+  // made before it ticked.
+  const tick = setInterval(() => {
+    el('teachOut').innerHTML = `<pre class="muted">learning… ${Math.round((Date.now() - t0) / 1000)}s  (a model is driving the live console; this takes 1-2 minutes)</pre>`;
+  }, 1000);
+  el('teachOut').innerHTML = '<pre class="muted">learning… 0s</pre>';
+  try {
+    const member = el('teachMember').value.trim();
+    const r = await fetch('/discover', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ goal, parameters: member ? [{ name: 'memberId', value: member }] : [] }),
+    });
+    const j = await r.json();
+    if (j.ok) {
+      el('teachOut').innerHTML =
+        `<pre class="res ok">LEARNED  ${esc(j.capabilityId)}\n\n` +
+        `${j.steps} steps in ${j.turns} model turns\nreturns: ${esc((j.outputs || []).join(', ') || '(nothing)')}\n` +
+        `evidence: ${esc(j.evidence)}</pre>` +
+        `<p class="muted">It is in the list on the left now. Invoke it and it replays with no model involved.</p>`;
+
+    } else {
+      el('teachOut').innerHTML = `<pre class="res err">DID NOT LEARN\n\n${esc(j.reason || (j.error && j.error.message) || 'unknown')}\n${j.evidence ? 'evidence: ' + esc(j.evidence) : ''}</pre>`;
+    }
+  } catch (e) {
+    el('teachOut').innerHTML = `<pre class="res err">${esc(e)}</pre>`;
+  }
+  clearInterval(tick);
+  setBusy(false);
+  await load();
+  refreshRuns();
+};
+
+// One at a time. Every chat turn drives a real browser replay against the live
+// console, so three clicks used to launch three concurrent Chromiums against the
+// same shared sandbox -- slower, contending, and with nothing on screen to say
+// why.
+let busy = false;
+
+function setBusy(state) {
+  busy = state;
+  for (const id of ['go', 'teachGo', 'chatSend', 'assignmentSelect']) if (el(id)) el(id).disabled = state;
+  el('list').style.pointerEvents = state ? 'none' : '';
+  el('list').style.opacity = state ? '.6' : ''; 
+  el('chatIn').disabled = state;
+  [...document.querySelectorAll('.ex')].forEach((b) => { b.disabled = state; });
+}
+
+async function send() {
+  if (busy) return;
+  const text = el('chatIn').value.trim();
+  if (!text) return;
+  el('chatIn').value = '';
+  push('u', 'YOU', text);
+  history.push({ role: 'user', content: text });
+
+  // A motionless ellipsis for twenty seconds reads as a hung page. A ticking
+  // counter reads as work in progress, which is what it is: the model picks a
+  // capability, then that capability signs on and drives the console.
+  const thinking = push('a', 'ASSISTANT', 'working… 0s');
+  const startedAt = Date.now();
+  const tick = setInterval(() => {
+    thinking.textContent = `working… ${Math.round((Date.now() - startedAt) / 1000)}s  (driving the live console)`;
+  }, 1000);
+  setBusy(true);
+
+  try {
+    const r = await fetch('/chat', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: text, history: history.slice(0, -1) }) });
+    const j = await r.json();
+    if (!j.ok) { thinking.textContent = (j.error && j.error.message) || 'chat failed'; return; }
+    thinking.textContent = j.message;
+    for (const invocation of (j.invocations || (j.invoked ? [j.invoked] : []))) {
+      const d = document.createElement('pre');
+      d.className = 'res ' + (invocation.envelope.ok ? 'ok' : invocation.envelope.outcome ? 'outcome' : 'err');
+      d.textContent = 'called ' + invocation.name + '\n' + JSON.stringify(invocation.envelope, null, 2);
+      el('msgs').appendChild(d);
+    }
+    history.push({ role: 'assistant', content: j.message });
+    el('msgs').scrollTop = el('msgs').scrollHeight;
+  } catch (e) {
+    thinking.textContent = String(e);
+  } finally {
+    clearInterval(tick);
+    setBusy(false);
+    refreshRuns();
+    el('chatIn').focus();
+  }
+}
+
+function push(cls, who, text) {
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls;
+  d.innerHTML = '<div class="who">' + who + '</div><div class="body"></div>';
+  d.querySelector('.body').textContent = text;
+  el('msgs').appendChild(d);
+  el('msgs').scrollTop = el('msgs').scrollHeight;
+  return d.querySelector('.body');
+}
+
+// A real form rather than a keydown listener. Enter-to-submit is then the
+// browser's own behaviour, which is the one path guaranteed to work everywhere --
+// a hand-rolled keydown handler did not fire at all under remote input, and a
+// chat box that only responds to the button reads as broken.
+el('chatForm').addEventListener('submit', (e) => { e.preventDefault(); send(); });
+
+// Clickable rather than prose. The hint used to sit in the message list looking
+// like a message; pasting it back in sent "Ask in plain language, e.g. ..." to the
+// model, which reasonably read it as an instruction about phrasing and answered by
+// restating the question instead of calling anything.
+const EXAMPLES = [
+  'is there a member named Hopper?',
+  'what is the balance of share 103001-S0001 for member 103001?',
+  'transfer $5 from 103001-MMKT-5 to 103001-MMKT-7 for member 103001',
+];
+el('examples').innerHTML = EXAMPLES.map((t, i) =>
+  `<button class="ex" data-i="${i}" style="display:block;margin:6px 0;text-align:left">${esc(t)}</button>`).join('');
+[...document.querySelectorAll('.ex')].forEach((b) => {
+  b.onclick = () => { el('chatIn').value = EXAMPLES[Number(b.dataset.i)]; send(); };
+});
+load();
+
+async function refreshRuns() {
+  try {
+    const data = await (await fetch('/runs')).json();
+    el('liveRuns').replaceChildren();
+    for (const run of data.runs.filter((r) => r.operatorUrl)) {
+      const line = document.createElement('div');
+      const step = (run.events || []).filter((e) => e.type === 'step.start').at(-1);
+      line.textContent = `${run.kind}: ${run.status}${step ? ' · ' + step.id : ''} — `;
+      const link = document.createElement('a');
+      link.href = run.operatorUrl; link.target = '_blank'; link.rel = 'noopener';
+      link.textContent = run.status === 'escalated' ? 'Operator attention needed — open live session' : 'Watch live session';
+      line.appendChild(link); el('liveRuns').appendChild(line);
+    }
+    el('runList').replaceChildren();
+    for (const run of data.runs) {
+      const button = document.createElement('button');
+      button.textContent = `${run.runId} · ${run.capability?.id || run.kind} · ${run.status}`;
+      button.style.display = 'block';
+      button.onclick = async () => {
+        el('runDetail').replaceChildren();
+        const pre = document.createElement('pre'); pre.textContent = JSON.stringify(run, null, 2); el('runDetail').appendChild(pre);
+        const evidence = await (await fetch(`/runs/${encodeURIComponent(run.runId)}/evidence`)).json();
+        for (const file of evidence.files || []) {
+          const a = document.createElement('a'); a.style.display = 'block';
+          a.href = `/runs/${encodeURIComponent(run.runId)}/evidence/${file.kind}/${encodeURIComponent(file.name)}`;
+          a.target = '_blank'; a.rel = 'noopener'; a.textContent = `${file.kind}: ${file.name}`;
+          el('runDetail').appendChild(a);
+        }
+      };
+      el('runList').appendChild(button);
+    }
+  } catch { /* A restart must not clear the result the operator is reading. */ }
+}
+setInterval(refreshRuns, 2000);
+refreshRuns();
+</script>
+</body>
+</html>

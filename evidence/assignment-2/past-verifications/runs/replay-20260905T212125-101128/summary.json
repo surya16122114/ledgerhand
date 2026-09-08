@@ -1,0 +1,180 @@
+{
+  "runId": "replay-20260905T212125-101128",
+  "kind": "replay",
+  "sanitizedEvidenceVersion": 1,
+  "eventCounts": {
+    "handler.matched": 1,
+    "policy": 8,
+    "policy.ceiling": 1,
+    "replay.entry": 1,
+    "replay.start": 1,
+    "run.end": 1,
+    "run.start": 1,
+    "step.end": 8,
+    "step.failed": 1,
+    "step.start": 8,
+    "step.value": 3
+  },
+  "steps": [
+    {
+      "index": 0,
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "action": "navigate",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1136,
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 1,
+      "id": "02-fill-operator-id",
+      "intent": "Enter the operator ID to begin signing on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 795,
+      "target": "textbox \"Operator ID\" in [pii:record] (textbox labelled \"Operator ID\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 2,
+      "id": "03-fill-[secret]",
+      "intent": "Enter the operator [secret] to continue signing on to Meridian Core.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 845,
+      "target": "[secret] \"Password\" in Password=[secret] labelled \"Password\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 3,
+      "id": "04-click-sign-on",
+      "intent": "Click Sign On to complete the sign on process and access the main menu.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1352,
+      "target": "button \"Sign On\" in [pii:record] (button \"Sign On\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 4,
+      "id": "05-click-member-inquiry",
+      "intent": "Click Member Inquiry to search for a member by member [pii:surface-value].",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1791,
+      "target": "link \"Member Inquiry\" (link \"Member Inquiry\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 5,
+      "id": "06-fill-value",
+      "intent": "Enter the member [pii:surface-value] to search for the member record by member ID.",
+      "action": "fill",
+      "risk": "reversible",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1317,
+      "target": "textbox \"Value\" in [pii:record] (textbox labelled \"Value\")",
+      "strategy": {
+        "kind": "labelled-field",
+        "index": 0
+      }
+    },
+    {
+      "index": 6,
+      "id": "07-click-search",
+      "intent": "Click Search to look up the member record for the entered member [pii:surface-value].",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 1753,
+      "target": "button \"Search\" in [pii:record] (button \"Search\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": true,
+        "observed": "all 2 sub-conditions held"
+      }
+    },
+    {
+      "index": 7,
+      "id": "08-click-select",
+      "intent": "Click Select to open the member record for member [pii:surface-value] {{input.memberId}}.",
+      "action": "click",
+      "risk": "safe",
+      "status": "ok",
+      "attempts": 1,
+      "durationMs": 12248,
+      "target": "link \"Select\" in [pii:record] (link \"Select\")",
+      "strategy": {
+        "kind": "role-name",
+        "index": 0
+      },
+      "checkpoint": {
+        "satisfied": false,
+        "observed": "sub-condition 1 failed: /MEMBER RECORD/ not found in 392 chars of visible text"
+      }
+    }
+  ],
+  "recoveries": [],
+  "drift": [],
+  "interventions": [],
+  "warnings": [],
+  "outputKeys": [],
+  "status": "business_outcome",
+  "capability": {
+    "id": "member.read-record",
+    "version": "1.0.0",
+    "digest": "sha256:4dbe04ce2993621938b040b0ee56db6a"
+  },
+  "inputs": {
+    "memberId": "[withheld]",
+    "shareId": "[withheld]"
+  },
+  "outputs": {
+    "memberName": "[withheld]",
+    "email": "[withheld]",
+    "shareBalance": "[withheld]",
+    "shareStatus": "[withheld]"
+  },
+  "outcome": {
+    "code": "VALIDATION_REJECTED"
+  },
+  "durationMs": 21365
+}

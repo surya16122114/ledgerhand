@@ -1,0 +1,246 @@
+{
+  "model": "openai:gpt-4.1",
+  "turns": [
+    {
+      "index": 1,
+      "toolCalls": [
+        {
+          "id": "call_sOo7icrlibYsz3gxVjhajDO4",
+          "name": "fill_field",
+          "args": {
+            "ref": "1:0",
+            "secretName": "meridianOperatorUser",
+            "why": "Enter the operator ID to begin signing on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toolCalls": [
+        {
+          "id": "call_DRpCzVSjTOBnEEERUvG29nr5",
+          "name": "fill_field",
+          "args": {
+            "ref": "4:1",
+            "secretName": "meridianOperatorPass",
+            "why": "Enter the operator [secret] to continue signing on to Meridian Core."
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toolCalls": [
+        {
+          "id": "call_IWtkhPQbWDeuSvJHNhYoF8cj",
+          "name": "click_control",
+          "args": {
+            "ref": "7:3",
+            "why": "Click Sign On to complete the sign on process and access the main menu."
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "toolCalls": [
+        {
+          "id": "call_dbWEeT36Z2aPm9i8BWM45aJE",
+          "name": "click_control",
+          "args": {
+            "ref": "10:1",
+            "why": "Click Member Inquiry to search for a member by member number."
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "toolCalls": [
+        {
+          "id": "call_t6JapNfVJzLoROwQXMQTEeZ6",
+          "name": "fill_field",
+          "args": {
+            "ref": "13:5",
+            "value": "{{input.memberId}}",
+            "why": "Enter the member number to search for the member record by member ID."
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "toolCalls": [
+        {
+          "id": "call_QxUod3HQyHNvDFH2CVgeFdtJ",
+          "name": "click_control",
+          "args": {
+            "ref": "16:6",
+            "why": "Click Search to look up the member record for the entered member number."
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "toolCalls": [
+        {
+          "id": "call_ZyWmvkKw4qWqiH41KIrJ1sZX",
+          "name": "click_control",
+          "args": {
+            "ref": "19:7",
+            "why": "Click Select to open the member record for member number {{input.memberId}}."
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "toolCalls": [
+        {
+          "id": "call_Ps2Lh9soPLWoNJHyZuTonomB",
+          "name": "read_value",
+          "args": {
+            "ref": "22:9",
+            "outputName": "memberName",
+            "why": "Read the member's name from the member record."
+          }
+        },
+        {
+          "id": "call_5nOMn54XwZpfqBRWZgrEqXyQ",
+          "name": "read_value",
+          "args": {
+            "ref": "22:10",
+            "outputName": "email",
+            "why": "Read the member's e-mail address from the member record."
+          }
+        },
+        {
+          "id": "call_BZh6Hkwnz7qxMXYpUkijpmZa",
+          "name": "read_value",
+          "args": {
+            "ref": "22:15",
+            "outputName": "shareBalance",
+            "format": "money",
+            "why": "Read the balance for share ID {{input.shareId}} from the shares table."
+          }
+        },
+        {
+          "id": "call_DT9jqOQIudHRVtBGrkCMNJiX",
+          "name": "read_value",
+          "args": {
+            "ref": "22:16",
+            "outputName": "shareStatus",
+            "format": "regex",
+            "pattern": "^(\\w+)",
+            "why": "Read the status code for share ID {{input.shareId}} from the shares table, capturing only the leading code."
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "toolCalls": [
+        {
+          "id": "call_xeZFLKZlmGTtTRqwqYXXWYcX",
+          "name": "read_value",
+          "args": {
+            "ref": "25:10",
+            "outputName": "email",
+            "why": "Read the member's e-mail address from the member record."
+          }
+        },
+        {
+          "id": "call_PobhItTCsVBiTfYqLcpOLA7G",
+          "name": "read_value",
+          "args": {
+            "ref": "25:15",
+            "outputName": "shareBalance",
+            "format": "money",
+            "why": "Read the balance for share ID {{input.shareId}} from the SHARES / BALANCES table."
+          }
+        },
+        {
+          "id": "call_ago8pGst2uI0SRiRNTsEfWdY",
+          "name": "read_value",
+          "args": {
+            "ref": "25:16",
+            "outputName": "shareStatus",
+            "format": "regex",
+            "pattern": "^(\\w+)",
+            "why": "Read the status code for share ID {{input.shareId}} from the SHARES / BALANCES table, capturing only the leading code."
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "toolCalls": [
+        {
+          "id": "call_xEDdgAswS8UWNqwGMVLt2Iav",
+          "name": "read_value",
+          "args": {
+            "ref": "28:15",
+            "outputName": "shareBalance",
+            "format": "money",
+            "why": "Read the balance for share ID {{input.shareId}} from the SHARES / BALANCES table."
+          }
+        },
+        {
+          "id": "call_2J5N5MrcrNQhI3dJvc59Qioy",
+          "name": "read_value",
+          "args": {
+            "ref": "28:16",
+            "outputName": "shareStatus",
+            "format": "regex",
+            "pattern": "^(\\w+)",
+            "why": "Read the status code for share ID {{input.shareId}} from the SHARES / BALANCES table, capturing only the leading code before the badge."
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "toolCalls": [
+        {
+          "id": "call_xtYERvatkBDNUbtmsiXkH7jM",
+          "name": "read_value",
+          "args": {
+            "ref": "31:16",
+            "outputName": "shareStatus",
+            "format": "regex",
+            "pattern": "^(\\w+)",
+            "why": "Read the status code for share ID {{input.shareId}} from the SHARES / BALANCES table, capturing only the leading code before the badge."
+          }
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "toolCalls": [
+        {
+          "id": "call_X1Jdtc406m7gj9yeRp1NpDy2",
+          "name": "finish_goal",
+          "args": {
+            "successText": "MEMBER RECORD Member No.: {{input.memberId}} Name: Vaughan, Dorothy E-mail: dorothy.v@example.net",
+            "summary": "Signs on, looks up the member by member number, and retrieves the member's name, e-mail address, and the balance and status of the specified share from the member record."
+          }
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "toolCalls": [
+        {
+          "id": "call_I7Cy1xxFMTqnRXcbXP5GGftv",
+          "name": "finish_goal",
+          "args": {
+            "successText": "MEMBER RECORD",
+            "summary": "Signs on, looks up the member by member number, and retrieves the member's name, e-mail address, and the balance and status of the specified share from the member record."
+          }
+        }
+      ]
+    }
+  ]
+}

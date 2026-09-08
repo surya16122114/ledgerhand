@@ -1,6 +1,136 @@
 {
-  "generatedAt": "2026-08-21T19:57:46.628Z",
+  "generatedAt": "2026-09-08T01:30:10.096Z",
   "capabilities": [
+    {
+      "id": "member.find-by-name",
+      "version": "1.0.0",
+      "name": "Find By Name",
+      "summary": "Signs on to Meridian Core, opens Member Inquiry, searches for members by last name '{{input.lastName}}', and reads the member number and name of the first matching record.",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/older-versions/member.find-by-name@1.0.0.json",
+      "digest": "sha256:2134157608d2e1764273cd2f0e41667c",
+      "inputs": [
+        "lastName:string"
+      ],
+      "outputs": [
+        "memberNumber:string",
+        "memberName:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
+      "id": "member.find-by-name",
+      "version": "1.1.0",
+      "name": "Find By Name",
+      "summary": "Signs on to Meridian Core, searches for members by last name '{{input.lastName}}', and reads the member number and name of the first matching record.",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/older-versions/member.find-by-name@1.1.0.json",
+      "digest": "sha256:8fa369486f3baca76ce61550a10100cc",
+      "inputs": [
+        "lastName:string"
+      ],
+      "outputs": [
+        "memberNumber:string",
+        "memberName:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
+      "id": "member.find-by-name",
+      "version": "1.1.1",
+      "name": "Find By Name",
+      "summary": "Searches for members by last name, retrieves the member number and member name from the first matching record in the results.",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/member.find-by-name@1.1.1.json",
+      "digest": "sha256:170820dbb101b05b49a8bf109ddf3054",
+      "inputs": [
+        "lastName:string"
+      ],
+      "outputs": [
+        "memberNumber:string",
+        "memberName:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
+      "id": "member.list-shares",
+      "version": "1.0.0",
+      "name": "List Shares",
+      "summary": "Signs on with teller vault credentials, opens Member Inquiry, finds the member by memberId, opens their record, and reads the complete shares table including all share IDs, types, balances,...",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/member.list-shares@1.0.0.json",
+      "digest": "sha256:fb694a99d9e3af59ce4107d0fc3fad37",
+      "inputs": [
+        "memberId:string"
+      ],
+      "outputs": [
+        "sharesText:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
+      "id": "member.open-share",
+      "version": "1.0.0",
+      "name": "Open Share",
+      "summary": "Opens a new Money Market share for the specified member with the given initial deposit, posts it, and retrieves the new share ID once the process is complete.",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/member.open-share@1.0.0.json",
+      "digest": "sha256:0ad0159f7adb295f2f77c4881441c812",
+      "inputs": [
+        "memberId:string",
+        "shareType:string",
+        "initialDeposit:money"
+      ],
+      "outputs": [
+        "newShareId:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
     {
       "id": "member.open-sub-account",
       "version": "1.0.0",
@@ -9,7 +139,7 @@
       "productId": "corepoint-servicing",
       "recordedTenantId": "meridian-cu",
       "state": "approved",
-      "file": "capabilities/member.open-sub-account@1.0.0.json",
+      "file": "capabilities/assignment-1/member.open-sub-account@1.0.0.json",
       "digest": "sha256:f47305ade8901cc8bae268a44528ff9d",
       "inputs": [
         "memberId:string",
@@ -28,6 +158,62 @@
       "tenantOverlays": []
     },
     {
+      "id": "member.place-hold",
+      "version": "1.0.0",
+      "name": "Place Hold",
+      "summary": "Signs on as a supervisor, looks up the member, places a hold on the specified share with the given reason and notes, reviews the confirmation screen, posts the hold, and retrieves the confi...",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/older-versions/member.place-hold@1.0.0.json",
+      "digest": "sha256:9ecf97fd6382726bea6fa7ee41fe52b4",
+      "inputs": [
+        "memberId:string",
+        "shareId:string",
+        "reason:string",
+        "notes:string"
+      ],
+      "outputs": [
+        "confirmationReference:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
+      "id": "member.place-hold",
+      "version": "1.1.0",
+      "name": "Place Hold",
+      "summary": "Signs on as a supervisor, looks up the member, places a hold on the specified share with the given reason and notes, reviews the confirmation screen, posts the hold, and retrieves the confi...",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/member.place-hold@1.1.0.json",
+      "digest": "sha256:978618d4c90bdcd802026458d373b2f9",
+      "inputs": [
+        "memberId:string",
+        "shareId:string",
+        "reason:string",
+        "notes:string"
+      ],
+      "outputs": [
+        "confirmationReference:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
       "id": "member.read-profile-summary",
       "version": "1.0.0",
       "name": "Read Profile Summary",
@@ -35,7 +221,7 @@
       "productId": "corepoint-servicing",
       "recordedTenantId": "meridian-cu",
       "state": "draft",
-      "file": "capabilities/member.read-profile-summary@1.0.0.json",
+      "file": "capabilities/assignment-1/member.read-profile-summary@1.0.0.json",
       "digest": "sha256:b869d9e986280530141184c7396ac4ce",
       "inputs": [
         "memberId:string"
@@ -52,6 +238,35 @@
       "tenantOverlays": []
     },
     {
+      "id": "member.read-record",
+      "version": "1.0.0",
+      "name": "Read Record",
+      "summary": "Signs on, looks up the member by member number, and retrieves the member's name, e-mail address, and the balance and status of the specified share from the member record.",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/member.read-record@1.0.0.json",
+      "digest": "sha256:4dbe04ce2993621938b040b0ee56db6a",
+      "inputs": [
+        "memberId:string",
+        "shareId:string"
+      ],
+      "outputs": [
+        "memberName:string",
+        "email:string",
+        "shareBalance:money",
+        "shareStatus:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
       "id": "member.read-savings-balance",
       "version": "1.0.0",
       "name": "Read Savings Balance",
@@ -59,7 +274,7 @@
       "productId": "corepoint-servicing",
       "recordedTenantId": "meridian-cu",
       "state": "draft",
-      "file": "capabilities/member.read-savings-balance@1.0.0.json",
+      "file": "capabilities/assignment-1/member.read-savings-balance@1.0.0.json",
       "digest": "sha256:0f743a9a7bf5e4b25bc65828342619da",
       "inputs": [
         "memberId:string"
@@ -75,6 +290,117 @@
       "tenantOverlays": [
         "riverstone-fcu"
       ]
+    },
+    {
+      "id": "member.transfer-funds",
+      "version": "1.0.0",
+      "name": "Transfer Funds",
+      "summary": "Posts a funds transfer between the specified member shares, then retrieves and confirms the transaction reference after successful posting.",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/member.transfer-funds@1.0.0.json",
+      "digest": "sha256:00a3daabc7baa56103e7a2090fa829c7",
+      "inputs": [
+        "memberId:string",
+        "fromShare:string",
+        "toShare:string",
+        "amount:money",
+        "memo:string"
+      ],
+      "outputs": [
+        "confirmationReference:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
+      "id": "member.update-contact",
+      "version": "1.0.0",
+      "name": "Update Contact",
+      "summary": "Updates the member's e-mail address to the specified value, leaving phone and mailing address unchanged, and confirms the new e-mail is saved on the member record screen.",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/older-versions/member.update-contact@1.0.0.json",
+      "digest": "sha256:8884952868eac7de7712afb1540810f8",
+      "inputs": [
+        "memberId:string",
+        "email:string"
+      ],
+      "outputs": [
+        "savedEmail:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
+      "id": "member.update-contact",
+      "version": "1.1.0",
+      "name": "Update Contact",
+      "summary": "Updates the member's email, phone, and mailing address, then reads back all three saved values from the member record to confirm the changes.",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/member.update-contact@1.1.0.json",
+      "digest": "sha256:f8c56a0a7da606466efa3055e6e9cad7",
+      "inputs": [
+        "memberId:string",
+        "email:string",
+        "phone:string",
+        "address:string"
+      ],
+      "outputs": [
+        "savedEmail:string",
+        "savedPhone:string",
+        "savedAddress:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
+    },
+    {
+      "id": "session.sign-on",
+      "version": "1.0.0",
+      "name": "Sign On",
+      "summary": "Signs on to Meridian Core as the configured operator at the specified branch, reaches the main menu, and reads the signed-on operator and branch from the status line at the bottom of the sc...",
+      "productId": "meridian-core",
+      "recordedTenantId": "meridian-core-sandbox",
+      "state": "draft",
+      "file": "capabilities/assignment-2/session.sign-on@1.0.0.json",
+      "digest": "sha256:766b80adef3a8061cf57fc3e206075d8",
+      "inputs": [
+        "branch:string"
+      ],
+      "outputs": [
+        "signedOnOperator:string",
+        "signedOnBranch:string"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED",
+        "SOURCE_SHARE_RESTRICTED",
+        "INSUFFICIENT_FUNDS"
+      ],
+      "tenantOverlays": []
     }
   ]
 }

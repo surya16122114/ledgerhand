@@ -263,9 +263,9 @@ export class InterventionBroker {
     if (!this.opts.evidenceDir) return;
     try {
       const body = { updatedAt: new Date().toISOString(), interventions: this.list() };
-      await writeFile(join(this.opts.evidenceDir, 'interventions.json'), `${JSON.stringify(body, null, 2)}\n`, 'utf8');
+      await writeFile(join(this.opts.evidenceDir, 'interventions.json'), `${JSON.stringify(this.opts.redactor ? this.opts.redactor.deep(body) : body, null, 2)}\n`, 'utf8');
     } catch {
-      /* evidence mirroring is best-effort */
+      this.opts.log?.('evidence.writeFailed', { file: 'interventions.json' });
     }
   }
 }

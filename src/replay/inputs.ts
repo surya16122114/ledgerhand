@@ -41,7 +41,8 @@ export function validateInputs(cap: Capability, provided: Record<string, unknown
 
   for (const param of cap.inputs) {
     const raw = provided[param.name] ?? param.default;
-    if (raw === undefined || raw === '') {
+    const acceptsEmpty = raw === '' && param.type === 'string' && param.pattern !== undefined && new RegExp(param.pattern).test('');
+    if (raw === undefined || (raw === '' && !acceptsEmpty)) {
       if (param.required) errors.push({ name: param.name, message: `required input '${param.name}' (${param.type}) was not supplied` });
       continue;
     }
@@ -190,6 +191,20 @@ export function materialiseTarget(target: TargetDescriptor, inputs: Record<strin
   };
 }
 
+/** Captured identity binds later reads to the same row, not a record-time member. */
+export function materialiseCapturedTarget(target: TargetDescriptor, captured: Record<string, InputValue>): TargetDescriptor {
+  const walk = (v: unknown): unknown => {
+    if (typeof v === 'string') return v.replace(/\{\{\s*captured\.([a-zA-Z0-9_]+)\s*\}\}/g, (_m, name: string) => {
+      if (captured[name] === undefined) throw new Error(`missing captured identity '${name}'`);
+      return String(captured[name]);
+    });
+    if (Array.isArray(v)) return v.map(walk);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, walk(x)]));
+    return v;
+  };
+  return walk(target) as TargetDescriptor;
+}
+
 /** Recursively materialise every target inside a condition. */
 export function materialiseCondition(condition: Condition, inputs: Record<string, InputValue>): Condition {
   switch (condition.kind) {
@@ -197,7 +212,10 @@ export function materialiseCondition(condition: Condition, inputs: Record<string
     case 'controlAbsent':
       return { ...condition, target: materialiseTarget(condition.target, inputs) };
     case 'valueMatches':
-      return { ...condition, target: materialiseTarget(condition.target, inputs) };
+      return { ...condition, target: materialiseTarget(condition.target, inputs), pattern: condition.pattern.replace(/\{\{\s*input\.([a-zA-Z0-9_]+)\s*\}\}/g, (_m, name: string) => {
+        if (inputs[name] === undefined) throw new Error(`missing input '${name}'`);
+        return escapeRegExp(String(inputs[name]));
+      }) };
     case 'all':
     case 'any':
       return { ...condition, of: condition.of.map((c) => materialiseCondition(c, inputs)) };

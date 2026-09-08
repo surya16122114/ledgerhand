@@ -54,7 +54,13 @@ export class Allowlist {
   }
 
   checkUrl(url: string): PolicyDecision {
-    const denied = this.deny.find((re) => re.test(url));
+    const candidates = [url];
+    try {
+      const parsed = new URL(url);
+      parsed.pathname = decodeURIComponent(parsed.pathname).toLowerCase();
+      candidates.push(parsed.href);
+    } catch { /* The original URL must still satisfy the explicit allowlist. */ }
+    const denied = this.deny.find((re) => candidates.some(value => re.test(value)));
     if (denied) return { allowed: false, code: 'URL_DENIED', reason: `url matches deny pattern /${denied.source}/` };
     if (!this.allow.some((re) => re.test(url))) {
       return {
@@ -98,8 +104,16 @@ function compile(patterns: string[], where: string): RegExp[] {
  * Sensible ceiling for a discovery run: the model may explore and fill forms, but
  * the moment it reaches for something irreversible the run stops and a human
  * decides. Discovery is exactly when you do not yet know what a control does.
+ *
+ * `preauthorized` is the deliberate exception, and it is narrow. It says the
+ * caller has already decided, for this run, that committing is in scope -- the
+ * same statement `replay --authorize` makes, carrying the same recorded reason
+ * into the evidence bundle. Without it, recording a write capability means a
+ * person clicking Authorize twice per capability inside an escalation timeout,
+ * which is not a stronger decision than an explicit up-front one, only a
+ * hurried one. The gate still exists; it is satisfiable with an audit trail.
  */
-export function discoveryAllowlist(baseUrl: string): AllowlistConfig {
+export function discoveryAllowlist(baseUrl: string, preauthorized = false): AllowlistConfig {
   const host = escapeRegExp(baseUrl.replace(/\/$/, ''));
   return {
     allowedUrlPatterns: [`^${host}/`],
@@ -108,7 +122,10 @@ export function discoveryAllowlist(baseUrl: string): AllowlistConfig {
     // noticing that "General Ledger" is out of scope.
     deniedUrlPatterns: ['/admin\\.aspx', '/gl\\.aspx'],
     allowedActions: ['navigate', 'click', 'fill', 'select', 'readText', 'waitFor', 'assert'],
-    maxRisk: 'reversible',
+    // Raised only when *this invocation* was authorized to commit, never from
+    // anything the capability or the goal declares about itself -- the same
+    // distinction the replay engine makes, and for the same reason.
+    maxRisk: preauthorized ? 'irreversible' : 'reversible',
     allowEscalationForIrreversible: true,
   };
 }

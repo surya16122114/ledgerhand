@@ -1,0 +1,1160 @@
+{
+  "description": "Signs on as a supervisor, looks up the member, places a hold on the specified share with the given reason and notes, reviews the confirmation screen, posts the hold, and retrieves the confirmation reference.\n\nRecorded from the goal: \"Sign on to Meridian Core as a supervisor, look up the member, place a hold on the given share with the given reason and notes, review the confirmation screen, post the hold, and read the confirmation reference.\"",
+  "id": "member.place-hold",
+  "inputs": [
+    {
+      "description": "The credit union member number.",
+      "name": "memberId",
+      "pattern": "^\\d{6}$",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    },
+    {
+      "description": "Share id to freeze.",
+      "name": "shareId",
+      "pattern": "^\\d{6}-[A-Z0-9]+(-\\d+)?$",
+      "required": true,
+      "sensitivity": "internal",
+      "type": "string"
+    },
+    {
+      "description": "Hold reason code. The host offers FRAUD, LEGAL and DECEASED.",
+      "name": "reason",
+      "pattern": "^(FRAUD|LEGAL|DECEASED)$",
+      "required": true,
+      "sensitivity": "internal",
+      "type": "string"
+    },
+    {
+      "description": "Free-text note, 80 characters maximum.",
+      "name": "notes",
+      "pattern": "^.{0,80}$",
+      "required": true,
+      "sensitivity": "internal",
+      "type": "string"
+    }
+  ],
+  "interrupts": [
+    {
+      "name": "application-error-page",
+      "notDuringAuth": false,
+      "then": {
+        "code": "APP_ERROR",
+        "do": "fail",
+        "message": "the application returned an error page with a support reference"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "APPLICATION ERROR|Reference: ERR-"
+      }
+    },
+    {
+      "name": "supervisor-override-required",
+      "notDuringAuth": false,
+      "then": {
+        "code": "PERMISSION_DENIED",
+        "do": "outcome"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "SUPERVISOR OVERRIDE REQUIRED|not authorized to perform this function"
+      }
+    },
+    {
+      "name": "session-timed-out",
+      "notDuringAuth": true,
+      "then": {
+        "do": "reauthenticate",
+        "maxAttempts": 1
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "YOUR SESSION HAS TIMED OUT|session ended due to inactivity"
+      }
+    },
+    {
+      "name": "maintenance-window",
+      "notDuringAuth": false,
+      "then": {
+        "do": "dismiss",
+        "target": {
+          "description": "Continue link on the maintenance notice",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Continue",
+              "nameMatch": "normalized",
+              "role": "link"
+            }
+          ]
+        },
+        "thenRetryStep": true
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "SCHEDULED MAINTENANCE IN PROGRESS|This window normally clears within a few moments"
+          },
+          {
+            "kind": "controlPresent",
+            "target": {
+              "description": "Continue link on the maintenance notice",
+              "strategies": [
+                {
+                  "kind": "role-name",
+                  "name": "Continue",
+                  "nameMatch": "normalized",
+                  "role": "link"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "record-not-found",
+      "notDuringAuth": true,
+      "then": {
+        "code": "MEMBER_NOT_FOUND",
+        "do": "outcome"
+      },
+      "when": {
+        "kind": "textPresent",
+        "pattern": "RECORD NOT FOUND|could not be located on this host"
+      }
+    },
+    {
+      "name": "unexpected-signon-screen",
+      "notDuringAuth": true,
+      "then": {
+        "do": "escalate",
+        "reason": "the application returned to the sign-on screen without reporting a timed-out session"
+      },
+      "when": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "textAbsent",
+            "pattern": "SESSION HAS TIMED OUT"
+          }
+        ]
+      }
+    }
+  ],
+  "lifecycle": {
+    "stability": {
+      "consecutiveFailures": 0,
+      "fallbackHits": 0,
+      "runs": 0,
+      "successes": 0
+    },
+    "state": "draft"
+  },
+  "name": "Place Hold",
+  "outcomes": [
+    {
+      "code": "MEMBER_NOT_FOUND",
+      "description": "The member number was searched or navigated to and the host reported no such record. A legitimate answer, not an error.",
+      "retryable": true
+    },
+    {
+      "code": "PERMISSION_DENIED",
+      "description": "The signed-on operator profile is not entitled to this function -- the host asks for a supervisor override. Placing a hold is the known case: a teller profile is refused at the review step, a supervisor profile is not. Requires a different operator identity, not a retry.",
+      "retryable": false
+    },
+    {
+      "code": "VALIDATION_REJECTED",
+      "description": "The host rejected the submitted values as malformed. The caller should correct the inputs and retry.",
+      "retryable": true
+    },
+    {
+      "code": "SOURCE_SHARE_RESTRICTED",
+      "description": "The source share carries a HOLD and cannot be debited. The automation did everything correctly and the bank declined; retrying the same inputs will always fail, but the same transfer from a different share may succeed.",
+      "retryable": false
+    },
+    {
+      "code": "INSUFFICIENT_FUNDS",
+      "description": "The source share does not have the available balance for this amount. Not retryable with the same amount.",
+      "retryable": false
+    }
+  ],
+  "outputs": [
+    {
+      "description": "Read the confirmation reference for the hold placement as required by the task.",
+      "name": "confirmationReference",
+      "required": true,
+      "sensitivity": "pii",
+      "type": "string"
+    }
+  ],
+  "overlays": [],
+  "policy": {
+    "allowedActions": [
+      "navigate",
+      "fill",
+      "click",
+      "select",
+      "readText"
+    ],
+    "allowedUrlPatterns": [
+      "^{{baseUrl}}/"
+    ],
+    "maxRisk": "irreversible",
+    "requiresApprovalForIrreversible": true
+  },
+  "provenance": {
+    "discoveryRunId": "discovery-20260904T181258-a090f8",
+    "humanInterventions": 0,
+    "model": "openai:gpt-4.1",
+    "modelTurns": 16,
+    "recordedAt": "2026-09-04T18:13:31.718Z",
+    "recordedBy": "ledgerhand-discovery",
+    "redactionApplied": true,
+    "toolVersion": "ledgerhand/0.1.0",
+    "transcriptDigest": "sha256:f3ed1193009db41d86a2ba55a49675b5"
+  },
+  "schemaVersion": "1.0.0",
+  "steps": [
+    {
+      "action": {
+        "kind": "navigate",
+        "url": "{{baseUrl}}/signon"
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "OPERATOR SIGN ON"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/signon"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "01-open-entry",
+      "intent": "Open the servicing console entry screen",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Operator ID\" in Operator ID:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Operator ID",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "Operator ID:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "meridianSupervisorUser"
+        }
+      },
+      "handlers": [],
+      "id": "02-fill-operator-id",
+      "intent": "Enter the supervisor operator ID to sign on as a supervisor.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "password \"Password\" in Password:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Password",
+              "labelMatch": "normalized",
+              "role": "password"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "password",
+              "section": "Password:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "secret",
+          "name": "meridianSupervisorPass"
+        }
+      },
+      "handlers": [],
+      "id": "03-fill-password",
+      "intent": "Enter the supervisor password to sign on as a supervisor.",
+      "partOfAuth": true,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Sign On\" in Branch:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Sign On",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Sign On",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "Branch:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(4) > td:nth-child(2) > input:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "MAIN MENU"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/menu"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "04-click-sign-on",
+      "intent": "Click Sign On to log in as a supervisor.",
+      "partOfAuth": true,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "link \"Member Inquiry\"",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Member Inquiry",
+              "nameMatch": "normalized",
+              "role": "link"
+            },
+            {
+              "kind": "text",
+              "role": "link",
+              "text": "Member Inquiry",
+              "textMatch": "normalized"
+            },
+            {
+              "css": "tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(1) > font:nth-child(1) > a:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "MEMBER INQUIRY / SELECTION"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "no-matching-member",
+          "notDuringAuth": false,
+          "then": {
+            "code": "MEMBER_NOT_FOUND",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "No member records matched your search"
+          }
+        },
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "05-click-member-inquiry",
+      "intent": "Go to Member Inquiry to look up the member by member number.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Value\" in Value:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Value",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "Value:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "memberId"
+        }
+      },
+      "handlers": [],
+      "id": "06-fill-value",
+      "intent": "Enter the member number to search for the member record.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Search\" in Value:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Search",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Search",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "Value:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2) > input:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "Member No\\."
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "no-matching-member",
+          "notDuringAuth": false,
+          "then": {
+            "code": "MEMBER_NOT_FOUND",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "No member records matched your search"
+          }
+        },
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "07-click-search",
+      "intent": "Search for the member using the entered member number.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "link \"Select\" in Value:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Select",
+              "nameMatch": "normalized",
+              "role": "link"
+            },
+            {
+              "kind": "text",
+              "role": "link",
+              "text": "Select",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "link",
+              "section": "Value:"
+            },
+            {
+              "css": "table:nth-child(5) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(4) > a:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "MEMBER RECORD"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members/\\d+"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "08-click-select",
+      "intent": "Select the member record to view member details and shares.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "link \"Place Account Hold\" in Address:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Place Account Hold",
+              "nameMatch": "normalized",
+              "role": "link"
+            },
+            {
+              "kind": "text",
+              "role": "link",
+              "text": "Place Account Hold",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 3,
+              "kind": "section-ordinal",
+              "role": "link",
+              "section": "Address:"
+            },
+            {
+              "css": "table:nth-child(1) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > a:nth-child(13)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "PLACE ACCOUNT HOLD"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members/\\d+/hold"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "09-click-place-account-hold",
+      "intent": "Start the process to place an account hold on the selected member's share.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "select",
+        "target": {
+          "description": "combobox \"Share\" in Share:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Share",
+              "labelMatch": "normalized",
+              "role": "combobox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "combobox",
+              "section": "Share:"
+            },
+            {
+              "css": "table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2) > select:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "shareId"
+        }
+      },
+      "handlers": [],
+      "id": "10-select-share",
+      "intent": "Select the correct share to place the hold on as specified in the task.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "select",
+        "target": {
+          "description": "combobox \"Reason Code\" in Reason Code:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Reason Code",
+              "labelMatch": "normalized",
+              "role": "combobox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "combobox",
+              "section": "Reason Code:"
+            },
+            {
+              "css": "table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(2) > td:nth-child(2) > select:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "reason"
+        }
+      },
+      "handlers": [],
+      "id": "11-select-reason-code",
+      "intent": "Select {{input.reason}} as the reason code for placing the hold, as specified in the task.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "fill",
+        "target": {
+          "description": "textbox \"Notes\" in Notes:",
+          "strategies": [
+            {
+              "kind": "labelled-field",
+              "label": "Notes",
+              "labelMatch": "normalized",
+              "role": "textbox"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "textbox",
+              "section": "Notes:"
+            },
+            {
+              "css": "table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(2) > input:nth-child(1)",
+              "kind": "dom-hint"
+            }
+          ]
+        },
+        "value": {
+          "from": "input",
+          "name": "notes"
+        }
+      },
+      "handlers": [],
+      "id": "12-fill-notes",
+      "intent": "Enter the notes for the hold as specified in the task parameters.",
+      "partOfAuth": false,
+      "risk": "reversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Continue\" in Notes:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Continue",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Continue",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "Notes:"
+            },
+            {
+              "css": "table:nth-child(2) > tbody:nth-child(1) > tr:nth-child(4) > td:nth-child(2) > input:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "CONFIRM ACCOUNT HOLD"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members/\\d+/hold/review"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "13-click-continue",
+      "intent": "Continue to the confirmation screen to review the hold details before posting.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "click",
+        "target": {
+          "description": "button \"Apply Hold\" in Notes:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Apply Hold",
+              "nameMatch": "normalized",
+              "role": "button"
+            },
+            {
+              "kind": "text",
+              "role": "button",
+              "text": "Apply Hold",
+              "textMatch": "normalized"
+            },
+            {
+              "index": 0,
+              "kind": "section-ordinal",
+              "role": "button",
+              "section": "Notes:"
+            },
+            {
+              "css": "tbody:nth-child(1) > tr:nth-child(3) > td:nth-child(1) > form:nth-child(5) > input:nth-child(5)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "checkpoint": {
+        "kind": "all",
+        "of": [
+          {
+            "kind": "textPresent",
+            "pattern": "ACCOUNT HOLD APPLIED"
+          },
+          {
+            "kind": "urlMatches",
+            "pattern": "/members/\\d+/hold/post"
+          }
+        ]
+      },
+      "handlers": [
+        {
+          "name": "source-share-on-hold",
+          "notDuringAuth": false,
+          "then": {
+            "code": "SOURCE_SHARE_RESTRICTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Source share is HOLD and cannot be debited"
+          }
+        },
+        {
+          "name": "insufficient-balance",
+          "notDuringAuth": false,
+          "then": {
+            "code": "INSUFFICIENT_FUNDS",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "textPresent",
+            "pattern": "Insufficient available balance"
+          }
+        },
+        {
+          "name": "validation-rejected",
+          "notDuringAuth": false,
+          "then": {
+            "code": "VALIDATION_REJECTED",
+            "do": "outcome"
+          },
+          "when": {
+            "kind": "any",
+            "of": [
+              {
+                "kind": "textPresent",
+                "pattern": "The transaction could not be validated"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "TRANSACTION REJECTED"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "must be a valid dollar figure"
+              },
+              {
+                "kind": "textPresent",
+                "pattern": "shares must differ"
+              }
+            ]
+          }
+        },
+        {
+          "name": "transient-slow-load",
+          "notDuringAuth": false,
+          "then": {
+            "backoffMs": 3000,
+            "do": "retryStep",
+            "maxAttempts": 1
+          },
+          "whenFailureCode": [
+            "CHECKPOINT_FAILED",
+            "TIMEOUT"
+          ]
+        }
+      ],
+      "id": "14-click-apply-hold",
+      "intent": "Post the hold after reviewing the confirmation screen to complete the hold placement.",
+      "partOfAuth": false,
+      "risk": "irreversible",
+      "timeoutMs": 10000
+    },
+    {
+      "action": {
+        "kind": "readText",
+        "target": {
+          "description": "cell \"Confirmation\" in Confirmation:",
+          "strategies": [
+            {
+              "kind": "role-name",
+              "name": "Confirmation",
+              "nameMatch": "normalized",
+              "role": "cell"
+            },
+            {
+              "css": "div:nth-child(3) > table:nth-child(4) > tbody:nth-child(1) > tr:nth-child(1) > td:nth-child(2)",
+              "kind": "dom-hint"
+            }
+          ]
+        }
+      },
+      "captureAs": "confirmationReference",
+      "handlers": [],
+      "id": "15-read-confirmation-reference",
+      "intent": "Read the confirmation reference for the hold placement as required by the task.",
+      "partOfAuth": false,
+      "risk": "safe",
+      "timeoutMs": 10000,
+      "transform": {
+        "kind": "trim"
+      }
+    }
+  ],
+  "success": {
+    "checkpoint": {
+      "kind": "textPresent",
+      "pattern": "ACCOUNT HOLD APPLIED"
+    },
+    "description": "the screen shows \"ACCOUNT HOLD APPLIED\""
+  },
+  "summary": "Signs on as a supervisor, looks up the member, places a hold on the specified share with the given reason and notes, reviews the confirmation screen, posts the hold, and retrieves the confi...",
+  "target": {
+    "entryUrl": "{{baseUrl}}/signon",
+    "productId": "meridian-core",
+    "productVersion": "4.2.1",
+    "recordedTenantId": "meridian-core-sandbox",
+    "surfaceKind": "legacy-web"
+  },
+  "version": "1.0.0"
+}
