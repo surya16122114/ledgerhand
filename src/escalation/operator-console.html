@@ -165,8 +165,6 @@ function detailHtml(i) {
       ${c.attempt && c.attempt.expected ? `<tr><td>expected</td><td>${esc(c.attempt.expected)}</td></tr>` : ''}
       ${c.attempt && c.attempt.observed ? `<tr><td>observed</td><td>${esc(c.attempt.observed)}</td></tr>` : ''}
     </table>
-    <h2>on screen</h2>
-    <pre>${esc(c.visibleExcerpt)}</pre>
     <h2>live session</h2>
     <div id="liveWrap"><img id="live" alt="live session"><div id="liveOff">${claimed ? 'connecting…' : done ? 'session control returned to automation' : 'claim this intervention to take control of the live session'}</div></div>
     <div class="hint">${claimed ? 'You have control. Clicks and keystrokes here are dispatched to the real session and recorded. &quot;Authorize &amp; resume&quot; also permits the one irreversible action the run was stopped for.' : 'Automation holds the lease; the view is read-only until you claim.'}</div>

@@ -1,6 +1,29 @@
 {
-  "generatedAt": "2026-09-08T01:30:10.096Z",
+  "generatedAt": "2026-09-08T12:46:23.491Z",
   "capabilities": [
+    {
+      "id": "adhoc.sign-on-to-the-local",
+      "version": "1.0.0",
+      "name": "Sign On To The Local",
+      "summary": "Signs on, looks up member {{input.memberId}}, and reads the current Regular Share Savings balance as savingsBalance.",
+      "productId": "corepoint-servicing",
+      "recordedTenantId": "meridian-cu",
+      "state": "draft",
+      "file": "capabilities/assignment-1/adhoc.sign-on-to-the-local@1.0.0.json",
+      "digest": "sha256:77b8d61d6bf3461afb843b3bbf00caa9",
+      "inputs": [
+        "memberId:string"
+      ],
+      "outputs": [
+        "savingsBalance:money"
+      ],
+      "outcomes": [
+        "MEMBER_NOT_FOUND",
+        "PERMISSION_DENIED",
+        "VALIDATION_REJECTED"
+      ],
+      "tenantOverlays": []
+    },
     {
       "id": "member.find-by-name",
       "version": "1.0.0",

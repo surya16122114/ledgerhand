@@ -13,7 +13,7 @@
   .cap{padding:12px;margin:5px 0;border-radius:9px;cursor:pointer;transition:background .15s}.cap:hover{background:#142f55}.cap.sel{background:#235dde;box-shadow:0 4px 14px #0002}.cap h3{margin:0;font-size:14px;font-weight:500}.cap p,.cap>div{display:none}.cap h3:before{content:'◇';margin-right:10px;color:#a9c6ff}.cap.sel h3:before{color:white}.cap .technical-id{display:none}
   .main{padding:32px 40px;min-width:0}.tabs{display:flex;gap:28px;border-bottom:1px solid var(--line);margin-bottom:28px}.tabs a{color:var(--dim);text-decoration:none;padding:10px 0 13px;border-bottom:3px solid transparent;font-weight:500}.tabs a.on{color:var(--accent);border-color:var(--accent)}
   h2{font:26px/1.3 Georgia,serif;margin:0 0 12px} .task-heading{font-size:34px;letter-spacing:-.6px}.muted{font-size:12px;color:var(--dim)}
-  .task-layout{display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.15fr);gap:24px;margin-top:24px;align-items:start}.card{background:white;border:1px solid var(--line);border-radius:14px;padding:26px;box-shadow:0 3px 12px #172c4503}.card h3{font:22px Georgia,serif;margin:0 0 20px}.empty-state{padding:50px 10px;text-align:center;color:var(--dim)}.empty-symbol{font-size:32px;color:#9ab2dc;margin-bottom:12px}
+  .task-layout{display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.15fr);gap:24px;margin-top:24px;align-items:start}.card{min-width:0;background:white;border:1px solid var(--line);border-radius:14px;padding:26px;box-shadow:0 3px 12px #172c4503}.card h3{font:22px Georgia,serif;margin:0 0 20px}.empty-state{padding:50px 10px;text-align:center;color:var(--dim)}.empty-symbol{font-size:32px;color:#9ab2dc;margin-bottom:12px}
   label{display:block;font-size:13px;margin:17px 0 6px;color:#475369}label .muted{display:block;font-size:11px;margin-top:3px} input,textarea,select{width:100%;font:14px inherit;color:var(--ink);background:#fff;border:1px solid #c9ced7;border-radius:7px;padding:11px 12px}input:focus,textarea:focus,select:focus{outline:3px solid #245fe522;border-color:var(--accent)}textarea{resize:vertical}
   .cap .authorization-tag{display:inline-block;margin:8px 0 0;background:#ffdf9b;color:#573900;border:0;font-size:11px}
   button{background:var(--accent);color:white;border:1px solid #2155c8;border-radius:7px;padding:11px 18px;margin-top:20px;font:500 14px inherit;cursor:pointer;box-shadow:0 2px 3px #17356815}button:hover{background:#174cbf}button:disabled{opacity:.5;cursor:default}.tag{display:inline-block;border:1px solid var(--line);padding:2px 8px;border-radius:20px;font-size:11px;margin:2px;color:var(--dim)}.tag.risk{color:var(--warn)}.tag.approved{color:var(--ok)}
@@ -21,6 +21,7 @@
   .result-status{font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--ok);margin-bottom:18px}.result-status.err{color:var(--bad)}.result-status.outcome{color:var(--warn)}.result-item{border-bottom:1px solid #eceef2;padding:12px 0}.result-item dt{color:var(--dim);font-size:12px}.result-item dd{margin:4px 0;font-size:20px;overflow-wrap:anywhere;white-space:pre-wrap}.result-item.balance dd{font:40px Georgia,serif}.technical-details{margin-top:22px}.technical-details summary{cursor:pointer;color:var(--dim)}
   #liveRuns:empty{display:none}#liveRuns{background:#fff6df}#liveRuns a{color:#935b05}a{color:var(--accent)}table{width:100%;border-collapse:collapse;font-size:12px}td,th{padding:8px;text-align:left;border-bottom:1px solid var(--line)}
   .chat{display:flex;flex-direction:column;min-height:60vh}.msgs{flex:1;overflow:auto}.msg{margin-bottom:18px;padding:16px;background:white;border:1px solid var(--line);border-radius:10px}.msg .who{font-size:10px;color:var(--dim);letter-spacing:.1em}.msg.u .body{color:var(--accent)}.row{display:flex;gap:10px}.row input{flex:1}.row button{margin:0}
+  .shares-scroll{max-width:100%;overflow-x:auto}.result-item dd:has(.shares-scroll){white-space:normal}.shares-table{width:100%;border-collapse:collapse;font-size:13px}.shares-table th,.shares-table td{padding:10px 12px;text-align:left;vertical-align:top}.shares-table th{background:#f3f5f8;color:var(--dim);font-weight:600}.shares-table td:first-child{white-space:nowrap}.shares-table .amount{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}.shares-table .share-status{white-space:nowrap}
   @media(max-width:1100px){.main{padding:24px}.task-layout{grid-template-columns:1fr}}@media(max-width:700px){.wrap{grid-template-columns:1fr}.side{position:relative;height:auto;max-height:260px}.main{padding:18px}.tabs{gap:18px}header{padding:0 18px}header span{font-size:10px}}
 </style>
 </head>
@@ -183,6 +184,20 @@ function select(i) {
   };
 }
 
+function renderOutput(key, value) {
+  if (key === 'sharesText' && typeof value === 'string') {
+    const lines = value.trim().split(/\r?\n/).filter(line => line.trim());
+    const header = /^Share\s+ID\s+Type\s+Balance\s+Status$/i;
+    const rows = lines.slice(1).map(line => line.trim().match(/^(\d{6}-[A-Z0-9]+(?:-\d+)?)\s+(.+?)\s+(\$-?[\d,]+\.\d{2})\s+(.+)$/));
+    // Preserve the original text if an unfamiliar format cannot be parsed completely.
+    if (header.test(lines[0] || '') && rows.length && rows.every(Boolean)) {
+      return '<div class="shares-scroll"><table class="shares-table" aria-label="Member shares"><thead><tr><th scope="col">Share ID</th><th scope="col">Type</th><th scope="col" class="amount">Balance</th><th scope="col">Status</th></tr></thead><tbody>' +
+        rows.map(row => `<tr><td>${esc(row[1])}</td><td>${esc(row[2])}</td><td class="amount">${esc(row[3])}</td><td class="share-status">${esc(row[4])}</td></tr>`).join('') + '</tbody></table></div>';
+    }
+  }
+  return esc(typeof value === 'object' ? JSON.stringify(value,null,2) : value);
+}
+
 async function invoke() {
   if (busy) return;
   const args = {};
@@ -209,7 +224,7 @@ async function invoke() {
     const head = j.ok ? 'SUCCESS' : j.outcome ? 'BUSINESS OUTCOME — ' + j.outcome.code : 'ERROR — ' + (j.error && j.error.code);
     const values = j.outputs ?? j.outcome ?? j.error ?? {};
     el('out').innerHTML = `<div class="result-status ${cls}">${esc(head)}</div>` +
-      `<dl>${Object.entries(values).map(([key,value]) => `<div class="result-item ${/balance/i.test(key) ? 'balance' : ''}"><dt>${esc(fieldLabel(key))}</dt><dd>${esc(typeof value === 'object' ? JSON.stringify(value,null,2) : value)}</dd></div>`).join('')}</dl>` +
+      `<dl>${Object.entries(values).map(([key,value]) => `<div class="result-item ${/balance/i.test(key) ? 'balance' : ''}"><dt>${esc(fieldLabel(key))}</dt><dd>${renderOutput(key,value)}</dd></div>`).join('')}</dl>` +
       `<p class="muted">${esc(j.runId || '')} · ${j.durationMs ?? '?'} ms</p>` +
       `<details class="technical-details"><summary>Run activity & technical details</summary>${stepTable(j.steps)}<pre>${esc(JSON.stringify(j,null,2))}</pre></details>`;
   } catch (e) {

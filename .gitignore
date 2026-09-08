@@ -25,3 +25,6 @@ evidence/assignment-2/original-recordings/exploratory/
 
 # Local JetBrains IDE configuration
 .idea/
+
+# Personal presentation material is maintained outside this repository.
+/docs/TECHNICAL-DEFENCE.md

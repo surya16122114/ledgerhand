@@ -92,3 +92,28 @@ it('requires an explicit choice for upfront approval and omits authorization for
     expect(bodies[1].authorize.reason).toBe('Explicit approval');
   } finally { await browser.close(); await api.close(); }
 });
+
+it('aligns share rows in a table and preserves unfamiliar output without dropping rows', async () => {
+  const api = await startApi({ port: 0 });
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 850 } });
+    let sharesText = 'Share ID\tType\tBalance\tStatus\n103001-S0001\tRegular Shares\t$883.50\tHOLD [HOLD]\n103001-S0070-6\tShare Draft (Checking)\t$10.00\tOPEN';
+    await page.route('**/capabilities/*/invoke', route => route.fulfill({ json: { ok: true, outputs: { sharesText }, steps: [] } }));
+    await page.goto(api.url);
+    await page.locator('.cap').filter({ hasText: 'member_list_shares' }).click();
+    await page.locator('[data-arg="memberId"]').fill('103001');
+    await page.locator('#go').click();
+    await page.locator('.shares-table').waitFor();
+    expect(await page.locator('.shares-table tbody tr').count()).toBe(2);
+    expect(await page.locator('.shares-table tbody tr').nth(1).locator('td').allTextContents()).toEqual(['103001-S0070-6', 'Share Draft (Checking)', '$10.00', 'OPEN']);
+    expect(await page.locator('.shares-table tbody .amount').first().evaluate(el => getComputedStyle(el).textAlign)).toBe('right');
+    await page.setViewportSize({ width: 390, height: 844 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    sharesText += '\nUnrecognized row <example>';
+    await page.locator('#go').click();
+    await page.waitForFunction(() => document.querySelector('#out')?.textContent?.includes('Unrecognized row <example>'));
+    expect(await page.locator('.shares-table').count()).toBe(0);
+    expect(await page.locator('#out example').count()).toBe(0);
+  } finally { await browser.close(); await api.close(); }
+});
