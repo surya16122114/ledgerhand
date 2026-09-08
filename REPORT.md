@@ -44,11 +44,10 @@ Not built: desktop execution, generated test code, LLM-assisted replay recovery,
 
 With more time, I would prioritize:
 
-1. **Resolve and verify the hosted contact-save confirmation failure.** Reconcile the target state, identify why the expected checkpoint is absent, and demonstrate a completed dashboard-to-operator-to-replay write without weakening retry safeguards.
-2. **Schedule read-only canaries per tenant.** Run saved capabilities against representative inputs to detect vendor changes before a caller encounters them. Local cross-tenant replay exists; scheduled monitoring does not.
-3. **Add confidence-based promotion and demotion.** The original Assignment 1 report proposed persisting reliability separately from immutable artifacts. The current catalog now derives stability from persisted summaries matching the artifact digest. Automatic approval, demotion and a durable approval-time reliability snapshot remain future work.
-4. **Harden operator access and recovery.** The same-session console is implemented. Authenticated operators, queue filtering, action playback and reviewed conversion of manual steps into new artifact versions would make it suitable for broader use. A resolution handle could also close the policy gate's resolve-then-act race.
-5. **Consider bounded assisted recovery after the deterministic core is stable.** A single policy-checked model suggestion could help with a missing target, with evidence and review before changing a recording. It must not retry an uncertain transaction or turn replay into an open-ended agent loop.
+1. **Schedule read-only canaries per tenant.** Run saved capabilities against representative inputs to detect vendor changes before a caller encounters them. Local cross-tenant replay exists; scheduled monitoring does not.
+2. **Add confidence-based promotion and demotion.** The original Assignment 1 report proposed persisting reliability separately from immutable artifacts. The current catalog now derives stability from persisted summaries matching the artifact digest. Automatic approval, demotion and a durable approval-time reliability snapshot remain future work.
+3. **Harden operator access and recovery.** The same-session console is implemented. Authenticated operators, queue filtering, action playback and reviewed conversion of manual steps into new artifact versions would make it suitable for broader use. A resolution handle could also close the policy gate's resolve-then-act race.
+4. **Consider bounded assisted recovery after the deterministic core is stable.** A single policy-checked model suggestion could help with a missing target, with evidence and review before changing a recording. It must not retry an uncertain transaction or turn replay into an open-ended agent loop.
 
 If starting again, I would test checkpoint synthesis against a second member and tenant earlier. That exposes recorded values accidentally treated as page structure before they spread into multiple capabilities. These priorities retain the original report's drift, confidence and operator-hardening plans while distinguishing what has since been implemented.
 
